@@ -1,0 +1,301 @@
+import os
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+paramsfilename = f'{dir_path}/Params.ods'
+
+
+def importIfNotAlready():
+	global paramsinitialized
+	try:
+		paramsinitialized
+	except NameError:  # if the params haven't been initialized yet
+		paramsinitialized = True
+		importAll()
+	else:
+		return()
+
+
+def importAll():
+	importDirectories()
+	importAtmVarNames()
+	importClmVarNames()
+	importModelParams()
+	importYieldTemp()
+	importYieldRain()
+	importGrowingSeason()
+	importNutrition()
+
+
+def importDirectories():
+	from pyexcel_ods import get_data
+
+	global rawAtmDataLoc
+	global rawClmDataLoc
+	global geopandasDataDir
+	global figuresDir
+	global growAreaDataLoc
+	global tempCSVloc
+	global temphumsunrainCSVloc
+	data = get_data(paramsfilename)
+	paramdata = data['Directory']
+
+	for coltitleindex in range(0,len(paramdata[1])):
+		coltitle=paramdata[1][coltitleindex]
+		if(coltitle == 'rawAtmDataLoc'):
+			rawAtmDataLoc=paramdata[2][coltitleindex]
+		if(coltitle == 'rawClmDataLoc'):
+			rawClmDataLoc=paramdata[2][coltitleindex]
+		if(coltitle == 'geopandasDataDir'):
+			geopandasDataDir=paramdata[2][coltitleindex]
+		if(coltitle == 'figuresDir'):
+			figuresDir=paramdata[2][coltitleindex]
+		if(coltitle == 'growAreaDataLoc'):
+			growAreaDataLoc=paramdata[2][coltitleindex]
+		if(coltitle == 'tempCSVloc'):
+			tempCSVloc=paramdata[2][coltitleindex]
+		if(coltitle == 'temphumsunrainCSVloc'):
+			temphumsunrainCSVloc=paramdata[2][coltitleindex]
+
+
+def importAtmVarNames():
+	from pyexcel_ods import get_data
+
+	global atmVarNames
+
+	data = get_data(paramsfilename)
+	paramdata = data['AtmVarsToImport']
+
+	column = []
+	atmVarNames=[]
+	for coltitleindex in range(1,len(paramdata[1])):
+		coltitle=paramdata[1][coltitleindex]
+		atmVarNames.append(coltitle)
+
+def importClmVarNames():
+	from pyexcel_ods import get_data
+
+	global clmVarNames
+
+	data = get_data(paramsfilename)
+	paramdata = data['CLMVarsToImport']
+	clmVarNames=[]
+	for coltitleindex in range(1,len(paramdata[1])):
+		coltitle=paramdata[1][coltitleindex]
+		clmVarNames.append(coltitle)
+
+
+def importModelParams():
+	from pyexcel_ods import get_data
+
+	global latdiff
+	global londiff
+	global growAreaBins
+	global allMonths
+	global plotTemps
+	global plotRain
+	global plotSun
+	global plotYield
+	global plotGrowArea
+	global plotTempCoeffs
+	global plotRainCoeffs
+	global saveTempCSV
+	global estimateNutrition
+	global estimateYield
+	global allCrops
+	global rain_mps_to_mm
+
+	data = get_data(paramsfilename)
+	paramdata = data['ModelParams']
+
+	for coltitleindex in range(0,len(paramdata[1])):
+		coltitle=paramdata[1][coltitleindex]
+		if(coltitle == 'latdiff'):
+			latdiff=paramdata[2][coltitleindex]
+		if(coltitle == 'londiff'):
+			londiff=paramdata[2][coltitleindex]
+		if(coltitle == 'growAreaBins'):
+			growAreaBins = paramdata[2][coltitleindex]
+		if(coltitle == 'rain_mps_to_mm'):
+			rain_mps_to_mm = paramdata[2][coltitleindex]
+		if(coltitle=='allMonths'):
+			am=[]
+			for i in range(0,len(paramdata)):
+				if(i<2):
+					continue
+				m=paramdata[i]
+
+				if(not m):
+					break
+				am.append(m[coltitleindex])
+			allMonths=am
+		if(coltitle=='allCrops'):
+			ac=[]
+			for i in range(0,len(paramdata)):
+				if(i<2):
+					continue
+				c=paramdata[i]
+				if(len(c)-1<coltitleindex):
+					break
+				ac.append(c[coltitleindex])
+			allCrops=ac
+		if(coltitle == 'plotTemps'):
+			plotTemps = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'plotRain'):
+			plotRain = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'plotSun'):
+			plotSun = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'plotYield'):
+			plotYield = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'plotGrowArea'):
+			plotGrowArea = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'plotTempCoeff'):
+			plotTempCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'plotRainCoeff'):
+			plotRainCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'saveTempCSV'):
+			saveTempCSV = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'estimateYield'):
+			estimateYield = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+		if(coltitle == 'estimateNutrition'):
+			estimateNutrition = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+
+
+def importYieldTemp():
+	from pyexcel_ods import get_data
+
+	global Tbase
+	global Tfp
+	global Topt1
+	global Topt2
+
+	data = get_data(paramsfilename)
+	paramdata = data['YieldTempCoeff']
+
+	Tbase={}
+	Tfp={}
+	Topt1={}
+	Topt2={}
+
+	for cropindex in range(2,len(paramdata)):
+
+		croprow=paramdata[cropindex]
+		if(not croprow):
+			break
+
+		crop=croprow[0]
+		for coltitleindex in range(1,len(paramdata[1])):
+			coltitle=paramdata[1][coltitleindex]
+			if(coltitle == 'Tbase'):
+				Tbase[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'Tfp'):
+				Tfp[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'Topt1'):
+				Topt1[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'Topt2'):
+				Topt2[crop]=paramdata[cropindex][coltitleindex]
+
+
+def importYieldRain():
+	from pyexcel_ods import get_data
+	
+	global RpeakCoeff	
+	global RlowCoeff	
+	global RhighCoeff	
+	global Rlow	
+	global Rpeak	
+	global Rhigh
+
+	data = get_data(paramsfilename)
+	paramdata = data['YieldRainCoeff']
+
+	RpeakCoeff={}
+	RlowCoeff={}
+	RhighCoeff={}
+	Rlow={}
+	Rpeak={}
+	Rhigh={}
+
+
+	for cropindex in range(2,len(paramdata)):
+
+		croprow=paramdata[cropindex]
+		if(not croprow):
+			break
+
+		crop=croprow[0]
+		for coltitleindex in range(1,len(paramdata[1])):
+			coltitle=paramdata[1][coltitleindex]
+			if(coltitle == 'RpeakCoeff'):
+				RpeakCoeff[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'RlowCoeff'):
+				RlowCoeff[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'RhighCoeff'):
+				RhighCoeff[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'Rlow'):
+				Rlow[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'Rpeak'):
+				Rpeak[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'Rhigh'):
+				Rhigh[crop]=paramdata[cropindex][coltitleindex]
+
+
+def importGrowingSeason():
+	from pyexcel_ods import get_data
+	
+	global growDuration
+	global idealGrowth
+
+	data = get_data(paramsfilename)
+	paramdata = data['GrowingSeason']
+
+	growDuration = {}
+	idealGrowth = {}
+
+	for cropindex in range(2,len(paramdata)):
+
+		croprow=paramdata[cropindex]
+		if(not croprow):
+			break
+
+		crop=croprow[0]
+		for coltitleindex in range(1,len(paramdata[1])):
+			coltitle=paramdata[1][coltitleindex]
+			if(coltitle == 'growDuration'):
+				growDuration[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'idealGrowth'):
+				idealGrowth[crop]=paramdata[cropindex][coltitleindex]
+
+
+def importNutrition():
+	from pyexcel_ods import get_data
+	
+	global kCalperkg
+	global fracProtein
+	global fracFat
+	global fracCarbs
+
+	data = get_data(paramsfilename)
+	paramdata = data['Nutrition']
+
+	kCalperkg = {}
+	fracProtein = {}
+	fracFat = {}
+	fracCarbs = {}
+
+	for cropindex in range(2,len(paramdata)):
+
+		croprow=paramdata[cropindex]
+		if(not croprow):
+			break
+
+		crop=croprow[0]
+		for coltitleindex in range(1,len(paramdata[1])):
+			coltitle=paramdata[1][coltitleindex]
+			if(coltitle == 'kCalperkg'):
+				kCalperkg[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'fracProtein'):
+				fracProtein[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'fracFat'):
+				fracFat[crop]=paramdata[cropindex][coltitleindex]
+			if(coltitle == 'fracCarbs'):
+				fracCarbs[crop]=paramdata[cropindex][coltitleindex]
