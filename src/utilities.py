@@ -3,6 +3,11 @@
 Useful functions that don't involve plotting, called from various locations in the code.
 
 '''
+import os
+import sys
+module_path = os.path.abspath(os.path.join('..'))
+if module_path not in sys.path:
+	sys.path.append(module_path)
 
 from src import params
 
@@ -16,13 +21,24 @@ params.importIfNotAlready()
 #this function is used to make a bunch of rectangle grid shapes so the 
 #plotting looks nice and so we can later add up the crop area inside the grid
 def makeGrid(df):
+	nbins=20
+	mn_lat=-56.00083
+	mx_lat=83.99917
+	mn_lon=-178.875
+	mx_lon=179.875
+	raw_lats = np.linspace(mn_lat, mx_lat,  1681)
+	raw_lons = np.linspace(mn_lon, mx_lon,  4306)
+	cell_size_lats=(raw_lats[1]-raw_lats[0])*(nbins)
+	cell_size_lons=(raw_lons[1]-raw_lons[0])*(nbins)
+
+
 	xmin=np.min(df['lats'])
 	ymin=np.min(df['lons'])
 	xmax=np.max(df['lats'])
 	ymax=np.max(df['lons'])
 	cells=[]
 	for index,row in df.iterrows():
-		cell=shapely.geometry.box(row['lons'], row['lats'], row['lons'] + params.londiff, row['lats'] + params.latdiff)
+		cell=shapely.geometry.box(row['lons'], row['lats'], row['lons'] + params.londiff+cell_size_lons, row['lats'] + cell_size_lats)#params.latdiff)
 		cells.append(cell)
 	crs={'init':'epsg:4326'}
 	geo_df=gpd.GeoDataFrame(df,crs=crs,geometry=cells)
@@ -36,6 +52,14 @@ def rebin(a, shape):
 	sh = shape[0],a.shape[0]//shape[0],shape[1],a.shape[1]//shape[1]
 	return a.reshape(sh).mean(-1).mean(1)
 
+
+# https://stackoverflow.com/questions/8090229/resize-with-averaging-or-rebin-a-numpy-2d-array
+# downsample the 2d array, but add all the values together.
+def rebinCumulative(a, shape):
+	sh = shape[0],a.shape[0]//shape[0],shape[1],a.shape[1]//shape[1]
+	asmall = a.reshape(sh).mean(-1).mean(1)
+	product=np.product((np.array(a.shape)/np.array(shape)))
+	return asmall*product
 
 #save a .pkl file with the gridded data saved in columns labelled by month 
 #number
@@ -69,13 +93,11 @@ def saveasgeopandas(name,allMonths,gridAllMonths,lats,lons):
 #save a .pkl file with the gridded data saved in columns labelled by month 
 #number
 def saveDictasgeopandas(name,data):
-	print(len(data))
-
 	df = pd.DataFrame(data)
 	geometry = gpd.points_from_xy(df.lons, df.lats)
 	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:3857'}, geometry=geometry)
 	grid=makeGrid(gdf)
-	fn= "../" + params.geopandasDataDir + name + '.pkl'
+	fn= params.geopandasDataDir + name + '.pkl'
 
 	grid=grid.sort_values(by=['lats', 'lons'])
 	grid.to_pickle(fn)

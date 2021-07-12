@@ -1,8 +1,9 @@
 import os
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
+print('dir_path')
+print(dir_path)
 paramsfilename = f'{dir_path}/Params.ods'
-
 
 def importIfNotAlready():
 	global paramsinitialized
@@ -17,8 +18,6 @@ def importIfNotAlready():
 
 def importAll():
 	importDirectories()
-	importAtmVarNames()
-	importClmVarNames()
 	importModelParams()
 	importYieldTemp()
 	importYieldRain()
@@ -29,59 +28,47 @@ def importAll():
 def importDirectories():
 	from pyexcel_ods import get_data
 
-	global rawAtmDataLoc
-	global rawClmDataLoc
+	global spamCropYieldDataLoc
+	global pesticidesDataLoc
+	global irrigationDataLoc
+	global livestockDataLoc
+	global aquastatIrrigationDataLoc
+	global cropYieldDataLoc
 	global geopandasDataDir
 	global figuresDir
 	global growAreaDataLoc
 	global tempCSVloc
+	global windCSVloc
 	global temphumsunrainCSVloc
 	data = get_data(paramsfilename)
 	paramdata = data['Directory']
 
 	for coltitleindex in range(0,len(paramdata[1])):
 		coltitle=paramdata[1][coltitleindex]
-		if(coltitle == 'rawAtmDataLoc'):
-			rawAtmDataLoc=paramdata[2][coltitleindex]
-		if(coltitle == 'rawClmDataLoc'):
-			rawClmDataLoc=paramdata[2][coltitleindex]
+		if(coltitle == 'cropYieldDataLoc'):
+			cropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'spamCropYieldDataLoc'):
+			spamCropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'pesticidesDataLoc'):
+			pesticidesDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'irrigationDataLoc'):
+			irrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'livestockDataLoc'):
+			livestockDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'aquastatIrrigationDataLoc'):
+			aquastatIrrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'geopandasDataDir'):
-			geopandasDataDir=paramdata[2][coltitleindex]
+			geopandasDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'figuresDir'):
-			figuresDir=paramdata[2][coltitleindex]
+			figuresDir=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'growAreaDataLoc'):
-			growAreaDataLoc=paramdata[2][coltitleindex]
+			growAreaDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'tempCSVloc'):
-			tempCSVloc=paramdata[2][coltitleindex]
+			tempCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'temphumsunrainCSVloc'):
-			temphumsunrainCSVloc=paramdata[2][coltitleindex]
-
-
-def importAtmVarNames():
-	from pyexcel_ods import get_data
-
-	global atmVarNames
-
-	data = get_data(paramsfilename)
-	paramdata = data['AtmVarsToImport']
-
-	column = []
-	atmVarNames=[]
-	for coltitleindex in range(1,len(paramdata[1])):
-		coltitle=paramdata[1][coltitleindex]
-		atmVarNames.append(coltitle)
-
-def importClmVarNames():
-	from pyexcel_ods import get_data
-
-	global clmVarNames
-
-	data = get_data(paramsfilename)
-	paramdata = data['CLMVarsToImport']
-	clmVarNames=[]
-	for coltitleindex in range(1,len(paramdata[1])):
-		coltitle=paramdata[1][coltitleindex]
-		clmVarNames.append(coltitle)
+			temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'windCSVloc'):
+			windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
 
 
 def importModelParams():

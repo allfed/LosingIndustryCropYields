@@ -3,6 +3,11 @@
 This module performs all the operations necessary to estimate outdoor growth during nuclear winter.
 
 '''
+import os
+import sys
+module_path = os.path.abspath(os.path.join('..'))
+if module_path not in sys.path:
+	sys.path.append(module_path)
 
 from src import params
 from src import utilities
@@ -21,7 +26,7 @@ class OutdoorGrowth:
 	#function saves a CSV of land area of each cell, with temperature, for 
 	#each month in the simulation	
 	def saveTempCSV(self,ts,growArea):
-		with open("../" + params.tempCSVloc, 'w', newline='') as csvfile:
+		with open(params.tempCSVloc, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
 			allcols=[]
 			allcols.append('index')
@@ -42,7 +47,7 @@ class OutdoorGrowth:
 	#function saves a CSV of land area of each cell, with temperature, for 
 	#each month in the simulation	
 	def saveLandSunHumRainCSV(self,ts,humidity,sun,rain,growArea):
-		with open("../" + params.temphumsunrainCSVloc, 'w', newline='') as csvfile:
+		with open(params.temphumsunrainCSVloc, 'w', newline='') as csvfile:
 			writer = csv.writer(csvfile, delimiter=',')
 			allcols=[]
 			allcols.append('index')
@@ -70,6 +75,34 @@ class OutdoorGrowth:
 					allcols.append(s)
 					
 				writer.writerow(allcols)
+
+	#function saves a CSV of percent land area, percent water area, and 
+	#average windspeed in m/s of each cell	
+	def saveWindCSV(self,u,v):
+		with open(params.windCSVloc, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, delimiter=',')
+			allcols=[]
+			allcols.append('index')
+			allcols.append('latitude')
+			allcols.append('longitude')
+			for m in params.allMonths:
+				allcols.append(m+" zonal windspeed (along latitude) (m/s)")
+				allcols.append(m+" meridional windspeed (along longitude) (m/s)")
+			writer.writerow(allcols)
+
+			for index,row in v.iterrows():
+				allcols=[]
+				allcols.append(index)
+				allcols.append(row['lats'])
+				allcols.append(row['lons'])
+
+				for m in params.allMonths:
+					speed = row[m]
+					allcols.append(speed)
+				writer.writerow(allcols)
+				writer.writerow(allcols)
+
+
 	#function returns the temperature coefficient interpolated function
 	#see params.ods for documentation
 	def calcTempCoeffFun(self,crop):
@@ -196,11 +229,10 @@ class OutdoorGrowth:
 		for month in params.allMonths:
 			print('Month '+month+' yields: '+str(yieldsgdf[month].sum()))
 
-			if(show):
-				title = 'Yield for '+crop+' Month '+month+' each Cell'
-				label = 'Yields (kg)'
-				fn=crop+"Yield"+month
-				Plotter.plotMap(yieldsgdf,month,title,label,fn,True)
+			title = 'Yield for '+crop+' Month '+month+' each Cell'
+			label = 'Yields (kg)'
+			fn=crop+"Yield"+month
+			Plotter.plotMap(yieldsgdf,month,title,label,fn,show)
 
 
 	#prints nutrition results summary

@@ -10,15 +10,15 @@ Setup instructions for both are below.
 
 # Setup
 
+## Setup using Colab
+
 In GitHub, navigate to the `notebooks` folder and click on the notebook you
 want to run. Then, click the "Open in Colab" button at the top of the notebook.
 This will open the notebook using Colab - just follow the instructions in 
 the notebook. For anyone new to Colab, you can go through an intro demo here:
 https://colab.research.google.com/notebooks/basic_features_overview.ipynb
 
-Coming soon here: a description of each notebook in this repo
-
-## Setup using Colab
+See "what each file does" section below for an introduction to each notebook.
 
 ## Setup using a local dev environment (only recommended for advanced users)
 
@@ -100,35 +100,38 @@ After the plotting, a CSV of the temperature vs crop area is saved in Data/.
 
 ## What each file does
 
-CropOpt_demo.ipynb - The main program. Runs Modules/OutdoorGrowth.py to 
+#### Notebooks
+
+yield_demo.ipynb - The main program. Runs Modules/OutdoorGrowth.py to 
 calculate yield. Imports from ImportedAsGeopandas/ .pkl files. Runs through 
 the plots, showing precipitation, solar flux, specific humidity, and 
-temperature for each month. in an interactive jupyter notebook.
+temperature for each month. Written in an interactive jupyter notebook.
 
-Import_demo.ipynb - Runs the Import scripts in an interactive jupyter 
+import_demo.ipynb - Runs the Import scripts in an interactive jupyter 
 notebook. Lists available variables from Toon group (Robock) dataset.
 
-ImportAtmData.py - Imports raw nuclear winter atmospheric data from NetCDF 
+#### Python Files 
+
+src/import_atm_data.py - Imports raw nuclear winter atmospheric data from NetCDF
 format, and saves to geopandas (.pkl).
 
-ImportCLMData.py - Imports raw nuclear winter land data from NetCDF format, 
-and saves to geopandas (.pkl).
+src/import_clm_data.py - Imports raw nuclear winter land data from NetCDF 
+format, and saves to geopandas (.pkl).
 
-ImportGrowAreaData.py - Imports arable land data from the FAO into (.pkl) 
-format
+src/import_grow_area_data.py - Imports arable land data from the FAO into 
+(.pkl) format
 
-Params.ods - A spreadsheet file which includes all of the custom parameters used for the model.
-
-Params.py - Imports parameter values from the Params.ods file, including data 
-directory locations, latitude and longitude grid resolution, and which 
+src/params.py - Imports parameter values from the Params.ods file, including 
+data directory locations, latitude and longitude grid resolution, and which 
 variables to import to .pkl files from the raw nuclear winter data.
 
-Plotter - Utility class to plot maps and countries.
+src/plotter.py - Utility class to plot maps and countries.
 
-Modules/ - Folder including each primary functionality of the repository
+src/outdoor_growth.py - Calculates yield from outdoor growth.
 
-Modules/OutdoorGrowth.py - Calculates yield from outdoor growth.
+#### misc
 
+Params.ods - A spreadsheet file which includes all of the custom parameters used for the model.
 
 Project Organization
 ------------
@@ -143,12 +146,13 @@ Project Organization
     │                       `1.0-jqp-initial-data-exploration`.
     │
     ├── reports          <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   ├── literature   <- Relevant papers
-    │   └── figures      <- Generated graphics and figures to be used in reporting
+    │   ├── literature   <- Relevant papers.
+    │   └── figures      <- Generated graphics and figures to be used in reporting.
     │
-    ├── pyproject.toml   <- 
-    ├── poetry.lock      <- File showing exact version of dependencies for reproducing the analysis environment
+    ├── pyproject.toml   <- Contains all the python packages used for poetry. 
+    ├── poetry.lock      <- File showing exact version of dependencies for reproducing the analysis environment.
     ├── src              <- Source code for use in this project.
+        └── modules      <- Python algorithms specific to each crop.
 
 --------
 
