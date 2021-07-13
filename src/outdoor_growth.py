@@ -47,7 +47,9 @@ class OutdoorGrowth:
 			irr_val_tot = irrigation.iloc[index]['area']
 			fer_nit_val = row['n']
 			yield_val = yields.iloc[index]['totalYield']
+
 			data['corrected'].append(yield_val/(irr_val_tot*fer_nit_val))
+			
 		data['corrected']=np.array(data['corrected'])
 		df = pd.DataFrame(data=data)
 		geometry = gpd.points_from_xy(df.lons, df.lats)

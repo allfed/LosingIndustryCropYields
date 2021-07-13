@@ -20,7 +20,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from geopandas.tools import sjoin
 import rasterio
 import utilities
 
@@ -29,7 +28,7 @@ params.importIfNotAlready()
 
 # aquastat=pd.read_csv(params.aquastatIrrigationDataLoc,index_col=False)
 # aq=aquastat.dropna(how='all').replace('',np.nan)
-livestocks = ['Bf','Dk','Gt','Pg','Sh','Ho','Ct']
+livestocks = ['Bf','Dk','Gt','Pg','Sh','Ho','Ct','Ch']
 # we ignore the last latitude cell
 lats = np.linspace(-90, 90 - params.latdiff, \
 			   np.floor(180 / params.latdiff).astype('int'))
@@ -71,7 +70,7 @@ gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 grid= utilities.makeGrid(gdf)
 grid.to_pickle(params.geopandasDataDir + "Livestock.pkl")
 
-title="Cattle, 2010"
-label="Heads cattle in 2 degree square Cell"
-Plotter.plotMap(grid,'Ct',title,label,'HeadsCattle',True)
+title="Chickens, 2010"
+label="Heads chickens in 2 degree square Cell"
+Plotter.plotMap(grid,'Ch',title,label,'HeadsCattle',True)
 
