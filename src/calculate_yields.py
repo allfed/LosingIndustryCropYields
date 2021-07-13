@@ -1,8 +1,6 @@
 '''
 
-A quick utility file to create useful csvs. Each row of the csv is a 
-different ~2 by 2 degree cell from the nuclear winter model.
-
+An example file to deal with variables from different pkl files.
 '''
 
 import os
@@ -13,12 +11,21 @@ if module_path not in sys.path:
 
 from src import params
 from src.plotter import Plotter
+from src import outdoor_growth
+from src.outdoor_growth import OutdoorGrowth
 import pandas as pd
 import geopandas as gpd
+
 
 params.importAll()
 
 #total solar flux at surface , W/m^2
 maize_yield=pd.read_pickle(params.geopandasDataDir + 'MAIZCropYield.pkl')
-
-print(maize_yield.head())
+#total solar flux at surface , W/m^2
+fertilizer=pd.read_pickle(params.geopandasDataDir + 'Fertilizer.pkl')
+irrigation=pd.read_pickle(params.geopandasDataDir + 'Irrigation.pkl')
+# print(maize_yield.columns)
+# print(irrigation.columns)
+# print(fertilizer.columns)
+outdoorGrowth=OutdoorGrowth()
+outdoorGrowth.correctForFertilizerAndIrrigation(maize_yield,fertilizer,irrigation)

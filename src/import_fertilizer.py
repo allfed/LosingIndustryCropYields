@@ -107,7 +107,7 @@ for f in fertilizers:
 
 df = pd.DataFrame(data=data)
 geometry = gpd.points_from_xy(df.lons, df.lats)
-gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4269'}, geometry=geometry)
+gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 
 grid= utilities.makeGrid(gdf)
 grid.to_pickle(params.geopandasDataDir + "Fertilizer.pkl")
