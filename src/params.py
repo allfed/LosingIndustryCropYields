@@ -30,6 +30,7 @@ def importDirectories():
 
 	global spamCropYieldDataLoc
 	global pesticidesDataLoc
+	global fertilizerDataLoc
 	global irrigationDataLoc
 	global livestockDataLoc
 	global aquastatIrrigationDataLoc
@@ -51,6 +52,8 @@ def importDirectories():
 			spamCropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'pesticidesDataLoc'):
 			pesticidesDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'fertilizerDataLoc'):
+			fertilizerDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'irrigationDataLoc'):
 			irrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'livestockDataLoc'):

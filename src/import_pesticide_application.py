@@ -7,25 +7,25 @@ the unit is kilogram per hectare per year (kg/ha-year) application rate
 https://sedac.ciesin.columbia.edu/data/set/ferman-v1-pest-chemgrids-v1-01/metadata:
 	Bounding Coordinates:
 
-	   West Bounding Coordinate: -180.000000
-	   East Bounding Coordinate: 180.000000
-	   North Bounding Coordinate: 56.000000
-	   South Bounding Coordinate: -84.000000
+		West Bounding Coordinate: -180.000000
+		East Bounding Coordinate: 180.000000
+		North Bounding Coordinate: 56.000000
+		South Bounding Coordinate: -84.000000
 
 Horizontal Coordinate System Definition:
 
-   Geographic:
+	Geographic:
 
-	   Latitude Resolution: 5.000000
-	   Longitude Resolution: 5.000000
-	   Geographic Coordinate Units: Arc-Minutes
+		Latitude Resolution: 5.000000
+		Longitude Resolution: 5.000000
+		Geographic Coordinate Units: Arc-Minutes
 
-   Geodetic Model:
+	Geodetic Model:
 
-	   Horizontal Datum Name: WGS84
-	   Ellipsoid Name: WGS84
-	   Semi-major Axis: 6378137.000000
-	   Denominator of Flattening Ratio: 298.257224
+		Horizontal Datum Name: WGS84
+		Ellipsoid Name: WGS84
+		Semi-major Axis: 6378137.000000
+		Denominator of Flattening Ratio: 298.257224
 
 
 Morgan Rivers
@@ -165,8 +165,6 @@ mn_lat=-56.00083
 mx_lat=83.99917
 mn_lon=-178.875
 mx_lon=179.875
-raw_lats = np.linspace(mn_lat, mx_lat,  1681)
-raw_lons = np.linspace(mn_lon, mx_lon,  4306)
 
 
 pSums={}
@@ -180,9 +178,9 @@ start_lon_index=np.floor((mn_lon+180)/five_minute).astype('int')
 
 # we ignore the last latitude cell
 lats = np.linspace(-90, 90 - params.latdiff, \
-				   np.floor(180 / params.latdiff).astype('int'))
+					np.floor(180 / params.latdiff).astype('int'))
 lons = np.linspace(-180, 180 - params.londiff, \
-				   np.floor(360 / params.londiff).astype('int'))
+					np.floor(360 / params.londiff).astype('int'))
 
 result=np.zeros((nbins*len(lats),nbins*len(lons)))
 
