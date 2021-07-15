@@ -29,7 +29,9 @@ params.importIfNotAlready()
 # aquastat=pd.read_csv(params.aquastatIrrigationDataLoc,index_col=False)
 # aq=aquastat.dropna(how='all').replace('',np.nan)
 livestocks = ['Bf','Dk','Gt','Pg','Sh','Ho','Ct','Ch']
-# we ignore the last latitude cell
+
+# we ignore the last latitude cell, and generate what the eventual (lowres)
+# grid will look like
 lats = np.linspace(-90, 90 - params.latdiff, \
 			   np.floor(180 / params.latdiff).astype('int'))
 lons = np.linspace(-180, 180 - params.londiff, \
@@ -66,11 +68,19 @@ for l in livestocks:
 df = pd.DataFrame(data=data)
 geometry = gpd.points_from_xy(df.lons, df.lats)
 gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
-
 grid= utilities.makeGrid(gdf)
 grid.to_pickle(params.geopandasDataDir + "Livestock.pkl")
 
 title="Chickens, 2010"
-label="Heads chickens in 2 degree square Cell"
+label="Heads chickens in ~2 each degree square cell"
 Plotter.plotMap(grid,'Ch',title,label,'HeadsCattle',True)
 
+totalHeadsOfChickens=grid['Ch'].sum()
+print("Total Heads Of Chickens: "+str(totalHeadsOfChickens))
+
+title="Cattle, 2010"
+label="Heads cattle in ~2 each degree square cell"
+Plotter.plotMap(grid,'Ct',title,label,'HeadsCattle',True)
+
+totalHeadsOfCattle=grid['Ct'].sum()
+print("Total Heads Of Cattle: "+str(totalHeadsOfCattle))

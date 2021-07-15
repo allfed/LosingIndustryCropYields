@@ -49,7 +49,7 @@ class OutdoorGrowth:
 			yield_val = yields.iloc[index]['totalYield']
 
 			data['corrected'].append(yield_val/(irr_val_tot*fer_nit_val))
-			
+
 		data['corrected']=np.array(data['corrected'])
 		df = pd.DataFrame(data=data)
 		geometry = gpd.points_from_xy(df.lons, df.lats)
@@ -61,3 +61,12 @@ class OutdoorGrowth:
 		label="arbitrary"
 		Plotter.plotMap(grid,'corrected',title,label,'example',True)
 
+		
+
+		# growing season
+		# radiation
+		# soil water
+
+		#thermal regime (classed according to tropics, subtropical, etc), 
+		# moisture regime (rain, humidity)
+		#soil terrain class

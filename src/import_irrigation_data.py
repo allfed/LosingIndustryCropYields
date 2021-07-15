@@ -97,9 +97,10 @@ data = {"lats": pd.Series(lats2d.ravel()),
 		}
 
 df = pd.DataFrame(data=data)
-geometry = gpd.points_from_xy(df.lons, df.lats)
-gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
-
+geometry_plot = gpd.points_from_xy(df.lons, df.lats)
+geometry_sjoin = gpd.points_from_xy(df.lons+params.londiff/2., df.lats+params.latdiff/2.)
+gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry_sjoin)
+gdf['geometry_plot']=geometry_plot
 #import the country boundaries, so we can see which country coordinates fall into
 world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
@@ -372,12 +373,12 @@ for countryIndex in set(pointInPolys.index_right.values):
 		reliant_sw=1-(1-reliant_scheme_sw)*(1-reliant_source_sw)
 		reliant_nonsw=1-(1-reliant_scheme_nonsw)*(1-reliant_source_nonsw)
 
-		if(~np.isnan(surface_water_area)):
-			print('')
-			print('reliant'+str(reliant))
-			print('estreliant'+str((reliant_sw*surface_water_area+reliant_nonsw*(max_area-surface_water_area))/max_area))
-			print('reliant_sw_rat'+str(reliant_sw*surface_water_area/max_area)		)
-			print('reliant_nonsw_rat'+str(reliant_nonsw*(max_area-surface_water_area)/max_area))
+		# if(~np.isnan(surface_water_area)):
+			# print('')
+			# print('reliant'+str(reliant))
+			# print('estreliant'+str((reliant_sw*surface_water_area+reliant_nonsw*(max_area-surface_water_area))/max_area))
+			# print('reliant_sw_rat'+str(reliant_sw*surface_water_area/max_area)		)
+			# print('reliant_nonsw_rat'+str(reliant_nonsw*(max_area-surface_water_area)/max_area))
 
 		# print('')
 		# print('code'+str(code))
@@ -442,130 +443,24 @@ print(np.sum(gmiav5_reliant_areas_sw)/np.sum(total_gmiav5_sw))
 print('guess for fraction global ground water irrigation that is reliant:')
 print(np.sum(gmiav5_reliant_areas_gw)/np.sum(total_gmiav5_gw))
 
-world.plot(column='reliant',
-	missing_kwds={
-		"color": "lightgrey",
-		"edgecolor": "red",
-		"hatch": "///",
-		"label": "Missing values",
-	},
-	legend=True,
-	legend_kwds={
-		'label': "Fraction Reliant",
-		'orientation': "horizontal"
-	}
-)
-plt.title('Fraction Overall Reliant on Electricity or Diesel')
-plt.show()
+title='Fraction Overall Reliant on Electricity or Diesel'
+label='Fraction Reliant'
+fn='OverallReliantCountries'
+Plotter.plotCountryMaps(world,'reliant',title,label,fn,True)
 
-world.plot(column='reliant_scheme',
-	missing_kwds={
-		"color": "lightgrey",
-		"edgecolor": "red",
-		"hatch": "///",
-		"label": "Missing values",
-	},
-	legend=True,
-	legend_kwds={
-		'label': "Fraction Reliant",
-		'orientation': "horizontal"
-	}
-)
-plt.title('Fraction Scheme Sprinklers or Drip Irrigation')
-plt.show()
+title='Fraction Scheme Sprinklers or Drip Irrigation'
+label='Fraction Reliant'
+fn='SchemeReliantCountries'
+Plotter.plotCountryMaps(world,'reliant_scheme',title,label,fn,True)
+
+title='Fraction Source Reliant on Pumps'
+label='Fraction Reliant'
+fn='SourceReliantCountries'
+Plotter.plotCountryMaps(world,'reliant_source',title,label,fn,True)
 
 
-
-# world.plot(column='reliant_scheme_sw',
-# 	missing_kwds={
-# 		"color": "lightgrey",
-# 		"edgecolor": "red",
-# 		"hatch": "///",
-# 		"label": "Missing values",
-# 	},
-# 	legend=True,
-# 	legend_kwds={
-# 		'label': "Fraction Reliant",
-# 		'orientation': "horizontal"
-# 	}
-# )
-
-# plt.title('Fraction Surface Water Irrigated Scheme that is Reliant on Electricity or Diesel')
-# plt.show()
-
-# world.plot(column='reliant_scheme_nonsw',
-# 	missing_kwds={
-# 		"color": "lightgrey",
-# 		"edgecolor": "red",
-# 		"hatch": "///",
-# 		"label": "Missing values",
-# 	},
-# 	legend=True,
-# 	legend_kwds={
-# 		'label': "Fraction Reliant",
-# 		'orientation': "horizontal"
-# 	}
-# )
-
-# plt.title('Fraction Not Surface Water Irrigation Scheme Reliant on Electricity or Diesel')
-# plt.show()
-
-
-# world.plot(column='reliant_source_sw',
-# 	missing_kwds={
-# 		"color": "lightgrey",
-# 		"edgecolor": "red",
-# 		"hatch": "///",
-# 		"label": "Missing values",
-# 	},
-# 	legend=True,
-# 	legend_kwds={
-# 		'label': "Fraction Reliant",
-# 		'orientation': "horizontal"
-# 	}
-# )
-
-# plt.title('Fraction Surface Water Pumped')
-# plt.show()
-
-# world.plot(column='reliant_source_nonsw',
-# 	missing_kwds={
-# 		"color": "lightgrey",
-# 		"edgecolor": "red",
-# 		"hatch": "///",
-# 		"label": "Missing values",
-# 	},
-# 	legend=True,
-# 	legend_kwds={
-# 		'label': "Fraction Reliant",
-# 		'orientation': "horizontal"
-# 	}
-# )
-
-# plt.title('Fraction Non Surface Water Pumped')
-# plt.show()
-
-
-
-world.plot(column='reliant_source',
-	missing_kwds={
-		"color": "lightgrey",
-		"edgecolor": "red",
-		"hatch": "///",
-		"label": "Missing values",
-	},
-	legend=True,
-	legend_kwds={
-		'label': "Fraction Reliant",
-		'orientation': "horizontal"
-	}
-)
-plt.title('Fraction Source Reliant on Pumps')
-plt.show()
-
-
+pointInPolys['geometry']=pointInPolys['geometry_plot']
 # now overlay percentage ground and surface water dependent on electricity existing irrigation area.
-
 grid= utilities.makeGrid(pointInPolys)
 
 grid.to_pickle(params.geopandasDataDir + "Irrigation.pkl")
@@ -575,16 +470,16 @@ plotGrowArea=True
 
 title="Irrigation Area, 2005"
 label="Area (ha)"
-Plotter.plotMap(grid,'area',title,label,'IrrigationGwArea',plotGrowArea)
+Plotter.plotMap(grid,'area',title,label,'IrrigationArea2005',plotGrowArea)
 
 
 title="Surface Water Area Irrigation Area, 2005"
 label="Area (ha)"
-Plotter.plotMap(grid,'surfacewaterArea',title,label,'IrrigationGwArea',plotGrowArea)
+Plotter.plotMap(grid,'surfacewaterArea',title,label,'IrrigationSwArea2005',plotGrowArea)
 
 title="Ground Water Area Irrigation Area, 2005"
 label="Area (ha)"
-Plotter.plotMap(grid,'groundwaterArea',title,label,'IrrigationSwArea',plotGrowArea)
+Plotter.plotMap(grid,'groundwaterArea',title,label,'IrrigationGwArea2005',plotGrowArea)
 
 
 print("total irrigated area: "+str(grid['area'].sum()))
@@ -593,17 +488,12 @@ print("ground water area as fraction: "+str(grid['groundwaterArea'].sum()/grid['
 print("surface water area: "+str(grid['surfacewaterArea'].sum()))
 print("surface water area as fraction: "+str(grid['surfacewaterArea'].sum()/grid['area'].sum()))
 
-# print(grid)
-# print(grid.columns)
-# print(grid['tot_reliant'])
-# print(grid['sw_reliant'])
-# print(grid['gw_reliant'])
 title="Total Irrigation reliant Area, 2005"
 label="Area (ha)"
-Plotter.plotMap(grid,'tot_reliant',title,label,'ReliantIrrigationArea',plotGrowArea)
+Plotter.plotMap(grid,'tot_reliant',title,label,'ReliantIrrigationArea2005',plotGrowArea)
 title="Total Surface Water reliant Area, 2005"
 label="Area (ha)"
-Plotter.plotMap(grid,'sw_reliant',title,label,'ReliantIrrigationSwArea',plotGrowArea)
+Plotter.plotMap(grid,'sw_reliant',title,label,'ReliantIrrigationSwArea2005',plotGrowArea)
 title="Total Ground Water reliant Area, 2005"
 label="Area (ha)"
-Plotter.plotMap(grid,'gw_reliant',title,label,'ReliantIrrigationGwArea',plotGrowArea)
+Plotter.plotMap(grid,'gw_reliant',title,label,'ReliantIrrigationGwArea2005',plotGrowArea)

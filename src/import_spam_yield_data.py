@@ -86,11 +86,11 @@ for crop in params.allCrops:
 
 	title="Average Global Grow Area "+ crop + " for Years 2009-2011"
 	label="Grow Area (ha)"
-	Plotter.plotMap(grid,'growArea',title,label,'CropYield',plotGrowArea)
+	Plotter.plotMap(grid,'growArea',title,label,'CropGrowArea',plotGrowArea)
 
 	title="Average Global Yield "+ crop + " for Years 2009-2011"
 	label="Yield (kg/ha)"
-	Plotter.plotMap(grid,'yieldPerArea',title,label,'CropArea',plotGrowArea)
+	Plotter.plotMap(grid,'yieldPerArea',title,label,'CropYield',plotGrowArea)
 
 	grid['totalYield'] = (df['growArea'] * df['yieldPerArea'])
 

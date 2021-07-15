@@ -52,15 +52,15 @@ params.importIfNotAlready()
 years=['2020']
 bounds=['L','H']
 crops=[ \
-	'Alfalfa',\
+	# 'Alfalfa',\
 	'Corn',\
-	'Cotton',\
-	'OrcGra',\
-	'Other',\
-	'PasHay',\
+	# 'Cotton',\
+	# 'OrcGra',\
+	# 'Other',\
+	# 'PasHay',\
 	'Rice',\
 	'Soybean',\
-	'VegFru',\
+	# 'VegFru',\
 	'Wheat'\
 ]
 pesticides=[ \
@@ -196,13 +196,13 @@ grid= utilities.makeGrid(gdf)
 
 sizeArray=[len(lats),len(lons)]
 y="2020"
-for p in pesticides:
+for c in crops:
 	for b in bounds:
 		print('')
-		print(p+'_'+b+':')
-		pSums=[]
+		print(c+'_'+b+':')
+		cSums=[]
 		n_imported=0
-		for c in crops:
+		for p in pesticides:
 			fn=params.pesticidesDataLoc+'APR_'+\
 				c+\
 				'_'+p+\
@@ -220,30 +220,42 @@ for p in pesticides:
 				pArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
 
 				pArrResizedFiltered=np.where(pArrResized<0, 0, pArrResized)
+				
+				#print pesticide if data for application of this pesticide exists 
+				print('    '+p)
+				
+				#record the pesticide amount for each pesticide
+				pBinned= utilities.rebin(pArrResizedFiltered, sizeArray)
+				pBinnedReoriented=np.flipud(pBinned)
+
+				grid[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
+
+				n_imported=n_imported+1
 
 				#add the pesticides of this type for this crop to the total
-				if(len(pSums)==0):
-					pSums=pArrResizedFiltered
+				if(len(cSums)==0):
+					cSums=pArrResizedFiltered
 				else:
-					pSums=np.array(pSums)+np.array(pArrResizedFiltered)
-					#print crop if data for application of this pesticide 
-					#exists 
-					print('    '+c)
+					cSums=np.array(cSums)+np.array(pArrResizedFiltered)	
 
-		if(len(pSums)==0):
+		if(len(cSums)==0):
 			continue
-		pBinned= utilities.rebin(pSums, sizeArray)
-	
-		pBinnedReoriented=np.flipud(pBinned)
-		n_imported=n_imported+1
-		grid[p+'_total_'+b]=pd.Series(pBinnedReoriented.ravel())
+		cBinned= utilities.rebin(cSums, sizeArray)
+		
+		cBinnedReoriented=np.flipud(cBinned)
 
-grid.to_pickle(params.geopandasDataDir + "Pesticides.pkl")
+		grid['total_'+b]=pd.Series(pBinnedReoriented.ravel())
 
-plotGrowArea=True
-title="2,4-d Pesticide Application Rate, 2020, Lower Bound"
-label="Application Rate (kg/ha/year)"
-Plotter.plotMap(grid,'2,4-d_total_L',title,label,'24dPestLow',plotGrowArea)
-title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
-label="Application Rate (kg/ha/year)"
-Plotter.plotMap(grid,'2,4-d_total_H',title,label,'24dPestHigh',plotGrowArea)
+	grid.to_pickle(params.geopandasDataDir + c + "Pesticides.pkl")
+
+	plotGrowArea=True
+	title=c+" Total Pesticide Application Rate, 2020, Lower Bound"
+	label="Application Rate (kg/ha/year)"
+	Plotter.plotMap(grid,'total_L',title,label,'TotPesticidesByCropLow',plotGrowArea)
+	plotGrowArea=True
+	title=c+" Total Pesticide Application Rate, 2020, Upper Bound"
+	label="Application Rate (kg/ha/year)"
+	Plotter.plotMap(grid,'total_H',title,label,'TotPesticidesByCropHigh',plotGrowArea)
+	# title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
+	# label="Application Rate (kg/ha/year)"
+	# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)

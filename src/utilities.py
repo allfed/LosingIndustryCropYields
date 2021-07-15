@@ -21,24 +21,22 @@ params.importIfNotAlready()
 #this function is used to make a bunch of rectangle grid shapes so the 
 #plotting looks nice and so we can later add up the crop area inside the grid
 def makeGrid(df):
-	nbins=20
-	mn_lat=-56.00083
-	mx_lat=83.99917
-	mn_lon=-178.875
-	mx_lon=179.875
-	raw_lats = np.linspace(mn_lat, mx_lat,  1681)
-	raw_lons = np.linspace(mn_lon, mx_lon,  4306)
-	cell_size_lats=(raw_lats[1]-raw_lats[0])*(nbins)
-	cell_size_lons=(raw_lons[1]-raw_lons[0])*(nbins)
+	nbins=params.growAreaBins
+	cell_size_lats=params.latdiff
+	cell_size_lons=params.londiff
+	# mn_lat=-56.00083
+	# mx_lat=83.99917
+	# mn_lon=-178.875
+	# mx_lon=179.875
+	# raw_lats = np.linspace(mn_lat, mx_lat,  1681)
+	# raw_lons = np.linspace(mn_lon, mx_lon,  4306)
+	# cell_size_lats=(raw_lats[1]-raw_lats[0])*(nbins)
+	# cell_size_lons=(raw_lons[1]-raw_lons[0])*(nbins)
 
 
-	xmin=np.min(df['lats'])
-	ymin=np.min(df['lons'])
-	xmax=np.max(df['lats'])
-	ymax=np.max(df['lons'])
 	cells=[]
 	for index,row in df.iterrows():
-		cell=shapely.geometry.box(row['lons'], row['lats'], row['lons'] + params.londiff+cell_size_lons, row['lats'] + cell_size_lats)#params.latdiff)
+		cell=shapely.geometry.box(row['lons'], row['lats'], row['lons'] + params.londiff, row['lats'] + cell_size_lats)#params.latdiff)
 		cells.append(cell)
 	crs={'init':'epsg:4326'}
 	geo_df=gpd.GeoDataFrame(df,crs=crs,geometry=cells)

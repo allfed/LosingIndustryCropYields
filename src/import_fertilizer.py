@@ -39,13 +39,13 @@ mx_lon=180
 #5 arcminutes in degrees
 five_minute=5/60
 
-raw_lats = np.linspace(mn_lat, mx_lat,  np.floor((mx_lat-mn_lat)/five_minute).astype('int')) #5 minute res
-raw_lons = np.linspace(mn_lon, mx_lon,  np.floor((mx_lon-mn_lon)/five_minute).astype('int')) #5 minute res
+# raw_lats = np.linspace(mn_lat, mx_lat,  np.floor((mx_lat-mn_lat)/five_minute).astype('int')) #5 minute res
+# raw_lons = np.linspace(mn_lon, mx_lon,  np.floor((mx_lon-mn_lon)/five_minute).astype('int')) #5 minute res
 
-print(raw_lats)
-print(raw_lons)
-print(len(raw_lats))
-print(len(raw_lons))
+# print(raw_lats)
+# print(raw_lons)
+# print(len(raw_lats))
+# print(len(raw_lons))
 
 pSums={}
 nbins=params.growAreaBins
@@ -112,8 +112,12 @@ gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 grid= utilities.makeGrid(gdf)
 grid.to_pickle(params.geopandasDataDir + "Fertilizer.pkl")
 
-title="Nitrogen Fertilizer Application, "
-label="kg N/m^2/year "
+title="Nitrogen Fertilizer Application, no manure"
+label="kg/m^2/year "
 Plotter.plotMap(grid,'n',title,label,'NitrogenFertilizer',True)
+
+title="Phosphorus Fertilizer Application, no manure"
+label="kg/m^2/year "
+Plotter.plotMap(grid,'p',title,label,'PhosphorusFertilizer',True)
 
 

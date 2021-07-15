@@ -18,6 +18,28 @@ class Plotter:
 	def __init__(self):
 		pass
 
+	def plotCountryMaps(worldgdf,column,title,label,fn,show):
+		worldgdf.plot(column=column,
+			missing_kwds={
+				"color": "lightgrey",
+				"edgecolor": "red",
+				"hatch": "///",
+				"label": "Missing values",
+			},
+			legend=True,
+			legend_kwds={
+				'label': label,
+				'orientation': "horizontal"
+			}
+		)
+		plt.title(title)
+		plt.savefig(params.figuresDir + fn + '.png')
+		if(show):
+			plt.show()
+		else:
+			plt.close()
+
+
 	def plotPoints(gdf,column,title,legendlabel,fn,show):
 		world=gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 
