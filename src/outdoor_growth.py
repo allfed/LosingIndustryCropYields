@@ -27,6 +27,9 @@ class OutdoorGrowth:
 
 	def correctForFertilizerAndIrrigation(self,yields,fertilizer,irrigation):
 
+		print(irrigation)
+		print(fertilizer)
+		print(yields)
 		nbins=params.growAreaBins
 		#start out making empty geodataframe
 		lats = np.linspace(-90, 90 - params.latdiff, \
@@ -39,23 +42,25 @@ class OutdoorGrowth:
 		lats2d, lons2d = np.meshgrid(lats, lons)
 		data = {"lats": pd.Series(lats2d.ravel()),
 				"lons": pd.Series(lons2d.ravel())}
+		
+		df = pd.DataFrame(data=data)
+		geometry = gpd.points_from_xy(df.lons, df.lats)
+		gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+		grid= utilities.makeGrid(gdf)
 
 		#now iterate through rows and calculate values for each grid cell
-		data['corrected']=[]
+		corrected=[0]*len(fertilizer)
 		for index,row in fertilizer.iterrows():
 			
 			irr_val_tot = irrigation.iloc[index]['area']
 			fer_nit_val = row['n']
 			yield_val = yields.iloc[index]['totalYield']
 
-			data['corrected'].append(yield_val/(irr_val_tot*fer_nit_val))
+			corrected[index]=yield_val*irr_val_tot*fer_nit_val
 
-		data['corrected']=np.array(data['corrected'])
-		df = pd.DataFrame(data=data)
-		geometry = gpd.points_from_xy(df.lons, df.lats)
-		gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+		grid['corrected']=corrected
+		# data['corrected']=np.array(data['corrected'])
 
-		grid= utilities.makeGrid(gdf)
 
 		title="Multiply some variables as example"
 		label="arbitrary"

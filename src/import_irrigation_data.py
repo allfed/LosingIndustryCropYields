@@ -107,6 +107,8 @@ world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
 #get groups of countries which match the coordinates for population losing electricity
 pointInPolys = sjoin(gdf, world)
 
+print(pointInPolys.columns)
+print(pointInPolys.head())
 def get_value(val_id):
 	vals=countryRows[countryRows['Variable Id']==val_id]['Value'].values
 	if(len(vals)==0):
@@ -320,10 +322,11 @@ world['reliant_source']=np.nan
 world['reliant_scheme']=np.nan
 world['reliant_source_sw']=np.nan
 world['reliant_scheme_sw']=np.nan
-pointInPolys['tot_reliant']=np.nan
-pointInPolys['sw_reliant']=np.nan
-pointInPolys['gw_reliant']=np.nan
+gdf['tot_reliant']=0
+gdf['sw_reliant']=0
+gdf['gw_reliant']=0
 for countryIndex in set(pointInPolys.index_right.values):
+	
 	row=world[world.index==countryIndex]
 	code=row['iso_a3'].values[0]
 	highRes=pointInPolys[pointInPolys['iso_a3']==code]
@@ -419,10 +422,11 @@ for countryIndex in set(pointInPolys.index_right.values):
 		gmiav5_reliant_area_sw=highRes['surfacewaterArea'].sum()*reliant_sw
 		gmiav5_reliant_area_gw=highRes['groundwaterArea'].sum()*reliant_nonsw
 
+
 		for i, row in pointInPolys[pointInPolys['iso_a3'] == code].iterrows():
-			pointInPolys.loc[i,'tot_reliant']=row['area']*reliant
-			pointInPolys.loc[i,'sw_reliant']=row['surfacewaterArea']*reliant_sw
-			pointInPolys.loc[i,'gw_reliant']=row['groundwaterArea']*reliant_nonsw
+			gdf.loc[i,'tot_reliant']=row['area']*reliant
+			gdf.loc[i,'sw_reliant']=row['surfacewaterArea']*reliant_sw
+			gdf.loc[i,'gw_reliant']=row['groundwaterArea']*reliant_nonsw
 
 		gmiav5_reliant_areas.append(gmiav5_reliant_area)
 		gmiav5_reliant_areas_sw.append(gmiav5_reliant_area_sw)
@@ -459,9 +463,9 @@ fn='SourceReliantCountries'
 Plotter.plotCountryMaps(world,'reliant_source',title,label,fn,True)
 
 
-pointInPolys['geometry']=pointInPolys['geometry_plot']
+gdf['geometry']=gdf['geometry_plot']
 # now overlay percentage ground and surface water dependent on electricity existing irrigation area.
-grid= utilities.makeGrid(pointInPolys)
+grid= utilities.makeGrid(gdf)
 
 grid.to_pickle(params.geopandasDataDir + "Irrigation.pkl")
 
