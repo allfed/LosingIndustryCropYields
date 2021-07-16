@@ -113,7 +113,6 @@ def importModelParams():
 				if(i<2):
 					continue
 				m=paramdata[i]
-
 				if(not m):
 					break
 				am.append(m[coltitleindex])
@@ -124,6 +123,8 @@ def importModelParams():
 				if(i<2):
 					continue
 				c=paramdata[i]
+				if(not c):
+					break
 				if(len(c)-1<coltitleindex):
 					break
 				ac.append(c[coltitleindex])
