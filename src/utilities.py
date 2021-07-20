@@ -79,13 +79,13 @@ def saveasgeopandas(name,allMonths,gridAllMonths,lats,lons):
 		data[month]=pd.Series(grid.ravel())
 	df = pd.DataFrame(data=data)
 	geometry = gpd.points_from_xy(df.lons, df.lats)
-	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:3857'}, geometry=geometry)
+	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 
 	grid = makeGrid(gdf)
-	fn = params.geopandasDataDir + name + '.pkl'
+	fn = params.geopandasDataDir + name + '.csv'
 
 	grid=grid.sort_values(by=['lats', 'lons'])
-	grid.to_pickle(fn)
+	grid.to_csv(fn)
 
 
 #save a .pkl file with the gridded data saved in columns labelled by month 
@@ -93,7 +93,7 @@ def saveasgeopandas(name,allMonths,gridAllMonths,lats,lons):
 def saveDictasgeopandas(name,data):
 	df = pd.DataFrame(data)
 	geometry = gpd.points_from_xy(df.lons, df.lats)
-	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:3857'}, geometry=geometry)
+	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 	grid=makeGrid(gdf)
 	fn= params.geopandasDataDir + name + '.pkl'
 
@@ -101,3 +101,12 @@ def saveDictasgeopandas(name,data):
 	grid.to_pickle(fn)
 
 	return grid
+
+
+def load_geopandas(filename):
+	import shapely.wkt
+	csv=pandas.read_csv('../data/processed/U.csv')
+	polygons=csv['geometry']
+	geometry=[shapely.wkt.loads(p) for p in polygons]
+	crs={'init':'epsg:4326'}
+	geo_df = GeoDataFrame(cs, crs=crs, geometry=geometry)
