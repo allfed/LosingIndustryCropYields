@@ -49,7 +49,7 @@ import rasterio
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
-years=['2020']
+years=['2015']
 bounds=['L','H']
 crops=[ \
 	# 'Alfalfa',\
@@ -201,7 +201,6 @@ for c in crops:
 		print('')
 		print(c+'_'+b+':')
 		cSums=[]
-		n_imported=0
 		for p in pesticides:
 			fn=params.pesticidesDataLoc+'APR_'+\
 				c+\
@@ -230,8 +229,6 @@ for c in crops:
 
 				grid[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
 
-				n_imported=n_imported+1
-
 				#add the pesticides of this type for this crop to the total
 				if(len(cSums)==0):
 					cSums=pArrResizedFiltered
@@ -246,7 +243,7 @@ for c in crops:
 
 		grid['total_'+b]=pd.Series(pBinnedReoriented.ravel())
 
-	grid.to_pickle(params.geopandasDataDir + c + "Pesticides.pkl")
+	grid.to_pickle(params.geopandasDataDir + c + "PesticidesByCrop.pkl")
 
 	plotGrowArea=True
 	title=c+" Total Pesticide Application Rate, 2020, Lower Bound"

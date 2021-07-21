@@ -49,7 +49,7 @@ import rasterio
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
-years=['2020']
+years=['2015']
 bounds=['L','H']
 crops=[ \
 	'Alfalfa',\
