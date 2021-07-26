@@ -83,7 +83,7 @@ for f in files:
 	fArrResizedFiltered=np.where(fArrResized<0, 0, fArrResized)
 	
 	#record the nitrogen amount for each pesticide
-	fBinned= utilities.rebinCumulative(fArrResizedFiltered, sizeArray)
+	fBinned= utilities.rebin(fArrResizedFiltered, sizeArray)
 	fBinnedReoriented=np.flipud(fBinned)
 
 	grid[coltitle]=pd.Series(fBinnedReoriented.ravel())
