@@ -31,7 +31,9 @@ def importDirectories():
 	global spamCropYieldDataLoc
 	global pesticidesDataLoc
 	global tillageDataLoc
+	global aezDataLoc
 	global fertilizerDataLoc
+	global manureFertilizerDataLoc
 	global irrigationDataLoc
 	global livestockDataLoc
 	global aquastatIrrigationDataLoc
@@ -55,8 +57,12 @@ def importDirectories():
 			pesticidesDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'tillageDataLoc'):
 			tillageDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'aezDataLoc'):
+			aezDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'fertilizerDataLoc'):
 			fertilizerDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'manureFertilizerDataLoc'):
+			manureFertilizerDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'irrigationDataLoc'):
 			irrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'livestockDataLoc'):

@@ -50,6 +50,29 @@ def rebin(a, shape):
 	sh = shape[0],a.shape[0]//shape[0],shape[1],a.shape[1]//shape[1]
 	return a.reshape(sh).mean(-1).mean(1)
 
+# https://stackoverflow.com/questions/8090229/resize-with-averaging-or-rebin-a-numpy-2d-array
+# downsample the 2d array so that crop percentages are averaged.
+def rebinIgnoreZeros(a, shape):
+	sh = shape[0],a.shape[0]//shape[0],shape[1],a.shape[1]//shape[1]
+	asmall = a.reshape(sh).mean(-1).mean(1)
+	
+	#when zero, true, false otherwise. Number gives fraction of cells that are
+	#nonzero
+	anonzeros = 1-(a==0).reshape(sh).mean(-1).mean(1)
+
+	#if all cells are zero, report nan for yield
+	anonzeronan = np.where(anonzeros==0,np.nan,anonzeros)
+	
+	#multiply average by fraction zero cells, to cancel out their effect
+	#cell_avg=cell_sum/ncells => 25% zero cells would be
+	#cell_avg=cell_sum_nonzeros/(cells_zero+cells_nonzero)
+	#cell_avg_nonzero=cell_sum_nonzeros/(cells_nonzero)
+	#therefore
+	#cell_avg_nonzero=cell_avg*(cells_zero+cells_nonzero)/(cells_nonzero)
+	#cell_avg_nonzero=cell_avg/(fraction_cells_nonzero)
+
+	return np.divide(asmall,anonzeronan)
+
 
 # https://stackoverflow.com/questions/8090229/resize-with-averaging-or-rebin-a-numpy-2d-array
 # downsample the 2d array, but add all the values together.

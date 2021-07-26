@@ -57,8 +57,9 @@ for crop in params.allCrops:
 	aArrResizedFiltered=np.where(aArrResized<0, 0, aArrResized)
 	tArrResizedFiltered=np.multiply(yArrResizedFiltered,aArrResizedFiltered)
 
-	yBinned= utilities.rebin(yArrResizedFiltered, sizeArray)
-	yBinnedReoriented=np.fliplr(np.transpose(yBinned))
+	# yBinned= utilities.rebinIgnoreZeros(yArrResizedFiltered, sizeArray)
+	# yBinned= utilities.rebin(yArrResizedFiltered, sizeArray)
+	# yBinnedReoriented=np.fliplr(np.transpose(yBinned))
 	aBinned= utilities.rebinCumulative(aArrResizedFiltered, sizeArray)
 	aBinnedReoriented=np.fliplr(np.transpose(aBinned))
 	tBinned = utilities.rebinCumulative(tArrResizedFiltered, sizeArray)
@@ -69,10 +70,11 @@ for crop in params.allCrops:
 	data = {"lats": pd.Series(lats2d.ravel()),
 			"lons": pd.Series(lons2d.ravel()),
 			# crop area 1000s of km (hectares).
-			"yieldPerArea": pd.Series(yBinnedReoriented.ravel()),
+			# "yieldPerArea": pd.Series(yBinnedReoriented.ravel()),
 			"growArea": pd.Series(aBinnedReoriented.ravel()),
 			"totalYield": pd.Series(tBinnedReoriented.ravel())
 			}
+	data['yieldPerArea'] = (data['totalYield'] / data['growArea'])
 
 	df = pd.DataFrame(data=data)
 	geometry = gpd.points_from_xy(df.lons, df.lats)
@@ -92,6 +94,4 @@ for crop in params.allCrops:
 	label="Yield (kg/ha)"
 	Plotter.plotMap(grid,'yieldPerArea',title,label,'CropYield',plotGrowArea)
 
-	grid['totalYield'] = (df['growArea'] * df['yieldPerArea'])
-
-	print("total yield, "+crop+": "+str(grid['totalYield'].sum()))
+	print("total yield, tonnes, "+crop+": "+str(grid['totalYield'].sum()/1000))

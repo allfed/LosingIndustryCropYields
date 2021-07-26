@@ -17,6 +17,7 @@ scipy = "^1.6.1"
 jupyterlab = "^3.0.16"
 black = "^21.6b0"
 Rtree = "^0.9.7"
+statsmodels = "^0.12.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
