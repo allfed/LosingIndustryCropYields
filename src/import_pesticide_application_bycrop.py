@@ -195,7 +195,7 @@ gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 grid= utilities.makeGrid(gdf)
 
 sizeArray=[len(lats),len(lons)]
-y="2020"
+y="2015"
 for c in crops:
 	for b in bounds:
 		print('')
@@ -246,11 +246,11 @@ for c in crops:
 	grid.to_pickle(params.geopandasDataDir + c + "PesticidesByCrop.pkl")
 
 	plotGrowArea=True
-	title=c+" Total Pesticide Application Rate, 2020, Lower Bound"
+	title=c+" Total Pesticide Application Rate, 2015, Lower Bound"
 	label="Application Rate (kg/ha/year)"
 	Plotter.plotMap(grid,'total_L',title,label,'TotPesticidesByCropLow',plotGrowArea)
 	plotGrowArea=True
-	title=c+" Total Pesticide Application Rate, 2020, Upper Bound"
+	title=c+" Total Pesticide Application Rate, 2015, Upper Bound"
 	label="Application Rate (kg/ha/year)"
 	Plotter.plotMap(grid,'total_H',title,label,'TotPesticidesByCropHigh',plotGrowArea)
 	# title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
