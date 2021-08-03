@@ -1,9 +1,8 @@
 '''''
 This code imports a raster (geotiff) of crop yield and area by crop from 
-earthstat. Imported data is averaged from 2000-2005. 
+SPAM2010
 
-A full description can be found here:
-www.earthstat.org/harvested-area-yield-4-crops-1995-2005/
+yield units are given as kg per hectare for yield, and hectare for area.
 
 see
 https://essd.copernicus.org/articles/12/3545/2020/essd-12-3545-2020.pdf
@@ -57,9 +56,6 @@ for crop in params.allCrops:
 	aArrResizedFiltered=np.where(aArrResized<0, 0, aArrResized)
 	tArrResizedFiltered=np.multiply(yArrResizedFiltered,aArrResizedFiltered)
 
-	# yBinned= utilities.rebinIgnoreZeros(yArrResizedFiltered, sizeArray)
-	# yBinned= utilities.rebin(yArrResizedFiltered, sizeArray)
-	# yBinnedReoriented=np.fliplr(np.transpose(yBinned))
 	aBinned= utilities.rebinCumulative(aArrResizedFiltered, sizeArray)
 	aBinnedReoriented=np.fliplr(np.transpose(aBinned))
 	tBinned = utilities.rebinCumulative(tArrResizedFiltered, sizeArray)
@@ -69,12 +65,10 @@ for crop in params.allCrops:
 
 	data = {"lats": pd.Series(lats2d.ravel()),
 			"lons": pd.Series(lons2d.ravel()),
-			# crop area 1000s of km (hectares).
-			# "yieldPerArea": pd.Series(yBinnedReoriented.ravel()),
 			"growArea": pd.Series(aBinnedReoriented.ravel()),
 			"totalYield": pd.Series(tBinnedReoriented.ravel())
 			}
-	data['yieldPerArea'] = (data['totalYield'] / data['growArea'])
+	data['yield_kgPerHa'] = (data['totalYield'] / data['growArea'])
 
 	df = pd.DataFrame(data=data)
 	geometry = gpd.points_from_xy(df.lons, df.lats)
@@ -92,6 +86,11 @@ for crop in params.allCrops:
 
 	title="Average Global Yield "+ crop + " for Years 2009-2011"
 	label="Yield (kg/ha)"
-	Plotter.plotMap(grid,'yieldPerArea',title,label,'CropYield',plotGrowArea)
+	Plotter.plotMap(grid,'yield_kgPerHa',title,label,'CropYield',plotGrowArea)
+
+	print("data['totalYield'].sum()/data['growArea'].sum()")
+	print(data['totalYield'].sum()/data['growArea'].sum())
+	print("data['yield_kgPerHa'].mean()")
+	print((data['yield_kgPerHa']*data['growArea']).sum()/data['growArea'].sum())
 
 	print("total yield, tonnes, "+crop+": "+str(grid['totalYield'].sum()/1000))

@@ -80,6 +80,7 @@ lons = np.linspace(-180, 180 - params.londiff, \
 					np.floor(360 / params.londiff).astype('int'))
 
 result=np.zeros((nbins*len(lats),nbins*len(lons)))
+# result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
@@ -95,7 +96,9 @@ sizeArray=[len(lats),len(lons)]
 
 crops=['whea','rice','maiz','soyb']
 
-#use the area of each cell to estimate the total area tilled in km^2
+#it's a bit wierd to pull from another dataset, but the livestock dataset
+# conveniently had the area of each 5 minute raster cell available
+#below we use the area of each cell to estimate the total area tilled in km^2
 adata=rasterio.open(params.livestockDataLoc+'8_Areakm.tif')
 aArr=adata.read(1)
 
@@ -106,23 +109,39 @@ for c in crops:
 
 		#element-wise or,if any are true, then cell value is true
 		if(m=='mech'): #mechanized: 1 or 5
-			areas=np.bitwise_or(arr==1, arr==5)
+			# mask=np.where(np.isnan(arr),np.nan,0)
+			mech_areas=np.bitwise_or(arr==1, arr==5)
+			
+			# areas=np.where(mech_areas,1,np.nan)+mask
+			areas=np.where(mech_areas,1,0)
 		else: #non mechanized: 2, 3, 4, or 6
-			areas=np.bitwise_or(np.bitwise_or(np.bitwise_or(arr==2,arr==3),arr==4),arr==6)
-
+			non_mech_areas=np.bitwise_or(np.bitwise_or(np.bitwise_or(arr==2,arr==3),arr==4),arr==6)
+			areas=np.where(non_mech_areas,1,0)
 		result[start_lat_index:start_lat_index+len(areas),start_lon_index:start_lon_index+len(areas[0])]=areas
+
 		cArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
 
 		# cArrResized.fill(True)
 		grid_area=np.multiply(cArrResized,aArr)
-
+		# print(grid_area)
+		# quit()
 		cBinned= utilities.rebinCumulative(grid_area, sizeArray)
 		cBinnedReoriented=np.flipud(cBinned)
 
 		grid[c+'_'+m]=pd.Series(cBinnedReoriented.ravel())
+		# print(grid[c+'_'+m])
+		# quit()
 
+	grid[c+'_is_mech_tmp']=grid[c+'_mech']>=grid[c+'_non_mech']
+	grid[c+'_is_not_mech_tmp']=grid[c+'_mech']<grid[c+'_non_mech']
+	grid[c+'_no_crops']=(grid[c+'_mech']==0) & (grid[c+'_non_mech']==0)
+	grid[c+'_is_mech'] = np.where(grid[c+'_no_crops'],np.nan,grid[c+'_is_mech_tmp'])
+	del grid[c+'_is_not_mech_tmp']
+	del grid[c+'_is_mech_tmp']
+
+	plotGrowArea=True
+	title=c+" Mechanized Tillage area, 2005"
+	label="Tillage is mechanized"
+	Plotter.plotMap(grid,c+'_is_mech',title,label,'TillageMechWheat',plotGrowArea)
+# Plotter.plotMap(grid,'whea_is_not_mech',title,label,'TillageMechWheat',plotGrowArea)
 grid.to_pickle(params.geopandasDataDir + "Tillage.pkl")
-plotGrowArea=True
-title=c+" Total Mechanized Tillage area, 2005"
-label="Tillage is mechanized"
-Plotter.plotMap(grid,'whea_mech',title,label,'TillageMechWheat',plotGrowArea)
