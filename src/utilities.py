@@ -124,12 +124,3 @@ def saveDictasgeopandas(name,data):
 	grid.to_pickle(fn)
 
 	return grid
-
-
-def load_geopandas(filename):
-	import shapely.wkt
-	csv=pandas.read_csv('../data/processed/U.csv')
-	polygons=csv['geometry']
-	geometry=[shapely.wkt.loads(p) for p in polygons]
-	crs={'init':'epsg:4326'}
-	geo_df = GeoDataFrame(cs, crs=crs, geometry=geometry)

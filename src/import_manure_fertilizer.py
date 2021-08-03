@@ -29,7 +29,7 @@ from src.plotter import Plotter
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import utilities
+from src import utilities
 import rasterio
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()

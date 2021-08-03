@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import utilities
+from src import utilities
 import netCDF4 as nc
 import rasterio
 
