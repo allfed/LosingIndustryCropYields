@@ -108,7 +108,8 @@ def saveasgeopandas(name,allMonths,gridAllMonths,lats,lons):
 	fn = params.geopandasDataDir + name + '.csv'
 
 	grid=grid.sort_values(by=['lats', 'lons'])
-	grid.to_csv(fn)
+	return grid
+	# grid.to_csv(fn)
 
 
 #save a .pkl file with the gridded data saved in columns labelled by month 

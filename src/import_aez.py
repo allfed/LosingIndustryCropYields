@@ -29,8 +29,10 @@ params.importIfNotAlready()
 # aq=aquastat.dropna(how='all').replace('',np.nan)
 AEZs = [
 'mst_class_CRUTS32_Hist_8110_100_avg.tif',
-'thz_class_CRUTS32_Hist_8110_100_avg.tif'
+'thz_class_CRUTS32_Hist_8110_100_avg.tif',
+#source below is 30 arcsecond; we downsampled to soil_5arcmin.tif before import
 # 'soil_regime_CRUTS32_Hist_8110.tif'
+'soil_5arcmin.tif'
 ]
 
 mn_lat=-90
@@ -77,6 +79,7 @@ aArr=adata.read(1)
 zonetypes={}
 zonetypes['thz']=[0,1,2,3,4,5,6,7,8,9,10]
 zonetypes['mst']=[0,1,2,3,4,5,6,7]
+zonetypes['soil']=[0,1,2,3,4,5,6,7,8]
 print('reading agroecological zone data')
 df_tmp = pd.DataFrame(data=data)
 
@@ -116,3 +119,7 @@ Plotter.plotMap(grid,'thz',title,label,'thzZone',True)
 title="Moisture Zone"
 label="Moisture zone class 0 through 7 in each ~2 degree square cell"
 Plotter.plotMap(grid,'mst',title,label,'mstZone',True)
+
+title="Soil Zone"
+label="Soil zone class 0 through 8 in each ~2 degree square cell"
+Plotter.plotMap(grid,'soil',title,label,'mstZone',True)

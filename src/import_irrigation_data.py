@@ -90,7 +90,6 @@ lats2d, lons2d = np.meshgrid(lats, lons)
 
 data = {"lats": pd.Series(lats2d.ravel()),
 		"lons": pd.Series(lons2d.ravel()),
-		# crop area 1000s of km (hectares).
 		"area": pd.Series(areaBinnedReoriented.ravel()),
 		"surfacewaterArea": pd.Series(swBinnedReoriented.ravel()),
 		"groundwaterArea": pd.Series(gwBinnedReoriented.ravel())
