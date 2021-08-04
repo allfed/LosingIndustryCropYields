@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio
-import utilities
+from src import utilities
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
