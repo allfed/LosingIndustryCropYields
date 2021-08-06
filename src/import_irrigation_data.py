@@ -8,6 +8,17 @@ see
 https://essd.copernicus.org/articles/12/3545/2020/essd-12-3545-2020.pdf
 "We prepare datafor the model based on the 2009–2011 average of the cropproduction  statistics"
 
+Output of Import: all units are per cell in hectares
+	'area' column: total irrigated area 
+	'groundwaterArea' column: total irrigated area using groundwater
+	'surfacewaterArea' column: total irrigated area using surfacewater
+	'sw_reliant' column: total irrigated area reliant on diesel or electricity 
+		using surfacewater
+	'gw_reliant' column: total irrigated area reliant on diesel or electricity 
+		using groundwater
+	'tot_reliant' column: total irrigated area reliant on diesel or electricity
+
+
 Morgan Rivers
 morgan@allfed.info
 7/24/21

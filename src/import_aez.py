@@ -94,7 +94,6 @@ for z in AEZs:
 		latbins=np.floor(len(areas)/len(lats)).astype('int')
 		lonbins=np.floor(len(areas[0])/len(lons)).astype('int')
 		zArrResized=areas[0:latbins*len(lats),0:lonbins*len(lons)]
-		print('done reading '+z)
 
 		grid_area=np.multiply(zArrResized,aArr)
 
@@ -103,6 +102,7 @@ for z in AEZs:
 
 		data[zt] = pd.Series(zBinnedReoriented.ravel())
 
+	print('done reading '+z)
 	df_tmp = pd.DataFrame(data=data)
 
 	#most common zone by area
@@ -122,4 +122,4 @@ Plotter.plotMap(grid,'mst',title,label,'mstZone',True)
 
 title="Soil Zone"
 label="Soil zone class 0 through 8 in each ~2 degree square cell"
-Plotter.plotMap(grid,'soil',title,label,'mstZone',True)
+Plotter.plotMap(grid,'soil',title,label,'soilZone',True)
