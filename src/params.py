@@ -15,6 +15,57 @@ def importIfNotAlready():
 	else:
 		return()
 
+def deleteGlobals():
+	del spamCropYieldDataLoc
+	del pesticidesDataLoc
+	del tillageDataLoc
+	del aezDataLoc
+	del fertilizerDataLoc
+	del manureFertilizerDataLoc
+	del irrigationDataLoc
+	del livestockDataLoc
+	del aquastatIrrigationDataLoc
+	del cropYieldDataLoc
+	del geopandasDataDir
+	del figuresDir
+	del growAreaDataLoc
+	del tempCSVloc
+	del windCSVloc
+	del temphumsunrainCSVloc
+	del asciiDir
+	del latdiff
+	del londiff
+	del growAreaBins
+	del allMonths
+	del plotTemps
+	del plotRain
+	del plotSun
+	del plotYield
+	del plotGrowArea
+	del plotTempCoeffs
+	del plotRainCoeffs
+	del saveTempCSV
+	del estimateNutrition
+	del estimateYield
+	del allCrops
+	del rain_mps_to_mm
+	del Tbase
+	del Tfp
+	del Topt1
+	del Topt2
+	del RpeakCoeff	
+	del RlowCoeff	
+	del RhighCoeff	
+	del Rlow	
+	del Rpeak	
+	del Rhigh
+	del growDuration
+	del idealGrowth
+	del kCalperkg
+	del fracProtein
+	del fracFat
+	del fracCarbs
+
 
 def importAll():
 	importDirectories()
@@ -44,6 +95,7 @@ def importDirectories():
 	global tempCSVloc
 	global windCSVloc
 	global temphumsunrainCSVloc
+	global asciiDir
 	data = get_data(paramsfilename)
 	paramdata = data['Directory']
 
@@ -81,6 +133,8 @@ def importDirectories():
 			temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'windCSVloc'):
 			windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'asciiDir'):
+			asciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
 
 
 def importModelParams():

@@ -54,6 +54,11 @@ from src import utilities
 import netCDF4 as nc
 import rasterio
 
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (3e9, 3e9))#no more than 2 gb
+
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 ds=nc.Dataset(params.tillageDataLoc)
@@ -63,6 +68,7 @@ mx_lat=84
 mn_lon=-180
 mx_lon=180
 
+MAKE_GRID = False
 
 pSums={}
 nbins=params.growAreaBins
@@ -87,10 +93,12 @@ data = {"lats": pd.Series(lats2d.ravel()),
 		"lons": pd.Series(lons2d.ravel())}
 df = pd.DataFrame(data=data)
 
-#make geometry
-geometry = gpd.points_from_xy(df.lons, df.lats)
-gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
-grid= utilities.makeGrid(gdf)
+if(MAKE_GRID):
+
+	#make geometry
+	geometry = gpd.points_from_xy(df.lons, df.lats)
+	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+	grid= utilities.makeGrid(gdf)
 
 sizeArray=[len(lats),len(lons)]
 
@@ -128,20 +136,35 @@ for c in crops:
 		cBinned= utilities.rebinCumulative(grid_area, sizeArray)
 		cBinnedReoriented=np.flipud(cBinned)
 
-		grid[c+'_'+m]=pd.Series(cBinnedReoriented.ravel())
+		if(MAKE_GRID):
+			grid[c+'_'+m]=pd.Series(cBinnedReoriented.ravel())
+		else:
+			df[c+'_'+m]=pd.Series(cBinnedReoriented.ravel())
+
 		# print(grid[c+'_'+m])
 		# quit()
+	if(MAKE_GRID):
+		grid[c+'_is_mech_tmp']=grid[c+'_mech']>=grid[c+'_non_mech']
+		grid[c+'_is_not_mech_tmp']=grid[c+'_mech']<grid[c+'_non_mech']
+		grid[c+'_no_crops']=(grid[c+'_mech']==0) & (grid[c+'_non_mech']==0)
+		grid[c+'_is_mech'] = np.where(grid[c+'_no_crops'],np.nan,grid[c+'_is_mech_tmp'])
+		del grid[c+'_is_not_mech_tmp']
+		del grid[c+'_is_mech_tmp']
 
-	grid[c+'_is_mech_tmp']=grid[c+'_mech']>=grid[c+'_non_mech']
-	grid[c+'_is_not_mech_tmp']=grid[c+'_mech']<grid[c+'_non_mech']
-	grid[c+'_no_crops']=(grid[c+'_mech']==0) & (grid[c+'_non_mech']==0)
-	grid[c+'_is_mech'] = np.where(grid[c+'_no_crops'],np.nan,grid[c+'_is_mech_tmp'])
-	del grid[c+'_is_not_mech_tmp']
-	del grid[c+'_is_mech_tmp']
+		plotGrowArea=True
+		title=c+" Mechanized Tillage area, 2005"
+		label="Tillage is mechanized"
+		Plotter.plotMap(grid,c+'_is_mech',title,label,'TillageMechWheat',plotGrowArea)
+	else:
+		df[c+'_is_mech_tmp']=df[c+'_mech']>=df[c+'_non_mech']
+		df[c+'_is_not_mech_tmp']=df[c+'_mech']<df[c+'_non_mech']
+		df[c+'_no_crops']=(df[c+'_mech']==0) & (df[c+'_non_mech']==0)
+		df[c+'_is_mech'] = np.where(df[c+'_no_crops'],np.nan,df[c+'_is_mech_tmp'])
+		del df[c+'_is_not_mech_tmp']
+		del df[c+'_is_mech_tmp']
 
-	plotGrowArea=True
-	title=c+" Mechanized Tillage area, 2005"
-	label="Tillage is mechanized"
-	Plotter.plotMap(grid,c+'_is_mech',title,label,'TillageMechWheat',plotGrowArea)
 # Plotter.plotMap(grid,'whea_is_not_mech',title,label,'TillageMechWheat',plotGrowArea)
-grid.to_pickle(params.geopandasDataDir + "Tillage.pkl")
+if(MAKE_GRID):
+	grid.to_csv(params.geopandasDataDir + "Tillage.csv")
+else:
+	df.to_csv(params.geopandasDataDir + "TillageHighRes.csv")

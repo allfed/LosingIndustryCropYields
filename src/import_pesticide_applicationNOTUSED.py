@@ -49,6 +49,14 @@ import rasterio
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+
+
+MAKE_GRID = False
+
 years=['2015']
 bounds=['L','H']
 crops=[ \
@@ -189,10 +197,11 @@ data = {"lats": pd.Series(lats2d.ravel()),
 		"lons": pd.Series(lons2d.ravel())}
 df = pd.DataFrame(data=data)
 
-#make geometry
-geometry = gpd.points_from_xy(df.lons, df.lats)
-gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
-grid= utilities.makeGrid(gdf)
+if(MAKE_GRID):
+	#make geometry
+	geometry = gpd.points_from_xy(df.lons, df.lats)
+	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+	grid= utilities.makeGrid(gdf)
 
 sizeArray=[len(lats),len(lons)]
 y="2020"
@@ -236,14 +245,21 @@ for p in pesticides:
 	
 		pBinnedReoriented=np.flipud(pBinned)
 		n_imported=n_imported+1
-		grid[p+'_total_'+b]=pd.Series(pBinnedReoriented.ravel())
 
-grid.to_pickle(params.geopandasDataDir + "Pesticides.pkl")
+		if(MAKE_GRID):
+			grid[p+'_total_'+b]=pd.Series(pBinnedReoriented.ravel())
+		else:
+			df[p+'_total_'+b]=pd.Series(pBinnedReoriented.ravel())
 
-plotGrowArea=True
-title="2,4-d Pesticide Application Rate, 2020, Lower Bound"
-label="Application Rate (kg/ha/year)"
-Plotter.plotMap(grid,'2,4-d_total_L',title,label,'24dPestLow',plotGrowArea)
-title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
-label="Application Rate (kg/ha/year)"
-Plotter.plotMap(grid,'2,4-d_total_H',title,label,'24dPestHigh',plotGrowArea)
+if(MAKE_GRID):
+	grid.to_csv(params.geopandasDataDir + "Pesticides.csv")
+
+	plotGrowArea=True
+	title="2,4-d Pesticide Application Rate, 2020, Lower Bound"
+	label="Application Rate (kg/ha/year)"
+	Plotter.plotMap(grid,'2,4-d_total_L',title,label,'24dPestLow',plotGrowArea)
+	title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
+	label="Application Rate (kg/ha/year)"
+	Plotter.plotMap(grid,'2,4-d_total_H',title,label,'24dPestHigh',plotGrowArea)
+else:
+	df.to_csv(params.geopandasDataDir + "PesticidesHighRes.csv")

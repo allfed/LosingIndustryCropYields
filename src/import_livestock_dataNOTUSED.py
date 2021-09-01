@@ -22,6 +22,11 @@ import pandas as pd
 import geopandas as gpd
 import rasterio
 import utilities
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -69,7 +74,7 @@ df = pd.DataFrame(data=data)
 geometry = gpd.points_from_xy(df.lons, df.lats)
 gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
 grid= utilities.makeGrid(gdf)
-grid.to_pickle(params.geopandasDataDir + "Livestock.pkl")
+grid.to_csv(params.geopandasDataDir + "Livestock.csv")
 
 title="Chickens, 2010"
 label="Heads chickens in ~2 each degree square cell"
