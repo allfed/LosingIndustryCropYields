@@ -8,6 +8,17 @@ see
 https://essd.copernicus.org/articles/12/3545/2020/essd-12-3545-2020.pdf
 "We prepare datafor the model based on the 2009–2011 average of the cropproduction  statistics"
 
+Output of Import: all units are per cell in hectares
+	'area' column: total irrigated area 
+	'groundwaterArea' column: total irrigated area using groundwater
+	'surfacewaterArea' column: total irrigated area using surfacewater
+	'sw_reliant' column: total irrigated area reliant on diesel or electricity 
+		using surfacewater
+	'gw_reliant' column: total irrigated area reliant on diesel or electricity 
+		using groundwater
+	'tot_reliant' column: total irrigated area reliant on diesel or electricity
+
+
 Morgan Rivers
 morgan@allfed.info
 7/24/21
@@ -27,6 +38,10 @@ import geopandas as gpd
 from geopandas.tools import sjoin
 import rasterio
 import utilities
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -466,7 +481,7 @@ gdf['geometry']=gdf['geometry_plot']
 # now overlay percentage ground and surface water dependent on electricity existing irrigation area.
 grid= utilities.makeGrid(gdf)
 
-grid.to_pickle(params.geopandasDataDir + "Irrigation.pkl")
+grid.to_csv(params.geopandasDataDir + "Irrigation.csv")
 
 plotGrowArea=True
 

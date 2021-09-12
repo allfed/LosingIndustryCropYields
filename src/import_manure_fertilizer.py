@@ -31,6 +31,14 @@ import pandas as pd
 import geopandas as gpd
 from src import utilities
 import rasterio
+
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+
+
+
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
@@ -40,6 +48,8 @@ mx_lat=88.5
 mn_lon=-180
 mx_lon=180
 
+
+MAKE_GRID = False
 
 pSums={}
 nbins=params.growAreaBins
@@ -63,10 +73,11 @@ data = {"lats": pd.Series(lats2d.ravel()),
 		"lons": pd.Series(lons2d.ravel())}
 df = pd.DataFrame(data=data)
 
-#make geometry
-geometry = gpd.points_from_xy(df.lons, df.lats)
-gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
-grid= utilities.makeGrid(gdf)
+if(MAKE_GRID):
+	#make geometry
+	geometry = gpd.points_from_xy(df.lons, df.lats)
+	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+	grid= utilities.makeGrid(gdf)
 
 sizeArray=[len(lats),len(lons)]
 files=['appliedNyy2014.asc','producedNyy2014.asc']
@@ -86,18 +97,25 @@ for f in files:
 	fBinned= utilities.rebin(fArrResizedFiltered, sizeArray)
 	fBinnedReoriented=np.flipud(fBinned)
 
-	grid[coltitle]=pd.Series(fBinnedReoriented.ravel())
+	if(MAKE_GRID):
+		grid[coltitle]=pd.Series(fBinnedReoriented.ravel())
+	else:
+		df[coltitle]=pd.Series(fBinnedReoriented.ravel())
 
-grid.to_pickle(params.geopandasDataDir + "FertilizerManure.pkl")
 
-plotGrowArea=True
-title=" Total Manure Nitrogen Application Rate, 2014"
-label="Application Rate (kg/km^2/year)"
-Plotter.plotMap(grid,'applied',title,label,'TotManureNApplied',plotGrowArea)
-plotGrowArea=True
-title=" Total Manure Nitrogen Production Rate, 2014"
-label="Application Rate (kg/km^2/year)"
-Plotter.plotMap(grid,'produced',title,label,'TotManureNProduced',plotGrowArea)
-# title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
-# label="Application Rate (kg/ha/year)"
-# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
+if(MAKE_GRID):
+	grid.to_csv(params.geopandasDataDir + "FertilizerManure.csv")
+		
+	plotGrowArea=True
+	title=" Total Manure Nitrogen Application Rate, 2014"
+	label="Application Rate (kg/km^2/year)"
+	Plotter.plotMap(grid,'applied',title,label,'TotManureNApplied',plotGrowArea)
+	plotGrowArea=True
+	title=" Total Manure Nitrogen Production Rate, 2014"
+	label="Application Rate (kg/km^2/year)"
+	Plotter.plotMap(grid,'produced',title,label,'TotManureNProduced',plotGrowArea)
+	# title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
+	# label="Application Rate (kg/ha/year)"
+	# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
+else:
+	df.to_csv(params.geopandasDataDir + "FertilizerManureHighRes.csv")

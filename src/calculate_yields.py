@@ -15,19 +15,30 @@ from src import outdoor_growth
 from src.outdoor_growth import OutdoorGrowth
 import pandas as pd
 import geopandas as gpd
+# import resource
+# rsrc = resource.RLIMIT_AS
+# resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
 
 
 params.importAll()
 
-#total solar flux at surface , W/m^2
-maize_yield=pd.read_pickle(params.geopandasDataDir + 'MAIZCropYield.pkl')
-#total solar flux at surface , W/m^2
-fertilizer=pd.read_pickle(params.geopandasDataDir + 'Fertilizer.pkl')
-irrigation=pd.read_pickle(params.geopandasDataDir + 'Irrigation.pkl')
-livestock=pd.read_pickle(params.geopandasDataDir + 'Livestock.pkl')
-print(livestock.columns)
-print(livestock.head())
+MAKE_GRID = False
+
+if(MAKE_GRID):
+	#total solar flux at surface , W/m^2
+	maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYield.csv')
+	#total solar flux at surface , W/m^2
+	fertilizer=pd.read_csv(params.geopandasDataDir + 'Fertilizer.csv')
+else:
+	maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
+
+	fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv')
+
+# irrigation=pd.read_pickle(params.geopandasDataDir + 'Irrigation'+to_append+'.pkl')
+# livestock=pd.read_pickle(params.geopandasDataDir + 'Livestock'+to_append+'.pkl')
+# print(livestock.columns)
+# print(livestock.head())
 # print(irrigation.columns)
 # print(fertilizer.columns)
 outdoorGrowth=OutdoorGrowth()
-outdoorGrowth.correctForFertilizerAndIrrigation(maize_yield,fertilizer,irrigation)
+outdoorGrowth.correctForFertilizer(maize_yield,fertilizer)

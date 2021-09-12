@@ -30,6 +30,14 @@ from src import utilities
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
+MAKE_GRID = False
+
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+
+
 for crop in params.allCrops:
 
 	ydata=rasterio.open(params.spamCropYieldDataLoc+'spam2010V2r0_global_Y_'+crop+'_A.tif')
@@ -71,26 +79,30 @@ for crop in params.allCrops:
 	data['yield_kgPerHa'] = (data['totalYield'] / data['growArea'])
 
 	df = pd.DataFrame(data=data)
-	geometry = gpd.points_from_xy(df.lons, df.lats)
-	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+	if(MAKE_GRID):
+		geometry = gpd.points_from_xy(df.lons, df.lats)
+		gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+		grid= utilities.makeGrid(gdf)
+		grid.to_csv(params.geopandasDataDir + crop + "CropYield.csv")
 
-	grid= utilities.makeGrid(gdf)
+		plotGrowArea=True
 
-	grid.to_pickle(params.geopandasDataDir + crop + "CropYield.pkl")
+		title="Average Global Grow Area "+ crop + " for Years 2009-2011"
+		label="Grow Area (ha)"
+		Plotter.plotMap(grid,'growArea',title,label,'CropGrowArea',plotGrowArea)
 
-	plotGrowArea=True
+		title="Average Global Yield "+ crop + " for Years 2009-2011"
+		label="Yield (kg/ha)"
+		Plotter.plotMap(grid,'yield_kgPerHa',title,label,'CropYield',plotGrowArea)
+	else:
+		assert(df['lats'].iloc[-1]>df['lats'].iloc[0])
+		assert(df['lons'].iloc[-1]>df['lons'].iloc[0])
 
-	title="Average Global Grow Area "+ crop + " for Years 2009-2011"
-	label="Grow Area (ha)"
-	Plotter.plotMap(grid,'growArea',title,label,'CropGrowArea',plotGrowArea)
-
-	title="Average Global Yield "+ crop + " for Years 2009-2011"
-	label="Yield (kg/ha)"
-	Plotter.plotMap(grid,'yield_kgPerHa',title,label,'CropYield',plotGrowArea)
+		df.to_csv(params.geopandasDataDir + crop + "CropYieldHighRes.csv")
 
 	print("data['totalYield'].sum()/data['growArea'].sum()")
 	print(data['totalYield'].sum()/data['growArea'].sum())
 	print("data['yield_kgPerHa'].mean()")
 	print((data['yield_kgPerHa']*data['growArea']).sum()/data['growArea'].sum())
 
-	print("total yield, tonnes, "+crop+": "+str(grid['totalYield'].sum()/1000))
+	print("total yield, tonnes, "+crop+": "+str(data['totalYield'].sum()/1000))

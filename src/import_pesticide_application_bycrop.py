@@ -48,6 +48,12 @@ import utilities
 import rasterio
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
+import resource
+
+rsrc = resource.RLIMIT_AS
+resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
+
+MAKE_GRID = False
 
 years=['2015']
 bounds=['L','H']
@@ -189,10 +195,11 @@ data = {"lats": pd.Series(lats2d.ravel()),
 		"lons": pd.Series(lons2d.ravel())}
 df = pd.DataFrame(data=data)
 
-#make geometry
-geometry = gpd.points_from_xy(df.lons, df.lats)
-gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
-grid= utilities.makeGrid(gdf)
+if(MAKE_GRID):
+	#make geometry
+	geometry = gpd.points_from_xy(df.lons, df.lats)
+	gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
+	grid= utilities.makeGrid(gdf)
 
 sizeArray=[len(lats),len(lons)]
 y="2015"
@@ -227,7 +234,11 @@ for c in crops:
 				pBinned= utilities.rebin(pArrResizedFiltered, sizeArray)
 				pBinnedReoriented=np.flipud(pBinned)
 
-				grid[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
+				if(MAKE_GRID):
+					grid[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
+				else: 
+					# df[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
+					pass
 
 				#add the pesticides of this type for this crop to the total
 				if(len(cSums)==0):
@@ -241,18 +252,24 @@ for c in crops:
 		
 		cBinnedReoriented=np.flipud(cBinned)
 
-		grid['total_'+b]=pd.Series(pBinnedReoriented.ravel())
+		if(MAKE_GRID):
+			grid['total_'+b]=pd.Series(pBinnedReoriented.ravel())
+		else:
+			df['total_'+b]=pd.Series(pBinnedReoriented.ravel())
 
-	grid.to_pickle(params.geopandasDataDir + c + "PesticidesByCrop.pkl")
 
-	plotGrowArea=True
-	title=c+" Total Pesticide Application Rate, 2015, Lower Bound"
-	label="Application Rate (kg/ha/year)"
-	Plotter.plotMap(grid,'total_L',title,label,'TotPesticidesByCropLow',plotGrowArea)
-	plotGrowArea=True
-	title=c+" Total Pesticide Application Rate, 2015, Upper Bound"
-	label="Application Rate (kg/ha/year)"
-	Plotter.plotMap(grid,'total_H',title,label,'TotPesticidesByCropHigh',plotGrowArea)
-	# title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
-	# label="Application Rate (kg/ha/year)"
-	# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
+	if(MAKE_GRID):
+		grid.to_csv(params.geopandasDataDir + c + "PesticidesByCrop.csv")
+		plotGrowArea=True
+		title=c+" Total Pesticide Application Rate, 2015, Lower Bound"
+		label="Application Rate (kg/ha/year)"
+		Plotter.plotMap(grid,'total_L',title,label,'TotPesticidesByCropLow',plotGrowArea)
+		plotGrowArea=True
+		title=c+" Total Pesticide Application Rate, 2015, Upper Bound"
+		label="Application Rate (kg/ha/year)"
+		Plotter.plotMap(grid,'total_H',title,label,'TotPesticidesByCropHigh',plotGrowArea)
+		# title="2,4-d Pesticide Application Rate, 2020, Upper Bound"
+		# label="Application Rate (kg/ha/year)"
+		# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
+	else:
+		df.to_csv(params.geopandasDataDir + c + "PesticidesByCropHighRes.csv")

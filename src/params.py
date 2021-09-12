@@ -1,5 +1,5 @@
 import os
-
+from sys import platform
 dir_path = os.path.dirname(os.path.realpath(__file__))
 print('dir_path')
 print(dir_path)
@@ -15,6 +15,57 @@ def importIfNotAlready():
 	else:
 		return()
 
+def deleteGlobals():
+	del spamCropYieldDataLoc
+	del pesticidesDataLoc
+	del tillageDataLoc
+	del aezDataLoc
+	del fertilizerDataLoc
+	del manureFertilizerDataLoc
+	del irrigationDataLoc
+	del livestockDataLoc
+	del aquastatIrrigationDataLoc
+	del cropYieldDataLoc
+	del geopandasDataDir
+	del figuresDir
+	del growAreaDataLoc
+	del tempCSVloc
+	del windCSVloc
+	del temphumsunrainCSVloc
+	del asciiDir
+	del latdiff
+	del londiff
+	del growAreaBins
+	del allMonths
+	del plotTemps
+	del plotRain
+	del plotSun
+	del plotYield
+	del plotGrowArea
+	del plotTempCoeffs
+	del plotRainCoeffs
+	del saveTempCSV
+	del estimateNutrition
+	del estimateYield
+	del allCrops
+	del rain_mps_to_mm
+	del Tbase
+	del Tfp
+	del Topt1
+	del Topt2
+	del RpeakCoeff	
+	del RlowCoeff	
+	del RhighCoeff	
+	del Rlow	
+	del Rpeak	
+	del Rhigh
+	del growDuration
+	del idealGrowth
+	del kCalperkg
+	del fracProtein
+	del fracFat
+	del fracCarbs
+
 
 def importAll():
 	importDirectories()
@@ -26,7 +77,11 @@ def importAll():
 
 
 def importDirectories():
-	from pyexcel_ods import get_data
+	from sys import platform
+	if platform == "linux" or platform == "linux2":
+		from pyexcel_ods import get_data
+	else:
+		from pyexcel_ods3 import get_data
 
 	global spamCropYieldDataLoc
 	global pesticidesDataLoc
@@ -44,6 +99,7 @@ def importDirectories():
 	global tempCSVloc
 	global windCSVloc
 	global temphumsunrainCSVloc
+	global asciiDir
 	data = get_data(paramsfilename)
 	paramdata = data['Directory']
 
@@ -81,10 +137,16 @@ def importDirectories():
 			temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'windCSVloc'):
 			windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'asciiDir'):
+			asciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
 
 
 def importModelParams():
-	from pyexcel_ods import get_data
+	if platform == "linux" or platform == "linux2":
+		from pyexcel_ods import get_data
+	else:
+		from pyexcel_ods3 import get_data
+
 
 	global latdiff
 	global londiff
@@ -161,7 +223,11 @@ def importModelParams():
 
 
 def importYieldTemp():
-	from pyexcel_ods import get_data
+
+	if platform == "linux" or platform == "linux2":
+		from pyexcel_ods import get_data
+	else:
+		from pyexcel_ods3 import get_data
 
 	global Tbase
 	global Tfp
@@ -196,8 +262,11 @@ def importYieldTemp():
 
 
 def importYieldRain():
-	from pyexcel_ods import get_data
-	
+	if platform == "linux" or platform == "linux2":
+		from pyexcel_ods import get_data
+	else:
+		from pyexcel_ods3 import get_data
+
 	global RpeakCoeff	
 	global RlowCoeff	
 	global RhighCoeff	
@@ -240,8 +309,11 @@ def importYieldRain():
 
 
 def importGrowingSeason():
-	from pyexcel_ods import get_data
-	
+	if platform == "linux" or platform == "linux2":
+		from pyexcel_ods import get_data
+	else:
+		from pyexcel_ods3 import get_data
+
 	global growDuration
 	global idealGrowth
 
@@ -267,8 +339,11 @@ def importGrowingSeason():
 
 
 def importNutrition():
-	from pyexcel_ods import get_data
-	
+	if platform == "linux" or platform == "linux2":
+		from pyexcel_ods import get_data
+	else:
+		from pyexcel_ods3 import get_data
+
 	global kCalperkg
 	global fracProtein
 	global fracFat

@@ -21,6 +21,7 @@ params.importIfNotAlready()
 #this function is used to make a bunch of rectangle grid shapes so the 
 #plotting looks nice and so we can later add up the crop area inside the grid
 def makeGrid(df):
+
 	nbins=params.growAreaBins
 	cell_size_lats=params.latdiff
 	cell_size_lons=params.londiff
@@ -34,9 +35,14 @@ def makeGrid(df):
 	# cell_size_lons=(raw_lons[1]-raw_lons[0])*(nbins)
 
 
+	# print(df)
 	cells=[]
 	for index,row in df.iterrows():
-		cell=shapely.geometry.box(row['lons'], row['lats'], row['lons'] + params.londiff, row['lats'] + cell_size_lats)#params.latdiff)
+		# print(row)
+		# print(params.londiff)
+		# print(cell_size_lats)
+		cell=shapely.geometry.Point([row['lons'], row['lats'], row['lons'] + params.londiff, row['lats'] + cell_size_lats])#params.latdiff)
+		
 		cells.append(cell)
 	crs={'init':'epsg:4326'}
 	geo_df=gpd.GeoDataFrame(df,crs=crs,geometry=cells)
@@ -125,3 +131,25 @@ def saveDictasgeopandas(name,data):
 	grid.to_pickle(fn)
 
 	return grid
+
+#create a global ascii at 5 minute resolution
+def create5minASCII(df,column,fn):
+	file1 = open(fn+".asc","w")#write mode
+	array = np.array(df[column].values).astype('float32')
+	# np.savetxt(params.asciiDir)
+	pretext = \
+'''ncols         4320
+nrows         2160
+xllcorner     -180
+yllcorner     -90
+cellsize      0.083333333333333
+NODATA_value  -9
+'''
+	file1.write(pretext)
+	print(len(array))
+	print(min(array))
+	print(max(array))
+	flippedarr=np.ravel(np.flipud(np.transpose(array.reshape((4320,2160)))))
+	file1.write(" ".join(map(str,flippedarr)))
+	file1.close()
+	
