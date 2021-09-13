@@ -23,7 +23,7 @@ annual tillage is always mechanized.
 3. reduced tillage : always <20cm (NOT MECHANIZED)
 
 4. conservation agriculture:
-	no tillage assumed (NOT MECHANIZED)
+	no tillage assumed (MECHANIZED)
 
 5. rotational tillage:
 	not annual crop, field >2ha, soil >=20cm deep (MECHANIZED)
@@ -54,10 +54,12 @@ from src import utilities
 import netCDF4 as nc
 import rasterio
 
+'''
 import resource
 
 rsrc = resource.RLIMIT_AS
 resource.setrlimit(rsrc, (3e9, 3e9))#no more than 2 gb
+'''
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -116,14 +118,14 @@ for c in crops:
 	for m in ['mech','non_mech']:
 
 		#element-wise or,if any are true, then cell value is true
-		if(m=='mech'): #mechanized: 1 or 5
+		if(m=='mech'): #mechanized: 1, 4 or 5
 			# mask=np.where(np.isnan(arr),np.nan,0)
-			mech_areas=np.bitwise_or(arr==1, arr==5)
+			mech_areas=np.bitwise_or(np.bitwise_or(arr==1, arr==4), arr==5)
 			
 			# areas=np.where(mech_areas,1,np.nan)+mask
 			areas=np.where(mech_areas,1,0)
-		else: #non mechanized: 2, 3, 4, or 6
-			non_mech_areas=np.bitwise_or(np.bitwise_or(np.bitwise_or(arr==2,arr==3),arr==4),arr==6)
+		else: #non mechanized: 2, 3, or 6
+			non_mech_areas=np.bitwise_or(np.bitwise_or(arr==2,arr==3),arr==6)
 			areas=np.where(non_mech_areas,1,0)
 		result[start_lat_index:start_lat_index+len(areas),start_lon_index:start_lon_index+len(areas[0])]=areas
 
