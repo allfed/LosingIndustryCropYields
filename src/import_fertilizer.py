@@ -2,6 +2,8 @@
 This code imports and downsamples a raster (ascii) of fertilizer application 
 rates from the pangea dataset. https://doi.pangaea.de/10.1594/PANGAEA.863323
 
+imported units are g N/m**2, but we find kg/m**2 by dividing by 1000. 
+
 Because the original is half degree and all our other datasets are 5 minute,
 we upsample the array.
 
@@ -35,8 +37,13 @@ import utilities
 # from pympler import muppy
 
 import resource
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
+
 # process = psutil.Process(os.getpid())
 # print("mem1: "+str(process.memory_info().rss/1e6))  # in megabytes 
 # from pympler.tracker import SummaryTracker

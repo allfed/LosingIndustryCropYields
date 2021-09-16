@@ -49,9 +49,13 @@ import rasterio
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 import resource
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 MAKE_GRID = False
 
@@ -250,16 +254,16 @@ for c in crops:
 			continue
 		cBinned= utilities.rebin(cSums, sizeArray)
 		
-		cBinnedReoriented=np.flipud(cBinned)
-
 		if(MAKE_GRID):
-			grid['total_'+b]=pd.Series(pBinnedReoriented.ravel())
+			cBinnedReoriented=np.flipud(cBinned)
+			grid['total_'+b]=pd.Series(cBinnedReoriented.ravel())
 		else:
-			df['total_'+b]=pd.Series(pBinnedReoriented.ravel())
+			cBinnedReoriented=np.fliplr(np.transpose(cBinned))
+			df['total_'+b]=pd.Series(cBinnedReoriented.ravel())
 
 
 	if(MAKE_GRID):
-		grid.to_csv(params.geopandasDataDir + c + "PesticidesByCrop.csv")
+		grid.to_csv(params.geopandasDataDir + c + "Pesticides.csv")
 		plotGrowArea=True
 		title=c+" Total Pesticide Application Rate, 2015, Lower Bound"
 		label="Application Rate (kg/ha/year)"
@@ -272,4 +276,4 @@ for c in crops:
 		# label="Application Rate (kg/ha/year)"
 		# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
 	else:
-		df.to_csv(params.geopandasDataDir + c + "PesticidesByCropHighRes.csv")
+		df.to_csv(params.geopandasDataDir + c + "PesticidesHighRes.csv")

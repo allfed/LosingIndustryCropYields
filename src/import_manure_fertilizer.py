@@ -4,6 +4,7 @@ Import manure fertilizer. Adds up each
 the unit is kilogram nitrogen per km^2 per year (kg/km^2/year) application rate
 
 https://doi.pangaea.de/10.1594/PANGAEA.871980
+https://essd.copernicus.org/articles/9/667/2017/essd-9-667-2017.pdf
 
 metadata:
 	ncols         4320
@@ -33,9 +34,13 @@ from src import utilities
 import rasterio
 
 import resource
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
 
 
 
@@ -95,11 +100,12 @@ for f in files:
 	
 	#record the nitrogen amount for each pesticide
 	fBinned= utilities.rebin(fArrResizedFiltered, sizeArray)
-	fBinnedReoriented=np.flipud(fBinned)
-
+	
 	if(MAKE_GRID):
+		fBinnedReoriented=np.flipud(fBinned)
 		grid[coltitle]=pd.Series(fBinnedReoriented.ravel())
 	else:
+		fBinnedReoriented=np.fliplr(np.transpose(fBinned))
 		df[coltitle]=pd.Series(fBinnedReoriented.ravel())
 
 

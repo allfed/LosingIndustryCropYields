@@ -33,9 +33,13 @@ params.importIfNotAlready()
 MAKE_GRID = False
 
 import resource
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
 
 
 for crop in params.allCrops:

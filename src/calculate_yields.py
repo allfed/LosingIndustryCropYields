@@ -15,9 +15,15 @@ from src import outdoor_growth
 from src.outdoor_growth import OutdoorGrowth
 import pandas as pd
 import geopandas as gpd
-# import resource
-# rsrc = resource.RLIMIT_AS
-# resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+from src import utilities
+
+
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 
 params.importAll()
@@ -30,9 +36,10 @@ if(MAKE_GRID):
 	#total solar flux at surface , W/m^2
 	fertilizer=pd.read_csv(params.geopandasDataDir + 'Fertilizer.csv')
 else:
-	maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
+	# maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
 
-	fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv')
+	# fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv')
+	tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighReswhea.csv')
 
 # irrigation=pd.read_pickle(params.geopandasDataDir + 'Irrigation'+to_append+'.pkl')
 # livestock=pd.read_pickle(params.geopandasDataDir + 'Livestock'+to_append+'.pkl')
@@ -40,5 +47,6 @@ else:
 # print(livestock.head())
 # print(irrigation.columns)
 # print(fertilizer.columns)
+
 outdoorGrowth=OutdoorGrowth()
 outdoorGrowth.correctForFertilizer(maize_yield,fertilizer)
