@@ -30,6 +30,8 @@ from patsy import dmatrices
 import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
+from statsmodels.graphics.factorplots import interaction_plot
+from sklearn import cluster
 
 params.importAll()
 
@@ -529,51 +531,64 @@ dum_soil_log = dum_soil_log.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil"
 dmaize_d_raw = pd.concat([dm0_raw, dum_mst_raw, dum_thz_raw, dum_soil_raw], axis='columns')
 ######LOG#########
 dmaize_d = pd.concat([dm0_log, dum_mst_log, dum_thz_log, dum_soil_log], axis='columns')
-#drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
-#####RAW#####
-dmaize_dum_raw = dmaize_d_raw.drop(['mst_class', 'thz_class', 'soil_class', 'LGP<60days', 
-                      'Arctic', 'L2_water'], axis='columns')
-########LOG#######
-dmaize_dum_log = dmaize_d.drop(['mst_class', 'thz_class', 'soil_class', 'LGP<60days', 
-                      'Arctic', 'L2_water'], axis='columns')
 
 #select a random sample of 20% from the dataset to set aside for later validation
 #random_state argument ensures that the same sample is returned each time the code is run
-dmaize_val_raw = dmaize_dum_raw.sample(frac=0.2, random_state=2705) #RAW
-dmaize_val_log = dmaize_dum_log.sample(frac=0.2, random_state=2705) #LOG
+dmaize_val_raw = dmaize_d_raw.sample(frac=0.2, random_state=2705) #RAW
+dmaize_val_log = dmaize_d.sample(frac=0.2, random_state=2705) #LOG
 #drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
-dmaize_fit_raw = dmaize_dum_raw.drop(dmaize_val_raw.index) #RAW
-dmaize_fit_log = dmaize_dum_log.drop(dmaize_val_log.index) #LOG
+dmaize_fit_raw = dmaize_d_raw.drop(dmaize_val_raw.index) #RAW
+dmaize_fit_log = dmaize_d.drop(dmaize_val_log.index) #LOG
+
+#drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
+#####RAW#####
+dmaize_fitd_raw = dmaize_fit_raw.drop(['mst_class', 'thz_class', 'soil_class', 'LGP<60days', 
+                      'Arctic', 'L2_water'], axis='columns')
+########LOG#######
+dmaize_fitd_log = dmaize_fit_log.drop(['mst_class', 'thz_class', 'soil_class', 'LGP<60days', 
+                      'Arctic', 'L2_water'], axis='columns')
 
 ##################Collinearity################################
 
 ###########RAW#################
 
-grid = sb.PairGrid(data= dmaize_fit_raw,
-                    vars = ['n_fertilizer', 'p_fertilizer', 'n_total',
-                    'pesticides_H', 'mechanized', 'irrigation'], height = 4)
-grid = grid.map_upper(plt.scatter, color = 'darkred')
-grid = grid.map_diag(plt.hist, bins = 10, color = 'darkred', 
-                     edgecolor = 'k')
-grid = grid.map_lower(sb.kdeplot, cmap = 'Reds')
-#wanted to display the correlation coefficient in the lower triangle but don't know how
-#grid = grid.map_lower(corr)
-
-sb.pairplot(dmaize_dum_raw)
-
 #extract lat, lon, area and yield from the fit dataset to test the correlations among the
 #independent variables
 dmaize_cor_raw = dmaize_fit_raw.drop(['lat', 'lon', 'area', 'yield'], axis='columns')
+
+#wanted to display the correlation coefficient in the lower triangle but don't know how
+#so I calculated the correlation heatmap separately below
+grid = sb.PairGrid(data= dmaize_cor_raw,
+                    vars = ['n_fertilizer', 'p_fertilizer', 'n_total',
+                    'pesticides_H', 'irrigation', 'mechanized','thz_class',
+                    'mst_class', 'soil_class'], 
+                    height = 4)
+grid = grid.map_upper(sb.scatterplot, color = 'darkred')
+grid = grid.map_diag(sb.histplot, bins = 10, color = 'darkred', 
+                     edgecolor = 'k')
+grid = grid.map_lower(sb.kdeplot)
+
+#this can also be achieved easier with pairplot
+sb.pairplot(dmaize_fitd_raw)
+
 #one method to calculate correlations but without the labels of the pertaining variables
 #spearm = stats.spearmanr(dmaize_cor_raw)
 #calculates spearman (rank transformed) correlation coeficcients between the 
 #independent variables and saves the values in a dataframe
 sp = dmaize_cor_raw.corr(method='spearman')
-print(sp)
-sp.iloc[0,1:5]
-sp.iloc[1,2:5]
+
+#define a mask to only get the lower triangle of the correlation matrix
+mask = np.triu(np.ones_like(dmaize_cor_raw.corr(), dtype=np.bool))
+#calculate a heatmap according to correlation between the variables
+mheat = sb.heatmap(dmaize_cor_raw.corr(method='spearman'), mask=mask, vmin=-1, vmax=1, annot=True, cmap='BrBG')
+mheat.set_title('Correlation Heatmap', fontdict={'fontsize':18}, pad=12)
+mheat
 #very noticable correlations among the fertilizer variables (as expected)
 #interestingly, also very high correlations between irrigation and fertilizer variables
+
+agglo = cluster.FeatureAgglomeration(n_clusters=20, compute_distances=True)
+clus = agglo.fit(dmaize_cor_raw)
+scipy.cluster.hierarchy.dendrogram(clus)
 
 ############Variance inflation factor##########################
 
@@ -582,7 +597,9 @@ pd.Series([variance_inflation_factor(X.values, i)
                for i in range(X.shape[1])], 
               index=X.columns)
 #drop separate n variables
-cor_n_total_raw = dmaize_cor_raw.drop(['n_fertilizer', 'n_manure', 'p_fertilizer', 'S4_moderate_lim', 'Trop_low'], axis='columns')
+cor_n_total_raw = dmaize_cor_raw.drop(['n_fertilizer', 'n_manure', 'p_fertilizer',
+                                       #'S4_moderate_lim', 'Trop_low'
+                                       ], axis='columns')
 X1 = add_constant(cor_n_total_raw)
 pd.Series([variance_inflation_factor(X1.values, i) 
                for i in range(X1.shape[1])], 
@@ -595,12 +612,74 @@ pd.Series([variance_inflation_factor(X1.values, i)
 
 ###########LOG##################
 
+##############Interactions##########################
+n=dmaize_d_raw['n_total'].reset_index(drop=True)
+m=dmaize_d_raw['mechanized'].reset_index(drop=True)
+i=dmaize_d_raw['irrigation'].reset_index(drop=True)
+s=dmaize_d_raw['soil_class'].reset_index(drop=True)
+mst=dmaize_d_raw['mst_class'].reset_index(drop=True)
+t=dmaize_d_raw['thz_class'].reset_index(drop=True)
+p=dmaize_fit_raw['pesticides_H'].reset_index(drop=True)
+y=dmaize_d_raw['yield'].reset_index(drop=True)
+
+data_i = {"n": n,
+		"m": m,
+		"i": i,
+        "s": s,
+		"mst": mst,
+		"t": t,
+        "p": p,
+        "y" :y,
+		}
+intpl = pd.DataFrame(data=data_i)
+
+fig = interaction_plot(n, m, y, plottype='scatter')
+sb.lmplot(y='y', x='mst', hue='m', data=intpl)
+plt.xlim(0,8)
+plt.show()
+
 
 ######################Regression##############################
 
 #R-style formula
 #doesn't work for some reason... I always get parsing errors and I don't know why
-mod = smf.ols(formula=' yield ~ n_total + pesticides_H + mechanized + irrigation', data=dmaize_fit_raw)
+mod = smf.ols(formula='yield ~ n_total * pesticides_H', data=dmaize_fit_raw)
+mod1 = smf.ols(formula='n_total ~ pesticides_H + mechanized + irrigation', data=dmaize_fit_raw)
+
+dmaize_fit_raw = dmaize_fit_raw.rename(columns={'yield':'Y'}, errors='raise')
+mod = smf.ols(formula='Y ~ n_total + pesticides_H + irrigation + mechanized', data=dmaize_fit_raw)
+m = mod.fit()
+print(m.summary())
+
+mod24 = smf.glm(formula='Y ~ 1', data=dmaize_fit_raw, family=sm.families.Gamma())
+m24 = mod24.fit()
+print(m24.summary())
+
+dm0_raw2 = dm0_raw.rename(columns={'yield':'Y'}, errors='raise')
+dm0_log2 = dm0_log.rename(columns={'yield':'Y'}, errors='raise')
+modas = smf.glm(formula='Y ~ n_total + pesticides_H + irrigation + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dm0_raw2, 
+              family=sm.families.Gamma())
+
+pseudoR = 1-(1575.3/1722.4)    
+
+mas = modas.fit()
+print(mas.summary())
+modlog = smf.ols(formula='Y ~ n_total * pesticides_H * irrigation * mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dm0_log2)
+mlog = modlog.fit()
+print(mlog.summary())
+modraw = smf.ols(formula='Y ~ n_total * pesticides_H * irrigation * mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dm0_raw2)
+mraw = modraw.fit()
+print(mraw.summary())
+
+print(type(dmaize_fit_raw.loc[6040,'yield']))
+print(type(dmaize_fit_raw.loc[6040,'n_total']))
+print(type(dmaize_fit_raw.loc[6040,'pesticides_H']))
+print(type(dmaize_fit_raw.loc[6040,'mechanized']))
+print(type(dmaize_fit_raw.loc[6040,'irrigation']))
+pd.DataFrame(dmaize_fit_raw['yield']).applymap(type).apply(pd.value_counts).fillna(0)
 
 mod = smf.ols(formula='yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dmaize_fit_raw)
 
@@ -664,6 +743,34 @@ print(mod_res_n_log.summary())
 print(mod_res_alln_mix.summary())
 print(mod_res_np_mix.summary())
 print(mod_res_n_mix.summary())
+
+#####################Outliers####################################
+
+############RAW#################################
+dmaize_d_raw.plot.scatter(x = 'n_fertilizer', y = 'yield')
+plt.hist(dmaize_d_raw['yield'])
+print(dmaize_d_raw['yield'].max())
+print(dmaize_d_raw['yield'].quantile(0.999))
+dmaize_q_raw=dmaize_d_raw.loc[dmaize_d_raw['yield'] < dmaize_d_raw['yield'].quantile(0.99)]
+dmaize_q_raw.plot.scatter(x = 'n_fertilizer', y = 'yield')
+print(dmaize_d_raw['n_fertilizer'].max())
+print(dmaize_d_raw['n_fertilizer'].quantile(0.999))
+dmaize_q_raw=dmaize_q_raw.loc[dmaize_q_raw['n_fertilizer'] < dmaize_q_raw['n_fertilizer'].quantile(0.99)]
+dmaize_q_raw.plot.scatter(x = 'n_fertilizer', y = 'yield')
+plt.hist(dmaize_q_raw['yield'], bins=50)
+
+################LOG############################
+dmaize_d.plot.scatter(x = 'n_fertilizer', y = 'yield')
+plt.hist(dmaize_d['yield'])
+print(dmaize_d['yield'].max())
+print(dmaize_d['yield'].quantile(0.99))
+dmaize_q_log=dmaize_d.loc[dmaize_d['yield'] < dmaize_d['yield'].quantile(0.99)]
+dmaize_q_log.plot.scatter(x = 'n_fertilizer', y = 'yield')
+print(dmaize_d['n_fertilizer'].min())
+print(dmaize_d['n_fertilizer'].quantile(0.095))
+dmaize_q_log=dmaize_q_log.loc[dmaize_q_log['n_fertilizer'] > dmaize_q_log['n_fertilizer'].quantile(0.095)]
+dmaize_q_log.plot.scatter(x = 'n_fertilizer', y = 'yield')
+plt.hist(dmaize_q_log['yield'], bins=50)
 
 
 ##########RESIDUALS#############
