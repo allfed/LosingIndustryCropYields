@@ -54,12 +54,14 @@ from src import utilities
 import netCDF4 as nc
 import rasterio
 
-'''
 import resource
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (3e9, 3e9))#no more than 2 gb
-'''
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -136,11 +138,12 @@ for c in crops:
 		# print(grid_area)
 		# quit()
 		cBinned= utilities.rebinCumulative(grid_area, sizeArray)
-		cBinnedReoriented=np.flipud(cBinned)
 
 		if(MAKE_GRID):
+			cBinnedReoriented=np.flipud(cBinned)
 			grid[c+'_'+m]=pd.Series(cBinnedReoriented.ravel())
 		else:
+			cBinnedReoriented=np.fliplr(np.transpose(cBinned))
 			df[c+'_'+m]=pd.Series(cBinnedReoriented.ravel())
 
 		# print(grid[c+'_'+m])
@@ -161,12 +164,19 @@ for c in crops:
 		df[c+'_is_mech_tmp']=df[c+'_mech']>=df[c+'_non_mech']
 		df[c+'_is_not_mech_tmp']=df[c+'_mech']<df[c+'_non_mech']
 		df[c+'_no_crops']=(df[c+'_mech']==0) & (df[c+'_non_mech']==0)
-		df[c+'_is_mech'] = np.where(df[c+'_no_crops'],np.nan,df[c+'_is_mech_tmp'])
+		df[c+'_is_mech'] = np.where(df[c+'_no_crops'],-9,df[c+'_is_mech_tmp'])
 		del df[c+'_is_not_mech_tmp']
 		del df[c+'_is_mech_tmp']
+
+
+		# #no data is -9 for the ascii files.
+		# df[c+'_is_mech'] = np.where(df[c+'_no_crops'],-9,df[c+'_is_mech_tmp'])
+		# tillage_mech = df[c+'_is_mech']
+		# # tillage_not_mech = df[c+'_is_mech']
+		# tillage_mech.to_csv(params.geopandasDataDir + "TillageHighRes.csv")
+	if(not MAKE_GRID):
+		df.to_csv(params.geopandasDataDir + "TillageHighRes"+c+".csv")
 
 # Plotter.plotMap(grid,'whea_is_not_mech',title,label,'TillageMechWheat',plotGrowArea)
 if(MAKE_GRID):
 	grid.to_csv(params.geopandasDataDir + "Tillage.csv")
-else:
-	df.to_csv(params.geopandasDataDir + "TillageHighRes.csv")

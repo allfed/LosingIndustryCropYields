@@ -39,9 +39,12 @@ from geopandas.tools import sjoin
 import rasterio
 import utilities
 import resource
-
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (2e9, 2e9))#no more than 2 gb
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()

@@ -22,8 +22,12 @@ import geopandas as gpd
 import utilities
 
 import resource
-rsrc = resource.RLIMIT_AS
-resource.setrlimit(rsrc, (3e9, 3e9))#no more than 2 gb
+from sys import platform
+if platform == "linux" or platform == "linux2":
+	#this is to ensure Morgan's computer doesn't crash
+	import resource
+	rsrc = resource.RLIMIT_AS
+	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 
 
@@ -70,7 +74,8 @@ class OutdoorGrowth:
 		# df['corrected'] = fertilizer['n']
 		df['corrected'] = yields['totalYield']
 		# df['corrected'] = fertilizer['n']*yields['totalYield']
-		utilities.create5minASCII(df,'corrected',params.asciiDir+'example')
+		# utilities.create5minASCII(df,'corrected',params.asciiDir+'example')
+		utilities.create5minASCII(df,'corrected',params.asciiDir+'tillage')
 
 
 		# title="Multiply some variables as example"
