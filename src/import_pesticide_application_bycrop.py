@@ -63,15 +63,15 @@ years=['2015']
 # bounds=['L','H']
 bounds=['H']
 crops=[ \
-	# # 'Alfalfa',\
-	# 'Corn',\
-	# # 'Cotton',\
-	# # 'OrcGra',\
-	# # 'Other',\
-	# # 'PasHay',\
-	# 'Rice',\
-	# 'Soybean',\
-	# # 'VegFru',\
+	# 'Alfalfa',\
+	'Corn',\
+	# 'Cotton',\
+	# 'OrcGra',\
+	# 'Other',\
+	# 'PasHay',\
+	'Rice',\
+	'Soybean',\
+	# 'VegFru',\
 	'Wheat'\
 ]
 pesticides=[ \
