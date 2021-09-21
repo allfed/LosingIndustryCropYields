@@ -60,7 +60,8 @@ if platform == "linux" or platform == "linux2":
 MAKE_GRID = False
 
 years=['2015']
-bounds=['L','H']
+# bounds=['L','H']
+bounds=['H']
 crops=[ \
 	# 'Alfalfa',\
 	'Corn',\
@@ -192,7 +193,7 @@ lats = np.linspace(-90, 90 - params.latdiff, \
 lons = np.linspace(-180, 180 - params.londiff, \
 					np.floor(360 / params.londiff).astype('int'))
 
-result=np.zeros((nbins*len(lats),nbins*len(lons)))
+result=np.full((nbins*len(lats),nbins*len(lons)),-9)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
@@ -229,13 +230,14 @@ for c in crops:
 
 				pArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
 
-				pArrResizedFiltered=np.where(pArrResized<0, 0, pArrResized)
+				# pArrResizedAllNan=np.where(pArrResized<0, 1, pArrResized)
+				# pArrResizedFiltered=np.where(pArrResized<0, 0, pArrResized)
 				
 				#print pesticide if data for application of this pesticide exists 
 				print('    '+p)
 				
 				#record the pesticide amount for each pesticide
-				pBinned= utilities.rebin(pArrResizedFiltered, sizeArray)
+				pBinned= utilities.rebin(pArrResized, sizeArray)
 				pBinnedReoriented=np.flipud(pBinned)
 
 				if(MAKE_GRID):
@@ -246,13 +248,23 @@ for c in crops:
 
 				#add the pesticides of this type for this crop to the total
 				if(len(cSums)==0):
-					cSums=pArrResizedFiltered
+					cSums=pArrResized
+					mask = np.where(pArrResized<0,0,1)
 				else:
-					cSums=np.array(cSums)+np.array(pArrResizedFiltered)	
+					#only 1 or nan. If ever a pesticide at a grid cell is not 
+					#nan, this value is not nan either.
+					#value of 1 indicates that there was a nonnegative value for some pesticide for this crop
+					mask = np.bitwise_or(mask,np.where(pArrResized<0,0,1))
+
+					cSums=np.array(cSums)+np.array(pArrResized)
 
 		if(len(cSums)==0):
 			continue
-		cBinned= utilities.rebin(cSums, sizeArray)
+
+		mask_final=np.where(mask==0,np.nan,1)
+		
+		#we get an appropriately sized array that also has nan values where there were only negatives in the original data.
+		cBinned= utilities.rebin(np.multiply(cSums,mask_final), sizeArray)
 		
 		if(MAKE_GRID):
 			cBinnedReoriented=np.flipud(cBinned)
@@ -276,4 +288,6 @@ for c in crops:
 		# label="Application Rate (kg/ha/year)"
 		# Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
 	else:
+		print(df.columns)
 		df.to_csv(params.geopandasDataDir + c + "PesticidesHighRes.csv")
+		

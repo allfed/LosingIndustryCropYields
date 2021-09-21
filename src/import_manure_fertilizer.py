@@ -96,10 +96,10 @@ for f in files:
 
 	fArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
 
-	fArrResizedFiltered=np.where(fArrResized<0, 0, fArrResized)
+	# fArrResizedFiltered=np.where(fArrResized<0, 0, fArrResized)
 	
 	#record the nitrogen amount for each pesticide
-	fBinned= utilities.rebin(fArrResizedFiltered, sizeArray)
+	fBinned= utilities.rebin(fArrResized, sizeArray)
 	
 	if(MAKE_GRID):
 		fBinnedReoriented=np.flipud(fBinned)

@@ -136,6 +136,8 @@ def saveDictasgeopandas(name,data):
 def create5minASCII(df,column,fn):
 	file1 = open(fn+".asc","w")#write mode
 	array = np.array(df[column].values).astype('float32')
+	arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
+	print(np.min(arrayWithNoData))
 	# np.savetxt(params.asciiDir)
 	pretext = \
 '''ncols         4320
@@ -146,10 +148,10 @@ cellsize      0.083333333333333
 NODATA_value  -9
 '''
 	file1.write(pretext)
-	print(len(array))
-	print(min(array))
-	print(max(array))
-	flippedarr=np.ravel(np.flipud(np.transpose(array.reshape((4320,2160)))))
+	print(len(arrayWithNoData))
+	print(min(arrayWithNoData))
+	print(max(arrayWithNoData))
+	flippedarr=np.ravel(np.flipud(np.transpose(arrayWithNoData.reshape((4320,2160)))))
 	file1.write(" ".join(map(str,flippedarr)))
 	file1.close()
 	
