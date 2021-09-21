@@ -84,7 +84,7 @@ lats = np.linspace(-90, 90 - params.latdiff, \
 lons = np.linspace(-180, 180 - params.londiff, \
 				   np.floor(360 / params.londiff).astype('int'))
 
-result=np.zeros((nbins*len(lats),nbins*len(lons)))
+result=np.full((nbins*len(lats),nbins*len(lons)),-9)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
@@ -115,9 +115,9 @@ for f in fertilizers:
 
 	fArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
 	# time2 = datetime.datetime.now()
-	fArrResizedZeroed=np.where(fArrResized<0, 0, fArrResized)
+	# fArrResizedZeroed=np.where(fArrResized<0, 0, fArrResized)
 	# time3 = datetime.datetime.now()
-	fBinned= utilities.rebin(fArrResizedZeroed, sizeArray)
+	fBinned= utilities.rebin(fArrResized, sizeArray)
 	# time4 = datetime.datetime.now()
 	fBinnedReoriented=np.fliplr(np.transpose(fBinned))
 	# time5 = datetime.datetime.now()
@@ -148,17 +148,13 @@ if(MAKE_GRID):
 
 	grid.to_csv(params.geopandasDataDir + "Fertilizer.csv")
 else:
-	print('1')
-
 	assert(df['lats'].iloc[-1]>df['lats'].iloc[0])
 	assert(df['lons'].iloc[-1]>df['lons'].iloc[0])
 	# quit()
 	# df.sort_values(by=['lats', 'lons'],inplace=True)
 	# print('2')
 	# df = df.reset_index(drop=True)
-	print('3')
 	df.to_csv(params.geopandasDataDir + "FertilizerHighRes.csv")
-	print('4')
 	# time10 = datetime.datetime.now()
 
 
