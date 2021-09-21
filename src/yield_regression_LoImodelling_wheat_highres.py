@@ -49,6 +49,9 @@ wheat_yield.head()
 wheat_nozero=wheat_yield.loc[wheat_yield['growArea'] > 0]
 #compile yield data where area is greater 0 in a new array
 wheat_kgha=wheat_nozero['yield_kgPerHa']
+
+'''
+Attempts to weight the values (not successful so far)
 wheat_kg = wheat_nozero['totalYield']
 wweights=wheat_nozero['growArea']/wheat_nozero['growArea'].sum()
 wweigh_sum = wweights.sum()
@@ -56,6 +59,20 @@ print(wheat_nozero['growArea'].max())
 print(wheat_nozero['growArea'].min())
 wheat_weighted=wheat_kgha*wweights*wheat_nozero['growArea'].sum()
 print(wheat_weighted.mean())
+
+#Plots: belong to the weighting attempts
+plt.hist(wheat_kg, bins=50)
+plt.title('wheat yield ha/kg')
+plt.xlabel('yield kg')
+plt.ylabel('density')
+plt.xlim(right=30000000)
+
+plt.hist(wheat_weighted, bins=100)
+plt.title('wheat yield kg/ha')
+plt.xlabel('yield kg/ha')
+plt.ylabel('density')
+plt.xlim(right=300000)
+'''
 #calculate descriptive statistics values (mean, median, standard deviation and variance)
 #for the yield data with a value greater 0
 wmean=wheat_kgha.mean()
@@ -81,16 +98,6 @@ plt.title('wheat yield ha/kg')
 plt.xlabel('yield kg/ha')
 plt.ylabel('density')
 plt.xlim(right=15000)
-plt.hist(wheat_kg, bins=50)
-plt.title('wheat yield ha/kg')
-plt.xlabel('yield kg')
-plt.ylabel('density')
-plt.xlim(right=30000000)
-plt.hist(wheat_weighted, bins=100)
-plt.title('wheat yield kg/ha')
-plt.xlabel('yield kg/ha')
-plt.ylabel('density')
-plt.xlim(right=300000)
 
 #plot log transformed values of yield_kgPerHa
 plt.hist(wheat_kgha_log, bins=50)
@@ -319,9 +326,9 @@ st = stat_ut.stat_overview(dist_listw, pdf_listw, param_dictw)
 '''
 Load factor data and extract zeros
 '''
-pesticides=pd.read_csv(params.geopandasDataDir + 'WheatPesticidesByCropHighRes.csv')
-print(pesticides.columns)
-print(pesticides.head())
+w_pesticides=pd.read_csv(params.geopandasDataDir + 'WheatPesticidesHighRes.csv')
+print(w_pesticides.columns)
+print(w_pesticides.head())
 fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
 print(fertilizer.columns)
 print(fertilizer.head())
@@ -332,24 +339,24 @@ print(fertilizer_man.head())
 #print(irrigation.columns)
 #print(irrigation.head())
 #check on Tillage because Morgan didn't change the allocation of conservation agriculture to mechanized
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighRes.csv')
-print(tillage.columns)
-print(tillage.head())
-#tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
-#print(tillage0.head())
+w_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighReswhea.csv')
+print(w_tillage.columns)
+print(w_tillage.head())
+#w_tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
+#print(w_tillage0.head())
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 print(aez.columns)
 print(aez.head())
 print(aez.dtypes)
 
 #print the value of each variable at the same index to make sure that coordinates align (they do)
-print(pesticides.loc[6040])
-print(fertilizer.loc[6040])
-print(fertilizer_man.loc[6040])
-#print(irrigation.loc[6040])
-print(tillage.loc[6040])
-print(aez.loc[6040])
-print(wheat_yield.loc[6040])
+print(w_pesticides.loc[1444612])
+print(fertilizer.loc[1444612])
+print(fertilizer_man.loc[1444612])
+#print(irrigation.loc[1444612])
+print(w_tillage.loc[1444612])
+print(aez.loc[1444612])
+print(wheat_yield.loc[1444612])
 
 #fertilizer is in kg/m² and fertilizer_man is in kg/km² while yield and pesticides are in kg/ha
 #I would like to have all continuous variables in kg/ha
@@ -385,8 +392,8 @@ data_raw = {"lat": wheat_yield.loc[:,'lats'],
 		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_total" : N_total,
-        "pesticides_H": pesticides.loc[:,'total_H'],
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+        "pesticides_H": w_pesticides.loc[:,'total_H'],
+        "mechanized": w_tillage.loc[:,'whea_is_mech'],
 #        "irrigation": irrigation.loc[:,'area'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
@@ -398,14 +405,56 @@ dwheat_raw = pd.DataFrame(data=data_raw)
 #select only the rows where the area of the cropland is larger than 0
 dw0_raw=dwheat_raw.loc[dwheat_raw['area'] > 0]
 
-test = dw0_raw.loc[dwheat_raw['thz_class'] == 0]
-test1 = dw0_raw.loc[dwheat_raw['soil_class'] == 8]
+#test if there are cells with 0s for the AEZ classes (there shouldn't be any)
+w_testt = dw0_raw.loc[dw0_raw['thz_class'] == 0] #only one 0
+w_testm = dw0_raw.loc[dw0_raw['mst_class'] == 0] #only one 0
+w_tests = dw0_raw.loc[dw0_raw['soil_class'] == 0]
+#850 0s probably due to the original soil dataset being in 30 arcsec resolution:
+    #land/ocean boundaries, especially of islands, don't always align perfectly
+
+#test if certain classes of the AEZ aren't present in the dataset because they
+#represent conditions which aren't beneficial for plant growth
+#thz_class: test Arctic and Bor_cold_with_permafrost
+w_test_t9 = dw0_raw.loc[dw0_raw['thz_class'] == 9]
+#459 with Boreal and permafrost: reasonable
+w_test_t10 = dw0_raw.loc[dw0_raw['thz_class'] == 10]
+#168 with Arctic: is reasonable
+
+#mst_class: test LPG<60days
+w_test_m = dw0_raw.loc[dw0_raw['mst_class'] == 1]
+#23892 in LPG<60 days class: probably due to irrigation
+
+#soil class: test urban, water bodies and very steep class
+w_test_s1 = dw0_raw.loc[dw0_raw['soil_class'] == 1]
+#14593 in very steep class: makes sense, there is marginal agriculture in
+#agricultural outskirts
+w_test_s7 = dw0_raw.loc[dw0_raw['soil_class'] == 7]
+#3033 in water class: this doesn't make sense but also due to resolution
+#I think these should be substituted
+w_test_s8 = dw0_raw.loc[dw0_raw['soil_class'] == 8]
+#3663 in urban class: probably due to finer resolution in soil class, e.g. course of 
+#the Nile is completely classified with yield estimates even though there are many urban areas
+#Question: should the urban datapoints be taken out due to them being unreasonable? But then again
+#the other datasets most likely contain values in these spots as well (equally unprecise), so I would
+#just lose information
+#I could substitute them like the water bodies
+
+#test mech dataset values
+w_test_mech0 = dw0_raw.loc[dw0_raw['mechanized'] == 0] #82523
+w_test_mech1 = dw0_raw.loc[dw0_raw['mechanized'] == 1] #260295
+w_test_mechn = dw0_raw.loc[dw0_raw['mechanized'] == -9] #119215
+#this is a problem: -9 is used as NaN value and there are way, way too many
+
+w_test_f = dw0_raw.loc[dw0_raw['n_fertilizer'] == 0] #23556
+w_test_pf = dw0_raw.loc[dw0_raw['p_fertilizer'] == 0] #30401
+w_test_man = dw0_raw.loc[dw0_raw['n_manure'] == 0] #12296
+w_test_p = dw0_raw.loc[dw0_raw['pesticides_H'] == 0] #120056
 
 #replace 0s in the moisture, climate and soil classes with NaN values so they
 #can be handled with the .fillna method
 dw0_raw['thz_class'] = dw0_raw['thz_class'].replace(0,np.nan)
 dw0_raw['mst_class'] = dw0_raw['mst_class'].replace(0,np.nan)
-dw0_raw['soil_class'] = dw0_raw['soil_class'].replace(0,np.nan)
+dw0_raw['soil_class'] = dw0_raw['soil_class'].replace([0,7,8],np.nan)
 #NaN values throw errors in the regression, they need to be handled beforehand
 #fill in the NaN vlaues in the dataset with a forward filling method
 #(replacing NaN with the value in the cell before)
@@ -431,8 +480,8 @@ data_log = {"lat": wheat_yield.loc[:,'lats'],
 		"p_fertilizer": np.log(fertilizer.loc[:,'p_kgha']),
         "n_manure": np.log(fertilizer_man.loc[:,'applied_kgha']),
         "n_total" : np.log(N_total),
-        "pesticides_H": np.log(pesticides.loc[:,'total_H']),
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+        "pesticides_H": np.log(w_pesticides.loc[:,'total_H']),
+        "mechanized": w_tillage.loc[:,'whea_is_mech'],
 #        "irrigation": np.log(irrigation.loc[:,'area']),
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],

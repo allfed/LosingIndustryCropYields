@@ -19,9 +19,9 @@ from scipy import interpolate
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-import utilities
+from src import utilities
 
-import resource
+#import resource
 from sys import platform
 if platform == "linux" or platform == "linux2":
 	#this is to ensure Morgan's computer doesn't crash

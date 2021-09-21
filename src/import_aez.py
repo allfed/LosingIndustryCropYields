@@ -1,4 +1,4 @@
-'''''
+'''
 This code imports and downsamples a raster (geotiff) of agroecological zones 
 (AEZ). 
 
@@ -22,7 +22,7 @@ import geopandas as gpd
 import rasterio
 import utilities
 
-import resource
+#import resource
 # import datetime
 from sys import platform
 if platform == "linux" or platform == "linux2":

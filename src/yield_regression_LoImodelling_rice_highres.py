@@ -262,9 +262,9 @@ st = stat_ut.stat_overview(dist_listr, pdf_listr, param_dictr)
 '''
 Load factor data and extract zeros
 '''
-pesticides=pd.read_csv(params.geopandasDataDir + 'RicePesticidesByCropHighRes.csv')
-print(pesticides.columns)
-print(pesticides.head())
+r_pesticides=pd.read_csv(params.geopandasDataDir + 'RicePesticidesHighRes.csv')
+print(r_pesticides.columns)
+print(r_pesticides.head())
 fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
 print(fertilizer.columns)
 print(fertilizer.head())
@@ -275,9 +275,9 @@ print(fertilizer_man.head())
 #print(irrigation.columns)
 #print(irrigation.head())
 #check on Tillage because Morgan didn't change the allocation of conservation agriculture to mechanized
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighRes.csv')
-print(tillage.columns)
-print(tillage.head())
+r_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResrice.csv')
+print(r_tillage.columns)
+print(r_tillage.head())
 #tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
 #print(tillage0.head())
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
@@ -286,11 +286,11 @@ print(aez.head())
 print(aez.dtypes)
 
 #print the value of each variable at the same index to make sure that coordinates align (they do)
-print(pesticides.loc[6040])
+print(r_pesticides.loc[6040])
 print(fertilizer.loc[6040])
 print(fertilizer_man.loc[6040])
 #print(irrigation.loc[6040])
-print(tillage.loc[6040])
+print(r_tillage.loc[6040])
 print(aez.loc[6040])
 print(rice_yield.loc[6040])
 
@@ -328,8 +328,8 @@ data_raw = {"lat": rice_yield.loc[:,'lats'],
 		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_total" : N_total,
-        "pesticides_H": pesticides.loc[:,'total_H'],
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+        "pesticides_H": r_pesticides.loc[:,'total_H'],
+        "mechanized": r_tillage.loc[:,'rice_is_mech'],
 #        "irrigation": irrigation.loc[:,'area'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
@@ -341,8 +341,50 @@ drice_raw = pd.DataFrame(data=data_raw)
 #select only the rows where the area of the cropland is larger than 0
 dr0_raw=drice_raw.loc[drice_raw['area'] > 0]
 
-test = dr0_raw.loc[drice_raw['thz_class'] == 0]
-test1 = dr0_raw.loc[drice_raw['soil_class'] == 8]
+#test if there are cells with 0s for the AEZ classes (there shouldn't be any)
+r_testt = dr0_raw.loc[dr0_raw['thz_class'] == 0] #only 82 0s
+r_testm = dr0_raw.loc[dr0_raw['mst_class'] == 0] #only 82 0s
+r_tests = dr0_raw.loc[dr0_raw['soil_class'] == 0]
+#3201 0s probably due to the original soil dataset being in 30 arcsec resolution:
+    #land/ocean boundaries, especially of islands, don't always align perfectly
+
+#test if certain classes of the AEZ aren't present in the dataset because they
+#represent conditions which aren't beneficial for plant growth
+#thz_class: test Arctic and Bor_cold_with_permafrost
+r_test_t9 = dr0_raw.loc[dr0_raw['thz_class'] == 9]
+#14 with Boreal and permafrost: reasonable
+r_test_t10 = dr0_raw.loc[dr0_raw['thz_class'] == 10]
+#196 with Arctic: is reasonable
+
+#mst_class: test LPG<60days
+r_test_m = dr0_raw.loc[dr0_raw['mst_class'] == 1]
+#8202 in LPG<60 days class: probably due to irrigation
+
+#soil class: test urban, water bodies and very steep class
+r_test_s1 = dr0_raw.loc[dr0_raw['soil_class'] == 1]
+#9881 in very steep class: makes sense, there is marginal agriculture in
+#agricultural outskirts
+r_test_s7 = dr0_raw.loc[dr0_raw['soil_class'] == 7]
+#1841 in water class: this doesn't make sense but also due to resolution
+#I think these should be substituted
+r_test_s8 = dr0_raw.loc[dr0_raw['soil_class'] == 8]
+#1687 in urban class: probably due to finer resolution in soil class, e.g. course of 
+#the Nile is completely classified with yield estimates even though there are many urban areas
+#Question: should the urban datapoints be taken out due to them being unreasonable? But then again
+#the other datasets most likely contain values in these spots as well (equally unprecise), so I would
+#just lose information
+#I could substitute them like the water bodies
+
+#test mech dataset values
+r_test_mech0 = dr0_raw.loc[dr0_raw['mechanized'] == 0] #123886
+r_test_mech1 = dr0_raw.loc[dr0_raw['mechanized'] == 1] #119848
+r_test_mechn = dr0_raw.loc[dr0_raw['mechanized'] == -9] #64831
+#this is a problem: -9 is used as NaN value and there are way, way too many
+
+r_test_f = dr0_raw.loc[dr0_raw['n_fertilizer'] == 0] #23014
+r_test_pf = dr0_raw.loc[dr0_raw['p_fertilizer'] == 0] #27110
+r_test_man = dr0_raw.loc[dr0_raw['n_manure'] == 0] #17699
+r_test_p = dr0_raw.loc[dr0_raw['pesticides_H'] == 0] #130979
 
 #replace 0s in the moisture, climate and soil classes with NaN values so they
 #can be handled with the .fillna method
@@ -374,8 +416,8 @@ data_log = {"lat": rice_yield.loc[:,'lats'],
 		"p_fertilizer": np.log(fertilizer.loc[:,'p_kgha']),
         "n_manure": np.log(fertilizer_man.loc[:,'applied_kgha']),
         "n_total" : np.log(N_total),
-        "pesticides_H": np.log(pesticides.loc[:,'total_H']),
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+        "pesticides_H": np.log(r_pesticides.loc[:,'total_H']),
+        "mechanized": r_tillage.loc[:,'rice_is_mech'],
 #        "irrigation": np.log(irrigation.loc[:,'area']),
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
