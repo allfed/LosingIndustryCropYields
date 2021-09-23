@@ -84,7 +84,7 @@ lats = np.linspace(-90, 90 - params.latdiff, \
 lons = np.linspace(-180, 180 - params.londiff, \
 				   np.floor(360 / params.londiff).astype('int'))
 
-result=np.full((nbins*len(lats),nbins*len(lons)),-9)
+result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
@@ -94,7 +94,7 @@ df = pd.DataFrame(data=data)
 sizeArray=[len(lats),len(lons)]
 
 
-fertilizers = ['n','p']
+fertilizers = ['n']#,'p']
 
 
 print('reading fertilizer data')
@@ -107,22 +107,36 @@ for f in fertilizers:
 
 	# so, 1/2 degree= 30 arcminutes=6 by 5 arcminute chunks
 	# also, convert grams to kg.
+	print(len(fArr))
+	print(len(fArr[0]))
+	print(fArr[100:110][9])
 	fArrUpsampled=fArr.repeat(6, axis=0).repeat(6, axis=1)/1000
-
 	result[start_lat_index:start_lat_index+len(fArrUpsampled),start_lon_index:start_lon_index+len(fArrUpsampled[0])]=fArrUpsampled
+	
+	if(MAKE_GRID):
+		# quit()
 
-	# time1 = datetime.datetime.now()
 
-	fArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
-	# time2 = datetime.datetime.now()
-	# fArrResizedZeroed=np.where(fArrResized<0, 0, fArrResized)
-	# time3 = datetime.datetime.now()
-	fBinned= utilities.rebin(fArrResized, sizeArray)
+		# time1 = datetime.datetime.now()
+
+		fArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
+		# time2 = datetime.datetime.now()
+		# fArrResizedZeroed=np.where(fArrResized<0, 0, fArrResized)
+		# time3 = datetime.datetime.now()
+		fBinned= utilities.rebin(fArrResized, sizeArray)
+		fBinnedReoriented=np.fliplr(np.transpose(fBinned))
+		df[f]=pd.Series(fBinnedReoriented.ravel())
+	else:
+		df[f]=pd.Series(np.fliplr(np.transpose(result)).ravel())
+		# fBinnedReoriented=np.fliplr(np.transpose(fArrUpsampled))
+
+		# strout=''
+		# for a in fBinnedReoriented[1000:1100][90]:
+		# 	strout = strout + ' ' + str(a)
+		# print(strout)
 	# time4 = datetime.datetime.now()
-	fBinnedReoriented=np.fliplr(np.transpose(fBinned))
 	# time5 = datetime.datetime.now()
 
-	df[f]=pd.Series(fBinnedReoriented.ravel())
 
 	# time6 = datetime.datetime.now()
 

@@ -63,15 +63,15 @@ years=['2015']
 # bounds=['L','H']
 bounds=['H']
 crops=[ \
-	# 'Alfalfa',\
-	'Corn',\
-	# 'Cotton',\
-	# 'OrcGra',\
-	# 'Other',\
-	# 'PasHay',\
-	'Rice',\
-	'Soybean',\
-	# 'VegFru',\
+	# # 'Alfalfa',\
+	# 'Corn',\
+	# # 'Cotton',\
+	# # 'OrcGra',\
+	# # 'Other',\
+	# # 'PasHay',\
+	# 'Rice',\
+	# 'Soybean',\
+	# # 'VegFru',\
 	'Wheat'\
 ]
 pesticides=[ \
@@ -193,7 +193,7 @@ lats = np.linspace(-90, 90 - params.latdiff, \
 lons = np.linspace(-180, 180 - params.londiff, \
 					np.floor(360 / params.londiff).astype('int'))
 
-result=np.full((nbins*len(lats),nbins*len(lons)),-9)
+result=np.full((nbins*len(lats),nbins*len(lons)),-9.)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
@@ -224,39 +224,53 @@ for c in crops:
 			if(os.path.exists(fn)):
 				pdata=rasterio.open(fn)
 				pArr=pdata.read(1)
+				# strout=''
+				# for a in pArr[1000:1100][90]:
+				# 	strout = strout + ' ' + str(a)
+				# print(strout)
+				# quit()
 
+				print(pArr)
 				result[start_lat_index:start_lat_index+len(pArr),start_lon_index:start_lon_index+len(pArr[0])]=pArr
 
-
-				pArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
-
-				# pArrResizedAllNan=np.where(pArrResized<0, 1, pArrResized)
-				# pArrResizedFiltered=np.where(pArrResized<0, 0, pArrResized)
-				
-				#print pesticide if data for application of this pesticide exists 
-				print('    '+p)
-				
-				#record the pesticide amount for each pesticide
-				pBinned= utilities.rebin(pArrResized, sizeArray)
-				pBinnedReoriented=np.flipud(pBinned)
-
 				if(MAKE_GRID):
+					pArrResized=result[0:nbins*len(lats),0:nbins*len(lons)]
+
+					# pArrResizedAllNan=np.where(pArrResized<0, 1, pArrResized)
+					# pArrResizedFiltered=np.where(pArrResized<0, 0, pArrResized)
+					
+					#print pesticide if data for application of this pesticide exists 
+					print('    '+p)
+					
+					#record the pesticide amount for each pesticide
+					pBinned= utilities.rebin(pArrResized, sizeArray)
+					pBinnedReoriented=np.flipud(pBinned)
+
 					grid[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
 				else: 
-					# df[p+'_'+b]=pd.Series(pBinnedReoriented.ravel())
+					# df[p+'_'+b]=pd.Series(result.ravel())
 					pass
 
 				#add the pesticides of this type for this crop to the total
 				if(len(cSums)==0):
-					cSums=pArrResized
-					mask = np.where(pArrResized<0,0,1)
+					cSums=result
+					mask = np.where(result<0,0,1)
+					strout = ''
+					for a in result[1000:1100][90]:
+						strout = strout + ' ' + str(a)
+					print(strout)
+					# quit()
+
+					# for if we want to go back to rebinning at some point
+					# cSums=pArrResized
+					# mask = np.where(pArrResized<0,0,1)
 				else:
 					#only 1 or nan. If ever a pesticide at a grid cell is not 
 					#nan, this value is not nan either.
 					#value of 1 indicates that there was a nonnegative value for some pesticide for this crop
-					mask = np.bitwise_or(mask,np.where(pArrResized<0,0,1))
+					mask = np.bitwise_or(mask,np.where(result<0,0,1))
 
-					cSums=np.array(cSums)+np.array(pArrResized)
+					cSums=np.array(cSums)+np.array(result)
 
 		if(len(cSums)==0):
 			continue
