@@ -94,7 +94,7 @@ df = pd.DataFrame(data=data)
 sizeArray=[len(lats),len(lons)]
 
 
-fertilizers = ['n']#,'p']
+fertilizers = ['n','p']
 
 
 print('reading fertilizer data')
