@@ -298,9 +298,9 @@ st = stat_ut.stat_overview(dist_listm, pdf_listm, param_dictm)
 '''
 Load factor data and extract zeros
 '''
-pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesByCropHighRes.csv')
-print(pesticides.columns)
-print(pesticides.head())
+m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesHighRes.csv')
+print(m_pesticides.columns)
+print(m_pesticides.head())
 fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
 print(fertilizer.columns)
 print(fertilizer.head())
@@ -311,22 +311,22 @@ print(fertilizer_man.head())
 #print(irrigation.columns)
 #print(irrigation.head())
 #check on Tillage because Morgan didn't change the allocation of conservation agriculture to mechanized
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighRes.csv')
-print(tillage.columns)
-print(tillage.head())
-#tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
-#print(tillage0.head())
+m_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResmaiz.csv')
+print(m_tillage.columns)
+print(m_tillage.head())
+#m_tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
+#print(m_tillage0.head())
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 print(aez.columns)
 print(aez.head())
 print(aez.dtypes)
 
 #print the value of each variable at the same index to make sure that coordinates align (they do)
-print(pesticides.loc[6040])
+print(m_pesticides.loc[6040])
 print(fertilizer.loc[6040])
 print(fertilizer_man.loc[6040])
 #print(irrigation.loc[6040])
-print(tillage.loc[6040])
+print(m_tillage.loc[6040])
 print(aez.loc[6040])
 print(maize_yield.loc[6040])
 
@@ -364,8 +364,8 @@ data_raw = {"lat": maize_yield.loc[:,'lats'],
 		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_total" : N_total,
-        "pesticides_H": pesticides.loc[:,'total_H'],
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+        "pesticides_H": m_pesticides.loc[:,'total_H'],
+        "mechanized": m_tillage.loc[:,'maiz_is_mech'],
 #        "irrigation": irrigation.loc[:,'area'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
@@ -377,19 +377,87 @@ dmaize_raw = pd.DataFrame(data=data_raw)
 #select only the rows where the area of the cropland is larger than 0
 dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
 
-test = dm0_raw.loc[dmaize_raw['thz_class'] == 0]
-test1 = dm0_raw.loc[dmaize_raw['soil_class'] == 8]
+#test if the categories are more or less evenly distributed to prevent introducing increased
+#artificial error
+plt.hist(dm0_raw['thz_class'], bins=50)
+#merge the last three classes into one
+#class 1 is by far the largest
+plt.hist(dm0_raw['mst_class'], bins=50)
+#could possibly combine class 1 with class 2 and class 7 with class 6
+#maybe don't merge class 1 because there could be a strong interaction with irrigation
+plt.hist(dm0_raw['soil_class'], bins=50)
+#as discussed below: get rid of urban and water class as those are erronous
+#can't merge the first two classes as they represent two different things:
+    #class 1: slope limitations, class 2: hydrological limitations
+
+#test if there are cells with 0s for the AEZ classes (there shouldn't be any)
+m_testt = dm0_raw.loc[dm0_raw['thz_class'] == 0] #only 42 0s
+m_testm = dm0_raw.loc[dm0_raw['mst_class'] == 0] #only 42 0s
+m_tests = dm0_raw.loc[dm0_raw['soil_class'] == 0]
+#2583 0s probably due to the original soil dataset being in 30 arcsec resolution:
+    #land/ocean boundaries, especially of islands, don't always align perfectly
+
+#test if certain classes of the AEZ aren't present in the dataset because they
+#represent conditions which aren't beneficial for plant growth
+#thz_class: test Arctic and Bor_cold_with_permafrost
+m_test_t9 = dm0_raw.loc[dm0_raw['thz_class'] == 9]
+#19 with Boreal and permafrost: reasonable
+m_test_t10 = dm0_raw.loc[dm0_raw['thz_class'] == 10]
+#246 with Arctic: is reasonable
+
+#mst_class: test LPG<60days
+m_test_m = dm0_raw.loc[dm0_raw['mst_class'] == 1]
+#18264 in LPG<60 days class: probably due to irrigation
+
+#soil class: test urban, water bodies and very steep class
+m_test_s1 = dm0_raw.loc[dm0_raw['soil_class'] == 1]
+#15541 in very steep class: makes sense, there is marginal agriculture in
+#agricultural outskirts
+m_test_s7 = dm0_raw.loc[dm0_raw['soil_class'] == 7]
+#3223 in water class: this doesn't make sense but also due to resolution
+#I think these should be substituted
+m_test_s8 = dm0_raw.loc[dm0_raw['soil_class'] == 8]
+#3496 in urban class: probably due to finer resolution in soil class, e.g. course of 
+#the Nile is completely classified with yield estimates even though there are many urban areas
+#Question: should the urban datapoints be taken out due to them being unreasonable? But then again
+#the other datasets most likely contain values in these spots as well (equally unprecise), so I would
+#just lose information
+#I could substitute them like the water bodies
+
+#test mech dataset values
+m_test_mech0 = dm0_raw.loc[dm0_raw['mechanized'] == 0] #157445
+m_test_mech1 = dm0_raw.loc[dm0_raw['mechanized'] == 1] #278059
+m_test_mechn = dm0_raw.loc[dm0_raw['mechanized'] == -9] #126276
+#this is a problem: -9 is used as NaN value and there are way, way too many
+
+m_test_f = dm0_raw.loc[dm0_raw['n_fertilizer'] == 0] #39679
+m_test_pf = dm0_raw.loc[dm0_raw['p_fertilizer'] == 0] #44874
+m_test_man = dm0_raw.loc[dm0_raw['n_manure'] == 0] #21460
+m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'] == 0] #166565
 
 #replace 0s in the moisture, climate and soil classes with NaN values so they
 #can be handled with the .fillna method
 dm0_raw['thz_class'] = dm0_raw['thz_class'].replace(0,np.nan)
+dm0_raw['thz_class'] = dm0_raw['thz_class'].replace([9,10],8)
 dm0_raw['mst_class'] = dm0_raw['mst_class'].replace(0,np.nan)
-dm0_raw['soil_class'] = dm0_raw['soil_class'].replace(0,np.nan)
+dm0_raw['soil_class'] = dm0_raw['soil_class'].replace([0,7,8],np.nan)
+print(dm0_raw.loc[1511426])
+print(dm0_raw.loc[7190035])
 #NaN values throw errors in the regression, they need to be handled beforehand
 #fill in the NaN vlaues in the dataset with a forward filling method
 #(replacing NaN with the value in the cell before)
 #this is fine for now as there most likely won't be any NaN values at full resolution
 dm0_raw = dm0_raw.fillna(method='ffill')
+
+#select only the rows, where the column mechanized is non-NaN
+dm0_test = dm0_raw.loc[dm0_raw['mechanized'] > -9]
+test_f = dm0_test.loc[dm0_test['n_fertilizer'] == 0] #19064
+test_pf = dm0_test.loc[dm0_test['p_fertilizer'] == 0] #22847
+test_man = dm0_test.loc[dm0_test['n_manure'] == 0] #14869
+test_p = dm0_test.loc[dm0_test['pesticides_H'] == 0] #107107
+dm0_test1 = dm0_test.loc[dm0_test['pesticides_H'] > 0]
+test1_f = dm0_test1.loc[dm0_test1['n_fertilizer'] == 0] #5965
+
 #fill in the remaining couple of nans at the top of mechanized column
 dm0_raw['mechanized'] = dm0_raw['mechanized'].fillna(1)
 
@@ -402,32 +470,37 @@ dm0_raw['mechanized'] = dm0_raw['mechanized'].fillna(1)
 #unfortunately the ln of 0 is not defined
 #just keeping the 0 would skew the results as that would imply a 1 in the data when there is a 0
 #could just use the smallest value of the dataset as a substitute?
-data_log = {"lat": maize_yield.loc[:,'lats'],
-		"lon": maize_yield.loc[:,'lons'],
-		"area": maize_yield.loc[:,'growArea'],
-        "yield": np.log(maize_yield.loc[:,'yield_kgPerHa']),
-		"n_fertilizer": np.log(fertilizer.loc[:,'n_kgha']),
-		"p_fertilizer": np.log(fertilizer.loc[:,'p_kgha']),
-        "n_manure": np.log(fertilizer_man.loc[:,'applied_kgha']),
-        "n_total" : np.log(N_total),
-        "pesticides_H": np.log(pesticides.loc[:,'total_H']),
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+data_log = {"yield": np.log(dm0_test1.loc[:,'yield']),
+		"n_fertilizer": np.log(dm0_test1.loc[:,'n_fertilizer']),
+		"p_fertilizer": np.log(dm0_test1.loc[:,'p_fertilizer']),
+        "n_manure": np.log(dm0_test1.loc[:,'n_manure']),
+        "n_total" : np.log(dm0_test1.loc[:,'n_total']),
+        "pesticides_H": np.log(dm0_test1.loc[:,'pesticides_H']),
+        "mechanized": dm0_test1.loc[:,'mechanized'],
 #        "irrigation": np.log(irrigation.loc[:,'area']),
-        "thz_class" : aez.loc[:,'thz'],
-        "mst_class" : aez.loc[:,'mst'],
-        "soil_class": aez.loc[:,'soil']
+        "thz_class" : dm0_test1.loc[:,'thz_class'],
+        "mst_class" : dm0_test1.loc[:,'mst_class'],
+        "soil_class": dm0_test1.loc[:,'soil_class']
 		}
 
 
-dmaize_log = pd.DataFrame(data=data_log)
+dm0_log = pd.DataFrame(data=data_log)
+'''
 #select all rows from dmaize_log for which the column growArea has a value greater than zero
 dm0_log=dmaize_log.loc[dmaize_log['area'] > 0]
+'''
 #the data contains -inf values because the n+p+pests+irrigation columns contain 0 values for which ln(x) is not defined 
 #calculate the minimum values for each column disregarding -inf values to see which is the lowest value in the dataset (excluding lat & lon)
-min_dm0_log=dm0_log[dm0_log.iloc[:,3:11]>-inf].min()
-#replace the -inf values with the minimum of the dataset + 5 : this is done to achieve a distinction between very small
+min_dm0_log=dm0_log[dm0_log.iloc[:,0:11]>-inf].min()
+test_log = dm0_log.loc[dm0_log['n_fertilizer'] == -inf] #10398
+#replace the -inf values with the minimum of each respective column + ~1 : this is done to achieve a distinction between very small
 #values and actual zeros
-dm0_log.replace(-inf, -30, inplace=True)
+dm0_log['p_fertilizer'] = dm0_log['p_fertilizer'].replace(-inf,-3)
+dm0_log['n_fertilizer'] = dm0_log['n_fertilizer'].replace(-inf,-3)
+dm0_log['n_manure'] = dm0_log['n_manure'].replace(-inf,-22)
+dm0_log['n_total'] = dm0_log['n_total'].replace(-inf,-14)
+dm0_log['pesticides_H'] = dm0_log['pesticides_H'].replace(-inf,-11)
+
 #check distribution of AEZ factors in the historgrams
 matplotlib.rcParams['figure.figsize'] = (16.0, 12.0)
 matplotlib.style.use('ggplot')
@@ -435,7 +508,7 @@ matplotlib.style.use('ggplot')
 plt.hist(dm0_log['soil_class'], bins=50)
 plt.hist(dm0_log['mst_class'], bins=50)
 plt.hist(dm0_log['thz_class'], bins=50)
-#ONLY RUN THIS BLOCK WHEN WORKING AT LOW RESOLUTION!
+'''
 #AEZ factors contain unexpected 0s due to resolution rebinning
 #urban class is missing in soil because of rebinning (urban class to small to dominant a large cell)
 #convert 0s in the AEZ columns to NaN values so that they can be replaced by the ffill method
@@ -448,7 +521,7 @@ dm0_log['soil_class'] = dm0_log['soil_class'].replace(0,np.nan)
 dm0_log = dm0_log.fillna(method='ffill')
 #fill in the remaining couple of nans at the top of mechanized column
 dm0_log['mechanized'] = dm0_log['mechanized'].fillna(1)
-
+'''
 #Just some PLOTS
 
 matplotlib.rcParams['figure.figsize'] = (16.0, 12.0)
@@ -503,43 +576,29 @@ plt.xlabel('yield kg/ha')
 plt.ylabel('density')
 
 #mst, thz and soil are categorical variables which need to be converted into dummy variables before running the regression
-#####RAW##########
-dum_mst_raw = pd.get_dummies(dm0_raw['mst_class'])
-dum_thz_raw = pd.get_dummies(dm0_raw['thz_class'])
-dum_soil_raw = pd.get_dummies(dm0_raw['soil_class'])
-#####LOG##########
-dum_mst_log = pd.get_dummies(dm0_log['mst_class'])
-dum_thz_log = pd.get_dummies(dm0_log['thz_class'])
-dum_soil_log = pd.get_dummies(dm0_log['soil_class'])
-#rename the columns according to the classes
-#####RAW##########
-dum_mst_raw = dum_mst_raw.rename(columns={1:"LGP<60days", 2:"60-120days", 3:"120-180days", 4:"180-225days",
+#####Get dummies##########
+mdum_mst = pd.get_dummies(dm0_test1['mst_class'])
+mdum_thz = pd.get_dummies(dm0_test1['thz_class'])
+mdum_soil = pd.get_dummies(dm0_test1['soil_class'])
+#####Rename Columns##########
+mdum_mst = mdum_mst.rename(columns={1:"LGP<60days", 2:"60-120days", 3:"120-180days", 4:"180-225days",
                                   5:"225-270days", 6:"270-365days", 7:"365+days"}, errors="raise")
-dum_thz_raw = dum_thz_raw.rename(columns={1:"Trop_low", 2:"Trop_high", 3:"Sub-trop_warm", 4:"Sub-trop_mod_cool", 
-                        5:"Sub-trop_cool", 6:"Temp_mod", 7:"Temp_cool", 8:"Bor_cold_noPFR", 
-                        9:"Bor_cold_PFR", 10:"Arctic"}, errors="raise")
-dum_soil_raw = dum_soil_raw.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil", 3:"S3_no-slight_lim", 4:"S4_moderate_lim", 
-                        5:"S5_severe_lim", 6:"L1_irr", 7:"L2_water"}, errors="raise")
-#######LOG#########
-dum_mst_log = dum_mst_log.rename(columns={1:"LGP<60days", 2:"60-120days", 3:"120-180days", 4:"180-225days",
-                                  5:"225-270days", 6:"270-365days", 7:"365+days"}, errors="raise")
-dum_thz_log = dum_thz_log.rename(columns={1:"Trop_low", 2:"Trop_high", 3:"Sub-trop_warm", 4:"Sub-trop_mod_cool", 
-                        5:"Sub-trop_cool", 6:"Temp_mod", 7:"Temp_cool", 8:"Bor_cold_noPFR", 
-                        9:"Bor_cold_PFR", 10:"Arctic"}, errors="raise")
-dum_soil_log = dum_soil_log.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil", 3:"S3_no-slight_lim", 4:"S4_moderate_lim", 
-                        5:"S5_severe_lim", 6:"L1_irr", 7:"L2_water"}, errors="raise")
+mdum_thz = mdum_thz.rename(columns={1:"Trop_low", 2:"Trop_high", 3:"Sub-trop_warm", 4:"Sub-trop_mod_cool", 
+                        5:"Sub-trop_cool", 6:"Temp_mod", 7:"Temp_cool", 8:"Bor+Arctic"}, errors="raise")
+mdum_soil = mdum_soil.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil", 3:"S3_no-slight_lim", 4:"S4_moderate_lim", 
+                        5:"S5_severe_lim", 6:"L1_irr"}, errors="raise")
 #merge the two dummy dataframes with the rest of the variables
 ####RAW#########
-dmaize_d_raw = pd.concat([dm0_raw, dum_mst_raw, dum_thz_raw, dum_soil_raw], axis='columns')
+dmaize_d_raw = pd.concat([dm0_test1, mdum_mst, mdum_thz, mdum_soil], axis='columns')
 ######LOG#########
-dmaize_d = pd.concat([dm0_log, dum_mst_log, dum_thz_log, dum_soil_log], axis='columns')
+dmaize_d_log = pd.concat([dm0_log, mdum_mst, mdum_thz, mdum_soil], axis='columns')
 #drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
 #####RAW#####
-dmaize_dum_raw = dmaize_d_raw.drop(['mst_class', 'thz_class', 'soil_class', 'LGP<60days', 
-                      'Arctic', 'L2_water'], axis='columns')
+dmaize_dum_raw = dmaize_d_raw.drop(['365+days', 
+                      'Bor+Arctic', 'L1_irr'], axis='columns')
 ########LOG#######
-dmaize_dum_log = dmaize_d.drop(['mst_class', 'thz_class', 'soil_class', 'LGP<60days', 
-                      'Arctic', 'L2_water'], axis='columns')
+dmaize_dum_log = dmaize_d_log.drop(['365+days', 
+                      'Bor+Arctic', 'L1_irr'], axis='columns')
 
 #select a random sample of 20% from the dataset to set aside for later validation
 #random_state argument ensures that the same sample is returned each time the code is run
@@ -586,7 +645,7 @@ pd.Series([variance_inflation_factor(X.values, i)
                for i in range(X.shape[1])], 
               index=X.columns)
 #drop separate n variables
-cor_n_total_raw = dmaize_cor_raw.drop(['n_fertilizer', 'n_manure', 'p_fertilizer', 'S4_moderate_lim', 'Trop_low'], axis='columns')
+cor_n_total_raw = dmaize_cor_raw.drop(['n_fertilizer', 'n_manure', 'p_fertilizer', 'thz_class', 'mst_class', 'soil_class'], axis='columns')
 X1 = add_constant(cor_n_total_raw)
 pd.Series([variance_inflation_factor(X1.values, i) 
                for i in range(X1.shape[1])], 
@@ -608,32 +667,46 @@ mod = smf.ols(formula=' yield ~ n_total + pesticides_H + mechanized + irrigation
 
 mod = smf.ols(formula='yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dmaize_fit_raw)
 
+dmaize_fit_raw = dmaize_fit_raw.rename(columns={'yield':'Y'}, errors='raise')
+dmaize_fit_log= dmaize_fit_log.rename(columns={'yield':'Y'}, errors='raise')
+modas = smf.glm(formula='Y ~ n_total + pesticides_H + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_raw, 
+              family=sm.families.Gamma())
+modas1 = smf.ols(formula='Y ~ n_total + pesticides_H + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_raw 
+              )
+modas1_fit = modas1.fit()
+print(modas1.fit().summary())
+
+mod24 = smf.glm(formula='Y ~ 1', data=dmaize_fit_raw, family=sm.families.Gamma())
+m24 = mod24.fit()
+print(m24.summary())
+
+pseudoR = 1-(148190/189950)    
+
 #use patsy to create endog and exog matrices in an Rlike style
 y, X = dmatrices('yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dmaize_fit_raw, return_type='dataframe')
 
 
 #define x and y dataframes
 #Y containing only yield
-mop = dm0_raw.iloc[:,3]
 m_endog_raw = dmaize_fit_raw.iloc[:,3] #RAW
-m_endog_log = dmaize_fit_log.iloc[:,3] #LOG
+m_endog_log = dmaize_fit_log.iloc[:,0] #LOG
 #X containing all variables
-m_exog = dm0_raw.iloc[:,4]
-m_exog_alln_raw = dmaize_fit_raw.drop(['yield', 'lat', 'lon', 'area', 'n_total'], axis='columns') #RAW
-m_exog_alln_log = dmaize_fit_log.drop(['yield', 'lat', 'lon', 'area', 'n_total'], axis='columns') #LOG
+m_exog_alln_raw = dmaize_fit_raw.drop(['Y', 'lat', 'lon', 'area', 'n_total', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #RAW
+m_exog_alln_log = dmaize_fit_log.drop(['Y', 'n_total', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #LOG
 #test with n total and p
-m_exog_np_raw = dmaize_fit_raw.drop(['yield', 'lat', 'lon', 'area', 'n_fertilizer', 'n_manure'], axis='columns') #RAW
-m_exog_np_log = dmaize_fit_log.drop(['yield', 'lat', 'lon', 'area', 'n_fertilizer', 'n_manure'], axis='columns')  #LOG
+m_exog_np_raw = dmaize_fit_raw.drop(['Y', 'lat', 'lon', 'area', 'n_fertilizer', 'n_manure', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #RAW
+m_exog_np_log = dmaize_fit_log.drop(['Y', 'n_fertilizer', 'n_manure', 'mst_class', 'thz_class', 'soil_class'], axis='columns')  #LOG
 #test with n total without p
-m_exog_n_log = dmaize_fit_raw.drop(['yield', 'lat', 'lon', 'area', 'n_fertilizer', 'n_manure', 'p_fertilizer'], axis='columns') #RAW
-m_exog_n_raw = dmaize_fit_log.drop(['yield', 'lat', 'lon', 'area', 'n_fertilizer', 'n_manure', 'p_fertilizer'], axis='columns') #LOG
+m_exog_n_log = dmaize_fit_raw.drop(['Y', 'lat', 'lon', 'area', 'n_fertilizer', 'n_manure', 'p_fertilizer', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #RAW
+m_exog_n_raw = dmaize_fit_log.drop(['Y', 'n_fertilizer', 'n_manure', 'p_fertilizer', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #LOG
 #I will move forward with n_total and without p probably as they seem to be highly
 #correlated
 
 ####testing regression
 #determining the models
 ###RAW###
-mod = sm.OLS(mop, m_exog)
 mod_alln_raw = sm.OLS(m_endog_raw, m_exog_alln_raw)
 mod_np_raw = sm.OLS(m_endog_raw, m_exog_np_raw)
 mod_n_raw = sm.OLS(m_endog_raw, m_exog_n_log)
@@ -648,7 +721,6 @@ mod_n_mix = sm.OLS(m_endog_log, m_exog_n_log)
 
 #fitting the models
 #####RAW#####
-mod_x = mod.fit()
 mod_res_alln_raw = mod_alln_raw.fit(method='qr')
 mod_res_np_raw = mod_np_raw.fit()
 mod_res_n_raw = mod_n_raw.fit()
@@ -662,13 +734,12 @@ mod_res_np_mix = mod_np_mix.fit(method='qr')
 mod_res_n_mix = mod_n_mix.fit()
 
 #printing the results
-print(mod_x.summary())
 print(mod_res_alln_raw.summary())
 print(mod_res_np_raw.summary())
 print(mod_res_n_raw.summary())
 
 
-print(mod_res_n_log.summary())
+print(mod_res_alln_log.summary())
 
 print(mod_res_alln_mix.summary())
 print(mod_res_np_mix.summary())
@@ -677,6 +748,40 @@ print(mod_res_n_mix.summary())
 
 ##########RESIDUALS#############
 
+sm.graphics.plot_regress_exog(modas1_fit, 'C(thz_class)[T.2.0]')
+plt.show()
+
+modas1_fitted = modas1_fit.fittedvalues
+mod_res_alln_raw_fitted = mod_res_alln_raw.fittedvalues
+mod_res_alln_log_fitted = mod_res_alln_log.fittedvalues
+
+modas1_resd = modas1_fit.resid
+mod_res_alln_raw_resd = mod_res_alln_raw.resid
+mod_res_alln_log_resd = mod_res_alln_log.resid
+
+modas_abs_resid = np.abs(modas1_resd)
+
+plot_lm_1 = plt.figure(1)
+plot_lm_1.set_figheight(8)
+plot_lm_1.set_figwidth(12)
+
+plot_lm_1.axes[0] = sb.residplot(modas1_fitted, 'Y', data=dmaize_fit_raw, 
+                          lowess=True, 
+                          scatter_kws={'alpha': 0.5}, 
+                          line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
+
+plot_lm_1.axes[0].set_title('Residuals vs Fitted')
+plot_lm_1.axes[0].set_xlabel('Fitted values')
+plot_lm_1.axes[0].set_ylabel('Residuals')
+
+# annotations
+abs_resid = modas_abs_resid.sort_values(ascending=False)
+abs_resid_top_3 = abs_resid[:3]
+
+for i in abs_resid_top_3.index:
+    plot_lm_1.axes[0].annotate(i, 
+                               xy=(modas1_fitted[i], 
+                                   modas1_resd[i]))
 
 
 plt.scatter(mod_res_n_raw.resid_pearson)
