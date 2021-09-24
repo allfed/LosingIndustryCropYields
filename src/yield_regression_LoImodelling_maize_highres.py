@@ -311,7 +311,7 @@ print(fertilizer_man.head())
 #print(irrigation.columns)
 #print(irrigation.head())
 #check on Tillage because Morgan didn't change the allocation of conservation agriculture to mechanized
-m_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResmaiz.csv')
+m_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
 print(m_tillage.columns)
 print(m_tillage.head())
 #m_tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
@@ -365,7 +365,7 @@ data_raw = {"lat": maize_yield.loc[:,'lats'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_total" : N_total,
         "pesticides_H": m_pesticides.loc[:,'total_H'],
-        "mechanized": m_tillage.loc[:,'maiz_is_mech'],
+        "mechanized": m_tillage.loc[:,'is_mech'],
 #        "irrigation": irrigation.loc[:,'area'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
@@ -425,22 +425,25 @@ m_test_s8 = dm0_raw.loc[dm0_raw['soil_class'] == 8]
 #I could substitute them like the water bodies
 
 #test mech dataset values
-m_test_mech0 = dm0_raw.loc[dm0_raw['mechanized'] == 0] #157445
-m_test_mech1 = dm0_raw.loc[dm0_raw['mechanized'] == 1] #278059
-m_test_mechn = dm0_raw.loc[dm0_raw['mechanized'] == -9] #126276
+m_test_mech0 = dm0_raw.loc[dm0_raw['mechanized'] == 0] #157445, now: 169953
+m_test_mech1 = dm0_raw.loc[dm0_raw['mechanized'] == 1] #278059, now: 297566
+m_test_mechn = dm0_raw.loc[dm0_raw['mechanized'] == -9] #126276, now: 94261
 #this is a problem: -9 is used as NaN value and there are way, way too many
+#less NaN's than before, because tillage is combined now for all crops
 
-m_test_f = dm0_raw.loc[dm0_raw['n_fertilizer'] == 0] #39679
-m_test_pf = dm0_raw.loc[dm0_raw['p_fertilizer'] == 0] #44874
-m_test_man = dm0_raw.loc[dm0_raw['n_manure'] == 0] #21460
-m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'] == 0] #166565
+m_test_f = dm0_raw.loc[dm0_raw['n_fertilizer'] < 0] #8770 NaN's
+m_test_pf = dm0_raw.loc[dm0_raw['p_fertilizer'] < 0] #8770 NaN's
+m_test_man = dm0_raw.loc[dm0_raw['n_manure'] < 0] #21460 0s, but 0 NaN's! 
+m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'] < 0] #92197
+m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'] == 0] #214781 (na this can't be)
 
-#replace 0s in the moisture, climate and soil classes with NaN values so they
-#can be handled with the .fillna method
+#replace 0s in the moisture, climate and soil classes as well as 7 & 8 in the
+#soil class with NaN values so they can be handled with the .fillna method
 dm0_raw['thz_class'] = dm0_raw['thz_class'].replace(0,np.nan)
-dm0_raw['thz_class'] = dm0_raw['thz_class'].replace([9,10],8)
 dm0_raw['mst_class'] = dm0_raw['mst_class'].replace(0,np.nan)
 dm0_raw['soil_class'] = dm0_raw['soil_class'].replace([0,7,8],np.nan)
+#replace 9 & 10 with 8 to combine all three classes into one Bor+Arctic class
+dm0_raw['thz_class'] = dm0_raw['thz_class'].replace([9,10],8)
 print(dm0_raw.loc[1511426])
 print(dm0_raw.loc[7190035])
 #NaN values throw errors in the regression, they need to be handled beforehand
@@ -449,13 +452,22 @@ print(dm0_raw.loc[7190035])
 #this is fine for now as there most likely won't be any NaN values at full resolution
 dm0_raw = dm0_raw.fillna(method='ffill')
 
+#how do I handle NaN's in fertilizer and in mechanized? I could also use the ffill method
+#but that would be quite inaccurate, KNN might be harder to implement
+#other option is to delete the respective rows
+#apparently there are only 0s around the NaN values in the fertilizer data anyway
+#so I could just fill them up with 0s
+#nvm there are only 0s in the dataset...
+#n_manure hist and scatter look a lot better on log scale
+#it's hard to determine if there is a relationship between the climate classes and yield
+
 #select only the rows, where the column mechanized is non-NaN
 dm0_test = dm0_raw.loc[dm0_raw['mechanized'] > -9]
 test_f = dm0_test.loc[dm0_test['n_fertilizer'] == 0] #19064
 test_pf = dm0_test.loc[dm0_test['p_fertilizer'] == 0] #22847
 test_man = dm0_test.loc[dm0_test['n_manure'] == 0] #14869
 test_p = dm0_test.loc[dm0_test['pesticides_H'] == 0] #107107
-dm0_test1 = dm0_test.loc[dm0_test['pesticides_H'] > 0]
+dm0_test1 = dm0_test.loc[dm0_test['pesticides_H'] < 0]
 test1_f = dm0_test1.loc[dm0_test1['n_fertilizer'] == 0] #5965
 
 #fill in the remaining couple of nans at the top of mechanized column

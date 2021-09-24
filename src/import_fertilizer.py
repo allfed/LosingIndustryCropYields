@@ -36,7 +36,7 @@ import utilities
 # from pympler import summary
 # from pympler import muppy
 
-import resource
+#import resource
 from sys import platform
 if platform == "linux" or platform == "linux2":
 	#this is to ensure Morgan's computer doesn't crash
