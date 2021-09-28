@@ -46,12 +46,19 @@ if create_tillage.startswith('y'):
 	tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
 	utilities.create5minASCII(tillage,'is_mech',params.asciiDir+'tillageAll')
 
-create_pesticides = input('Would you like to create pesticides? (enter y/n): \n').lower()
+create_pesticides = input('Would you like to create wheat pesticides? (enter y/n): \n').lower()
 if create_pesticides.startswith('y'):
 	print('Creating pesticides')
 
-	pesticides=pd.read_csv(params.geopandasDataDir + 'WheatPesticidesHighRes.csv')
+	pesticides=pd.read_csv(params.geopandasDataDir + 'WheatTriallateHighRes.csv')
 	utilities.create5minASCII(pesticides,'total_H',params.asciiDir+'pesticidesWheat')
+	
+create_pesticides = input('Would you like to create corn pesticides? (enter y/n): \n').lower()
+if create_pesticides.startswith('y'):
+	print('Creating pesticides')
+
+	pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesHighRes.csv')
+	utilities.create5minASCII(pesticides,'total_H',params.asciiDir+'pesticidesCorn')
 
 create_manure = input('Would you like to create manure? (enter y/n): \n').lower()
 if create_manure.startswith('y'):
@@ -66,3 +73,11 @@ if create_aez.startswith('y'):
 
 	aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 	utilities.create5minASCII(aez,'soil',params.asciiDir+'aezSoil')
+
+create_irrigation = input('Would you like to create irrigation? (enter y/n): \n').lower()
+if create_irrigation.startswith('y'):
+	print('Creating irrigation')
+
+	irrigation=pd.read_csv(params.geopandasDataDir + 'IrrigationHighRes.csv')
+	utilities.create5minASCII(irrigation,'area',params.asciiDir+'irrigationArea')
+	utilities.create5minASCII(irrigation,'tot_reliant',params.asciiDir+'irrigationTotReliant')

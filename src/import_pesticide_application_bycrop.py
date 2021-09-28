@@ -165,7 +165,7 @@ pesticides=[ \
 	'Terbufos',\
 	'Thiobencarb',\
 	'Thiophanate-methyl',\
-	'Tri-allate',\
+	'Tri-allate'#,\
 	'Triclopyr',\
 	'Trifloxystrobin',\
 	'Trifluralin',\
@@ -253,12 +253,12 @@ for c in crops:
 
 				#add the pesticides of this type for this crop to the total
 				if(len(cSums)==0):
-					cSums=result
+					cSums = np.where(result<0,0,result)
 					mask = np.where(result<0,0,1)
-					strout = ''
-					for a in result[1000:1100][90]:
-						strout = strout + ' ' + str(a)
-					print(strout)
+					# strout = ''
+					# for a in result[1000:1100][90]:
+					# 	strout = strout + ' ' + str(a)
+					# print(strout)
 					# quit()
 
 					# for if we want to go back to rebinning at some point
@@ -270,7 +270,8 @@ for c in crops:
 					#value of 1 indicates that there was a nonnegative value for some pesticide for this crop
 					mask = np.bitwise_or(mask,np.where(result<0,0,1))
 
-					cSums=np.array(cSums)+np.array(result)
+					cSums=np.array(cSums)+np.where(result<0,0,result)
+					# cSums=np.where(result<0,0,result)+np.array(result)
 
 		if(len(cSums)==0):
 			continue
@@ -278,7 +279,8 @@ for c in crops:
 		mask_final=np.where(mask==0,np.nan,1)
 		
 		#we get an appropriately sized array that also has nan values where there were only negatives in the original data.
-		cBinned= utilities.rebin(np.multiply(cSums,mask_final), sizeArray)
+		# cBinned= utilities.rebin(np.multiply(cSums,mask_final), sizeArray)
+		cBinned= np.multiply(cSums,mask_final)
 		
 		if(MAKE_GRID):
 			cBinnedReoriented=np.flipud(cBinned)

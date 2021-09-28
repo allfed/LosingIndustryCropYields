@@ -137,7 +137,6 @@ def create5minASCII(df,column,fn):
 	file1 = open(fn+".asc","w")#write mode
 	array = np.array(df[column].values).astype('float32')
 	arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
-	print(np.min(arrayWithNoData))
 	# np.savetxt(params.asciiDir)
 	pretext = \
 '''ncols         4320
