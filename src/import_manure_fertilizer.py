@@ -33,7 +33,7 @@ import geopandas as gpd
 from src import utilities
 import rasterio
 
-import resource
+#import resource
 from sys import platform
 if platform == "linux" or platform == "linux2":
 	#this is to ensure Morgan's computer doesn't crash
