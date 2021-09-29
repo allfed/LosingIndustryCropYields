@@ -41,6 +41,12 @@ params.importIfNotAlready()
 
 ldata=rasterio.open(params.cropAreaDataLoc)
 
+#it's a bit wierd to pull from another dataset, but the livestock dataset
+# conveniently had the area of each 5 minute raster cell available
+#below we use the area of each cell to estimate the total area tilled in km^2
+adata=rasterio.open(params.livestockDataLoc+'8_Areakm.tif')
+aArr=adata.read(1)
+
 print('reading grow area')
 lArr=ldata.read(1)
 print('done reading')
@@ -59,17 +65,30 @@ sizeArray=[len(lats),len(lons)]
 lBinned= utilities.rebin(lArrResized, sizeArray)
 lBinnedReoriented=np.fliplr(np.transpose(lBinned))
 
+
+#it's a bit wierd to pull from another dataset, but the livestock dataset
+# conveniently had the area of each 5 minute raster cell available
+#below we use the area of each cell to estimate the total area tilled in km^2
+# adata=rasterio.open(params.livestockDataLoc+'8_Areakm.tif')
+# aArr=np.transpose(adata.read(1))
+
+
+# grid_area=np.multiply(lBinnedReoriented,aArr)
+
+
 lats2d, lons2d = np.meshgrid(lats, lons)
 
+#the crop data is a percent, so we divide by 100 to get a fraction
 data = {"lats": pd.Series(lats2d.ravel()),
 		"lons": pd.Series(lons2d.ravel()),
 		# average fraction crop area.
 		"fraction": pd.Series(lBinnedReoriented.ravel())/100.0}
 
 df = pd.DataFrame(data=data)
-print(len(df['fraction']))
+# print(len(df['']))
 
-df.to_csv(params.geopandasDataDir + "TotCropAreaHighRes.csv")
+#fraction of cell that's cropland
+df.to_csv(params.geopandasDataDir + "FracCropAreaHighRes.csv")
 
 # geometry = gpd.points_from_xy(df.lons, df.lats)
 # gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)
