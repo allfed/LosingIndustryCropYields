@@ -74,10 +74,24 @@ if create_aez.startswith('y'):
 	aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 	utilities.create5minASCII(aez,'soil',params.asciiDir+'aezSoil')
 
-create_irrigation = input('Would you like to create irrigation? (enter y/n): \n').lower()
+create_irrigation = input('Would you like to create reliant irrigation? (enter y/n): \n').lower()
 if create_irrigation.startswith('y'):
 	print('Creating irrigation')
 
-	irrigation=pd.read_csv(params.geopandasDataDir + 'IrrigationHighRes.csv')
-	utilities.create5minASCII(irrigation,'area',params.asciiDir+'irrigationArea')
-	utilities.create5minASCII(irrigation,'tot_reliant',params.asciiDir+'irrigationTotReliant')
+	irrigation=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
+	utilities.create5minASCII(irrigation,'frac_reliant',params.asciiDir+'irrigationArea')
+
+create_irrigation_total = input('Would you like to create total irrigation? (enter y/n): \n').lower()
+if create_irrigation_total.startswith('y'):
+	print('Creating irrigation total')
+
+	irrigation_total=pd.read_csv(params.geopandasDataDir + 'IrrigationHighRes.csv')
+	utilities.create5minASCII(irrigation_total,'area',params.asciiDir+'TotIrrigationAreaHighRes')
+
+create_cropland_area = input('Would you like to create total cropland? (enter y/n): \n').lower()
+if create_cropland_area.startswith('y'):
+	print('Creating crop area')
+
+	cropland=pd.read_csv(params.geopandasDataDir + 'IrrigationHighRes.csv')
+	utilities.create5minASCII(cropland,'area',params.asciiDir+'croplandArea')
+

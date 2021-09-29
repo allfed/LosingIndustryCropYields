@@ -154,13 +154,18 @@ for c in crops:
 
 		# print(grid[c+'_'+m])
 		# quit()
+
+	#the idea here is previously we scaled the fraction of area of a crop that was mechanized by the total area of the cell (roughly 10km^2 at equator).We again fraction of area of a crop that was not mechanized by the area of the cell (roughly 10km^2 at equator). Then, we compared the relative amount of mechanized vs not mechanized to decide whether a grid cell was mechanized or not. It works, although it's unnecessarily complicated. The scaling doesn't actually help anything here when we're not rebinning.
 	if(MAKE_GRID):
+
+
 		grid[c+'_is_mech_tmp']=grid[c+'_mech']>=grid[c+'_non_mech']
 		grid[c+'_is_not_mech_tmp']=grid[c+'_mech']<grid[c+'_non_mech']
 		grid[c+'_no_crops']=(grid[c+'_mech']==0) & (grid[c+'_non_mech']==0)
 		grid[c+'_is_mech'] = np.where(grid[c+'_no_crops'],np.nan,grid[c+'_is_mech_tmp'])
 		del grid[c+'_is_not_mech_tmp']
 		del grid[c+'_is_mech_tmp']
+
 
 		plotGrowArea=True
 		title=c+" Mechanized Tillage area, 2005"
@@ -183,6 +188,8 @@ for c in crops:
 		# tillage_mech = df[c+'_is_mech']
 		# # tillage_not_mech = df[c+'_is_mech']
 		# tillage_mech.to_csv(params.geopandasDataDir + "TillageHighRes.csv")
+
+	#here, we look at the crops of interest and assess whether there is tillage for any of these four crops. We are currently ignoring tillage for all the other crops, although this may not be the best strategy.
 	if(not MAKE_GRID):
 		if(len(allcrops) == 0):
 			# mask[m] = df.where(df[m]<0,0)

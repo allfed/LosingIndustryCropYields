@@ -74,8 +74,9 @@ lons = np.linspace(-180, 180 - five_minute, \
 
 print(nbins*len(lats))
 print(nbins*len(lons))
-area_result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
-reliant_result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
+# area_result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
+# reliant_result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
+frac_result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
@@ -86,7 +87,7 @@ sizeArray=[len(lats),len(lons)]
 
 lowres_irrigation=pd.read_csv(params.geopandasDataDir + 'Irrigation.csv')
 
-#rrigated area
+#irrigated area
 area = np.array(lowres_irrigation['area'].values).astype('float32')
 
 #electric or diesel reliant area
@@ -95,7 +96,7 @@ reliant = np.array(lowres_irrigation['tot_reliant'].values).astype('float32')
 #nan where not irrigated, where there's a fraction it's irrigated, and the
 #fraction is the estimated probability of that area being reliant on 
 #electricity or diesel.
-# lowres_fraction = np.divide(reliant,area)
+lowres_fraction = np.divide(reliant,area)
 
 #let's make sure the input data is 10 times 5 arc minute resolution
 #which means nbins was set to 10 in the Params.ods when the irrigation data were
@@ -106,26 +107,33 @@ assert(len(area)==373248)
 #now, we get a nice numpy array we can upsample
 # arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
 # flippedarr=np.ravel(np.flipud(np.transpose(lowres_fraction.reshape((4320,2160)))))
-area_2d_lowres=area.reshape((int(2160/5),int(4320/5)))
-reliant_2d_lowres=reliant.reshape((int(2160/5),int(4320/5)))
-print(len(area_2d_lowres))
-print(len(area_2d_lowres[0]))
+# area_2d_lowres=area.reshape((int(2160/5),int(4320/5)))/25
+# reliant_2d_lowres=reliant.reshape((int(2160/5),int(4320/5)))/25
+frac_2d_lowres=area.reshape((int(2160/5),int(4320/5)))
 
-area_2d_highres=area_2d_lowres.repeat(5, axis=0).repeat(5, axis=1)
-reliant_2d_highres=reliant_2d_lowres.repeat(5, axis=0).repeat(5, axis=1)
+# print(len(area_2d_lowres))
+# print(len(area_2d_lowres[0]))
+
+# area_2d_highres=area_2d_lowres.repeat(5, axis=0).repeat(5, axis=1)
+# reliant_2d_highres=reliant_2d_lowres.repeat(5, axis=0).repeat(5, axis=1)
+frac_2d_highres=frac_2d_lowres.repeat(5, axis=0).repeat(5, axis=1)
 
 # utilities.create5minASCII(manure,'applied',params.asciiDir+'manure')
-print(len(area_2d_highres))
-print(len(area_2d_highres[0]))
-print(len(area_result))
-print(len(area_result[0]))
+# print(len(area_2d_highres))
+# print(len(area_2d_highres[0]))
+# print(len(area_result))
+# print(len(area_result[0]))
 
-area_result[start_lat_index:start_lat_index+len(area_2d_highres),start_lon_index:start_lon_index+len(area_2d_highres[0])]=area_2d_highres
-reliant_result[start_lat_index:start_lat_index+len(reliant_2d_highres),start_lon_index:start_lon_index+len(reliant_2d_highres[0])]=reliant_2d_highres
+# area_result[start_lat_index:start_lat_index+len(area_2d_highres),start_lon_index:start_lon_index+len(area_2d_highres[0])]=area_2d_highres
+# reliant_result[start_lat_index:start_lat_index+len(reliant_2d_highres),start_lon_index:start_lon_index+len(reliant_2d_highres[0])]=reliant_2d_highres
+
+frac_result[start_lat_index:start_lat_index+len(frac_2d_highres),start_lon_index:start_lon_index+len(frac_2d_highres[0])]=frac_2d_highres
 
 
-df['area']=pd.Series((np.transpose(area_result)).ravel())
-df['tot_reliant']=pd.Series((np.transpose(reliant_result)).ravel())
+# df['area']=pd.Series((np.transpose(area_result)).ravel())
+# df['tot_reliant']=pd.Series((np.transpose(reliant_result)).ravel())
+
+df['frac_reliant']=pd.Series((np.transpose(frac_result)).ravel())
 
 
 print('done upsampling')
@@ -137,7 +145,7 @@ assert(df['lons'].iloc[-1]>df['lons'].iloc[0])
 # print('2')
 # df = df.reset_index(drop=True)
 print('saving')
-df.to_csv(params.geopandasDataDir + "IrrigationHighRes.csv")
+df.to_csv(params.geopandasDataDir + "FracReliantHighRes.csv")
 # time10 = datetime.datetime.now()
 
 

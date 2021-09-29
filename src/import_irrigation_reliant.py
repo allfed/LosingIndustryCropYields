@@ -1,4 +1,7 @@
 '''''
+NOTE: THIS IS DESIGNED TO BE USED AT LOWER RESOLUTION (25 arcminute)
+To use this, you want to set the code to 5 bins in Params.ods, run import_irrigation_reliant.py, then set it back to 1 bin and run upsample_irrigation.py.
+
 This code imports and downsamples a raster (geotiff) of crop irrigation area
  from gmiav5 and national level government census data from aquastat.
  Imported data is estimated for 2010 from gmiav5, and usually mid-2010s for 

@@ -17,6 +17,7 @@ def importIfNotAlready():
 
 def deleteGlobals():
 	del spamCropYieldDataLoc
+	del cropAreaDataLoc
 	del pesticidesDataLoc
 	del tillageDataLoc
 	del aezDataLoc
@@ -84,6 +85,7 @@ def importDirectories():
 		from pyexcel_ods3 import get_data
 
 	global spamCropYieldDataLoc
+	global cropAreaDataLoc
 	global pesticidesDataLoc
 	global tillageDataLoc
 	global aezDataLoc
@@ -109,6 +111,8 @@ def importDirectories():
 			cropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'spamCropYieldDataLoc'):
 			spamCropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+		if(coltitle == 'cropAreaDataLoc'):
+			cropAreaDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'pesticidesDataLoc'):
 			pesticidesDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 		if(coltitle == 'tillageDataLoc'):
