@@ -109,7 +109,7 @@ assert(len(area)==373248)
 # flippedarr=np.ravel(np.flipud(np.transpose(lowres_fraction.reshape((4320,2160)))))
 # area_2d_lowres=area.reshape((int(2160/5),int(4320/5)))/25
 # reliant_2d_lowres=reliant.reshape((int(2160/5),int(4320/5)))/25
-frac_2d_lowres=area.reshape((int(2160/5),int(4320/5)))
+frac_2d_lowres=lowres_fraction.reshape((int(2160/5),int(4320/5)))
 
 # print(len(area_2d_lowres))
 # print(len(area_2d_lowres[0]))
