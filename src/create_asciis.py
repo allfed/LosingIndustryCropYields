@@ -107,3 +107,11 @@ if create_cropland_area.startswith('y'):
 	cropland=pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
 	utilities.create5minASCII(cropland,'fraction',params.asciiDir+'croplandAreaFraction')
 
+
+create_cell_area = input('Would you like to create cell area? (enter y/n): \n').lower()
+if create_cell_area.startswith('y'):
+	print('Creating cell area')
+
+	cell=pd.read_csv(params.geopandasDataDir + 'CellAreaHighRes.csv')
+	utilities.create5minASCII(cell,'area',params.asciiDir+'cellAreaFraction')
+
