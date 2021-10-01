@@ -29,11 +29,23 @@ if platform == "linux" or platform == "linux2":
 
 params.importAll()
 
-create_fertilizer = input('Would you like to create fertilizer? (enter y/n): \n').lower()
-if create_fertilizer.startswith('y'):
+create_yield = input('Would you like to create Maize Yield? (enter y/n): \n').lower()
+if create_yield.startswith('y'):
+	print('Creating Maize Yield')
+	fertilizer=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
+	utilities.create5minASCII(fertilizer,'yield_kgPerHa',params.asciiDir+'yield_maiz')
+
+create_fertilizer_n = input('Would you like to create fertilizer? (enter y/n): \n').lower()
+if create_fertilizer_n.startswith('y'):
 	print('Creating Fertilizer')
 	fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv')
 	utilities.create5minASCII(fertilizer,'n',params.asciiDir+'fertilizer')
+    
+create_fertilizer_p = input('Would you like to create p fertilizer? (enter y/n): \n').lower()
+if create_fertilizer_p.startswith('y'):
+	print('Creating P Fertilizer')
+	fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv')
+	utilities.create5minASCII(fertilizer,'p',params.asciiDir+'fertilizer_p')
 
 create_tillage = input('Would you like to create tillage? (enter y/n): \n').lower()
 if create_tillage.startswith('y'):

@@ -307,28 +307,40 @@ print(fertilizer.head())
 fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv') #kg/km²
 print(fertilizer_man.columns)
 print(fertilizer_man.head())
-#irrigation=pd.read_csv(params.geopandasDataDir + 'IrrigationHighRes.csv')
-#print(irrigation.columns)
-#print(irrigation.head())
-#check on Tillage because Morgan didn't change the allocation of conservation agriculture to mechanized
-m_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
-print(m_tillage.columns)
-print(m_tillage.head())
-#m_tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
-#print(m_tillage0.head())
+irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
+irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
+#the data is off because it wasn't divided by 25 (for the upsampling of 0.5 degree to 5 arcmin) so has to be done now
+#irr = irrigation.iloc[:,[3,4]]/25
+#irr_l0 = irr_lowres.loc[irr_lowres['area'] > 0]
+print(irr_t.columns)
+print(irr_t.head())
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+print(tillage.columns)
+print(tillage.head())
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 print(aez.columns)
 print(aez.head())
 print(aez.dtypes)
 
+#fraction of irrigation total is of total cell area so I have to divide it by the
+#fraction of crop area in a cell and set all values >1 to 1
+irr_tot = irr_t['fraction']/crop['fraction']
+irr_tot.loc[irr_tot > 1] = 1
+#dividing by 0 leaves a NaN value, so I have them all back to 0
+irr_tot.loc[irr_tot.isna()] = 0
+
 #print the value of each variable at the same index to make sure that coordinates align (they do)
-print(m_pesticides.loc[6040])
-print(fertilizer.loc[6040])
-print(fertilizer_man.loc[6040])
-#print(irrigation.loc[6040])
-print(m_tillage.loc[6040])
-print(aez.loc[6040])
-print(maize_yield.loc[6040])
+print(m_pesticides.loc[1491959])
+print(fertilizer.loc[1491959])
+print(fertilizer_man.loc[1491959])
+print(irr_tot.loc[1491959])
+print(tillage.loc[1491959])
+print(aez.loc[1491959])
+print(maize_yield.loc[1491959])
+
+test_p = m_pesticides.loc[m_pesticides['total_H'].notna()] #555307
+test_p = m_pesticides.loc[m_pesticides['total_H'] < 0] #0 as expected
 
 #fertilizer is in kg/m² and fertilizer_man is in kg/km² while yield and pesticides are in kg/ha
 #I would like to have all continuous variables in kg/ha
@@ -356,24 +368,26 @@ l = maize_yield.loc[:,'lats']
 #################################################################################
 ##############Loading variables without log to test the effect###################
 #################################################################################
-data_raw = {"lat": maize_yield.loc[:,'lats'],
+datam_raw = {"lat": maize_yield.loc[:,'lats'],
 		"lon": maize_yield.loc[:,'lons'],
 		"area": maize_yield.loc[:,'growArea'],
-        "yield": maize_yield.loc[:,'yield_kgPerHa'],
+        "Y": maize_yield.loc[:,'yield_kgPerHa'],
 		"n_fertilizer": fertilizer.loc[:,'n_kgha'],
 		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
+        "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
         "n_total" : N_total,
         "pesticides_H": m_pesticides.loc[:,'total_H'],
-        "mechanized": m_tillage.loc[:,'is_mech'],
-#        "irrigation": irrigation.loc[:,'area'],
+        "mechanized": tillage.loc[:,'is_mech'],
+        "irrigation_tot": irr_tot.loc[:,'area'],
+        "irrigation_rel": irr_rel.loc[:,'tot_reliant'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
 		}
 
 #arrange data_raw in a dataframe
-dmaize_raw = pd.DataFrame(data=data_raw)
+dmaize_raw = pd.DataFrame(data=datam_raw)
 #select only the rows where the area of the cropland is larger than 0
 dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
 
@@ -431,11 +445,17 @@ m_test_mechn = dm0_raw.loc[dm0_raw['mechanized'] == -9] #126276, now: 94261
 #this is a problem: -9 is used as NaN value and there are way, way too many
 #less NaN's than before, because tillage is combined now for all crops
 
-m_test_f = dm0_raw.loc[dm0_raw['n_fertilizer'] < 0] #8770 NaN's
-m_test_pf = dm0_raw.loc[dm0_raw['p_fertilizer'] < 0] #8770 NaN's
+m_test_f = dm0_raw.loc[dm0_raw['n_fertilizer'] < 0] #8770 NaN's, 30909 0s
+m_test_pf = dm0_raw.loc[dm0_raw['p_fertilizer'] < 0] #8770 NaN's, 36104 0s
 m_test_man = dm0_raw.loc[dm0_raw['n_manure'] < 0] #21460 0s, but 0 NaN's! 
-m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'] < 0] #92197
-m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'] == 0] #214781 (na this can't be)
+m_test_p = dm0_raw.loc[dm0_raw['pesticides_H'].isna()] #166565 NaN's
+m_test_p0 = dm0_raw.loc[dm0_raw['pesticides_H'] == 0] #0 0s
+m_test_it = dm0_raw.loc[dm0_raw['irrigation_tot'] == 0] #213546 0s, but 0 NaN's!
+#I was wondering if we could just leave the 0s or if we have to differentiate between 0s
+#and NaNs but I came to the conclusion that for the irrigation dataset the number of 0s
+#is probably quite accurate
+m_test_ir = dm0_raw.loc[dm0_raw['irrigation_rel'].isna()] #69139 0s, 106636 NaN's
+#this is odd but the values are as well: are about 50% for almost all cells (that I've seen)
 
 #replace 0s in the moisture, climate and soil classes as well as 7 & 8 in the
 #soil class with NaN values so they can be handled with the .fillna method
@@ -446,7 +466,11 @@ dm0_raw['soil_class'] = dm0_raw['soil_class'].replace([0,7,8],np.nan)
 dm0_raw['thz_class'] = dm0_raw['thz_class'].replace([9,10],8)
 print(dm0_raw.loc[1511426])
 print(dm0_raw.loc[7190035])
+print(dm0_raw.loc[1643058])
+
 #NaN values throw errors in the regression, they need to be handled beforehand
+dm0_raw['pesticides_H'] = dm0_raw['pesticides_H'].replace(np.nan, -9)
+dm0_raw['irrigation_rel'] = dm0_raw['irriagtion_rel'].replace(np.nan, -9)
 #fill in the NaN vlaues in the dataset with a forward filling method
 #(replacing NaN with the value in the cell before)
 #this is fine for now as there most likely won't be any NaN values at full resolution
@@ -473,6 +497,39 @@ test1_f = dm0_test1.loc[dm0_test1['n_fertilizer'] == 0] #5965
 #fill in the remaining couple of nans at the top of mechanized column
 dm0_raw['mechanized'] = dm0_raw['mechanized'].fillna(1)
 
+#Try two different methods to handle the data:
+#1: eliminate the respective rows:
+dm0_elim = dm0_raw.loc[dm0_raw['mechanized'] > -9]
+dm0_elim = dm0_elim.loc[dm0_elim['n_fertilizer'] > -9]
+dm0_elim = dm0_elim.loc[dm0_elim['pesticides_H'] > -9]
+m_test_p1 = dm0_elim.loc[dm0_elim['pesticides_H'] < 0]
+#m_test_f1 = dm0_elim.loc[dm0_elim['pesticides_H'] < 0] #8770 NaN's, 30909 0s
+
+
+#2: use ffill for the NaN values
+dm0_raw['mechanized'] = dm0_raw['mechanized'].replace(-9,np.nan)
+dm0_raw['pesticides_H'] = dm0_raw['pesticides_H'].replace(-9,np.nan)
+dm0_raw.loc[dm0_raw['n_fertilizer']<0] = np.nan
+dm0_raw.loc[dm0_raw['p_fertilizer']<0] = np.nan
+dm0_raw.loc[dm0_raw['n_total']<0] = np.nan
+dm0_raw = dm0_raw.fillna(method='ffill')
+dm0_raw['mechanized'] = dm0_raw['mechanized'].fillna(1)
+
+#for logging, replace 0s in n_man with a value a magnitude smaller than the smallest
+#real value
+min_dm0_log=dm0_raw[dm0_raw.iloc[:,0:16]>0].min()
+dm0_flog = dm0_raw
+dm0_flog['n_manure'] = dm0_flog['n_manure'].replace(0,0.0000000003)
+dm0_flog['n_fertilizer'] = dm0_flog['n_fertilizer'].replace(0,0.1)
+dm0_flog['p_fertilizer'] = dm0_flog['p_fertilizer'].replace(0,0.09)
+dm0_flog['n_total'] = dm0_flog['n_total'].replace(0,0.0000000009)
+dm0_elog = dm0_elim
+dm0_elog['n_manure'] = dm0_elog['n_manure'].replace(0,0.00000000001)
+dm0_elog['n_fertilizer'] = dm0_elog['n_fertilizer'].replace(0,0.1)
+dm0_elog['p_fertilizer'] = dm0_elog['p_fertilizer'].replace(0,0.09)
+dm0_elog['n_total'] = dm0_elog['n_total'].replace(0,0.0000000009)
+
+
 ###############################################################################
 ############Loading log transformed values for all variables##################
 ##############################################################################
@@ -482,21 +539,66 @@ dm0_raw['mechanized'] = dm0_raw['mechanized'].fillna(1)
 #unfortunately the ln of 0 is not defined
 #just keeping the 0 would skew the results as that would imply a 1 in the data when there is a 0
 #could just use the smallest value of the dataset as a substitute?
-data_log = {"yield": np.log(dm0_test1.loc[:,'yield']),
-		"n_fertilizer": np.log(dm0_test1.loc[:,'n_fertilizer']),
-		"p_fertilizer": np.log(dm0_test1.loc[:,'p_fertilizer']),
-        "n_manure": np.log(dm0_test1.loc[:,'n_manure']),
-        "n_total" : np.log(dm0_test1.loc[:,'n_total']),
-        "pesticides_H": np.log(dm0_test1.loc[:,'pesticides_H']),
-        "mechanized": dm0_test1.loc[:,'mechanized'],
-#        "irrigation": np.log(irrigation.loc[:,'area']),
-        "thz_class" : dm0_test1.loc[:,'thz_class'],
-        "mst_class" : dm0_test1.loc[:,'mst_class'],
-        "soil_class": dm0_test1.loc[:,'soil_class']
+data_log = {"Y": np.log(dm0_elog.loc[:,'Y']),
+		"n_fertilizer": np.log(dm0_elog.loc[:,'n_fertilizer']),
+		"p_fertilizer": np.log(dm0_elog.loc[:,'p_fertilizer']),
+        "n_manure": np.log(dm0_elog.loc[:,'n_manure']),
+        "n_total" : np.log(dm0_elog.loc[:,'n_total']),
+        "pesticides_H": np.log(dm0_elog.loc[:,'pesticides_H']),
+        "mechanized": dm0_elog.loc[:,'mechanized'],
+        "irrigation": np.log(dm0_elog.loc[:,'area']), #does the log belong here, I believe not because it's a fraction
+        "thz_class" : dm0_elog.loc[:,'thz_class'],
+        "mst_class" : dm0_elog.loc[:,'mst_class'],
+        "soil_class": dm0_elog.loc[:,'soil_class']
 		}
 
 
 dm0_log = pd.DataFrame(data=data_log)
+
+'''
+#mst, thz and soil are categorical variables which need to be converted into dummy variables before running the regression
+#####Get dummies##########
+mdum_mst = pd.get_dummies(dm0_raw['mst_class'])
+mdum_thz = pd.get_dummies(dm0_raw['thz_class'])
+mdum_soil = pd.get_dummies(dm0_raw['soil_class'])
+#####Rename Columns##########
+mdum_mst = mdum_mst.rename(columns={1:"LGP<60days", 2:"60-120days", 3:"120-180days", 4:"180-225days",
+                                  5:"225-270days", 6:"270-365days", 7:"365+days"}, errors="raise")
+mdum_thz = mdum_thz.rename(columns={1:"Trop_low", 2:"Trop_high", 3:"Sub-trop_warm", 4:"Sub-trop_mod_cool", 
+                        5:"Sub-trop_cool", 6:"Temp_mod", 7:"Temp_cool", 8:"Bor+Arctic"}, errors="raise")
+mdum_soil = mdum_soil.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil", 3:"S3_no-slight_lim", 4:"S4_moderate_lim", 
+                        5:"S5_severe_lim", 6:"L1_irr"}, errors="raise")
+#merge the two dummy dataframes with the rest of the variables
+####RAW#########
+dmaize_d_raw = pd.concat([dm0_raw, mdum_mst, mdum_thz, mdum_soil], axis='columns')
+dmaize_d_elim = pd.concat([dm0_elim, mdum_mst, mdum_thz, mdum_soil], axis='columns')
+dmaize_d_elim = dmaize_d_elim.dropna()
+######LOG#########
+dmaize_d_log = pd.concat([dm0_log, mdum_mst, mdum_thz, mdum_soil], axis='columns')
+#drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
+#####RAW#####
+dmaize_dum_raw = dmaize_d_raw.drop(['365+days','Bor+Arctic', 'L1_irr'], axis='columns')
+dmaize_dum_elim = dmaize_d_elim.drop(['365+days','Bor+Arctic', 'L1_irr'], axis='columns')
+########LOG#######
+dmaize_dum_log = dmaize_d_log.drop(['365+days', 'Bor+Arctic', 'L1_irr'], axis='columns')
+
+#select a random sample of 20% from the dataset to set aside for later validation
+#random_state argument ensures that the same sample is returned each time the code is run
+dmaize_val_raw = dmaize_dum_raw.sample(frac=0.2, random_state=2705) #RAW
+dmaize_val_elim = dmaize_dum_elim.sample(frac=0.2, random_state=2705) #RAW
+dmaize_val_log = dmaize_dum_log.sample(frac=0.2, random_state=2705) #LOG
+#drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
+dmaize_fit_raw = dmaize_dum_raw.drop(dmaize_val_raw.index) #RAW
+dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index) #RAW
+dmaize_fit_log = dmaize_dum_log.drop(dmaize_val_log.index) #LOG
+'''
+dmaize_val_raw = dm0_raw.sample(frac=0.2, random_state=2705) #RAW
+dmaize_val_elim = dm0_elim.sample(frac=0.2, random_state=2705) #RAW
+dmaize_val_log = dm0_log.sample(frac=0.2, random_state=2705) #LOG
+#drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
+dmaize_fit_raw = dm0_raw.drop(dmaize_val_raw.index) #RAW
+dmaize_fit_elim = dm0_elim.drop(dmaize_val_elim.index) #RAW
+dmaize_fit_log = dm0_log.drop(dmaize_val_log.index) #LOG
 '''
 #select all rows from dmaize_log for which the column growArea has a value greater than zero
 dm0_log=dmaize_log.loc[dmaize_log['area'] > 0]
@@ -555,12 +657,12 @@ plt.ylabel('density')
 
 #scatterplots for #RAW variables
 
-dm0_raw.plot.scatter(x = 'n_fertilizer', y = 'yield')
+dm0_raw.plot.scatter(x = 'n_fertilizer', y = 'Y')
 dm0_raw.plot.scatter(x = 'p_fertilizer', y = 'yield')
-dm0_raw.plot.scatter(x = 'pesticides_H', y = 'yield')
+dm0_raw.plot.scatter(x = 'n_manure', y = 'yield')
 dm0_raw.plot.scatter(x = 'mechanized', y = 'yield')
-dm0_raw.plot.scatter(x = 'non-mechanized', y = 'yield')
-dm0_raw.plot.scatter(x = 'irrigation', y = 'yield')
+dm0_raw.plot.scatter(x = 'thz_class', y = 'yield')
+dm0_raw.plot.scatter(x = 'soil_class', y = 'yield')
 
 #scatterplots and histograms for #LOG variables
 dm0_log.plot.scatter(x = 'n_fertilizer', y = 'yield')
@@ -672,6 +774,95 @@ pd.Series([variance_inflation_factor(X1.values, i)
 
 
 ######################Regression##############################
+
+#determine models
+#Normal distribution
+mod_rawn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
+              C(mst_class) + C(soil_class) ', data=dmaize_fit_raw)
+mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
+              C(mst_class) + C(soil_class) ', data=dmaize_fit_elim)
+#Gamma distribution
+mod_rawg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_raw, 
+              family=sm.families.Gamma(link=sm.families.links.log))
+mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
+              family=sm.families.Gamma(link=sm.families.links.log))
+#Nullmodel
+mod_raw0 = smf.glm(formula='Y ~ 1', data=dmaize_fit_raw, family=sm.families.Gamma(link=sm.families.links.log))
+mod_elim0 = smf.glm(formula='Y ~ 1', data=dmaize_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
+#Fit models
+fit_rawn = mod_rawn.fit()
+fit_elimn = mod_elimn.fit()
+fit_rawg = mod_rawg.fit()
+fit_elimg = mod_elimg.fit()
+fit_raw0 = mod_raw0.fit()
+fit_elim0 = mod_elim0.fit()
+#print results
+print(fit_rawn.summary())
+print(fit_elimn.summary())
+print(fit_rawg.summary())
+print(fit_elimg.summary())
+print(fit_raw0.summary())
+print(fit_elim0.summary())
+
+#calculate pseudo R
+pseudoR_raw = 1-(234160/358480)  #0.24823 0.0952 0.347
+pseudoR_elim = 1-(125780/199010) #0.29316 0.0982 0.348 0.366
+print(pseudoR_raw)
+print(pseudoR_elim)
+
+val_raw = dmaize_val_raw.drop(['lat', 'lon', 'area', 'Y', 'n_manure', 'n_fertilizer'], axis='columns')
+val_elim = dmaize_val_elim.drop(['lat', 'lon', 'area', 'Y', 'n_manure', 'n_fertilizer'], axis='columns')
+
+pred_raw = fit_rawn.predict(val_raw)
+pred_elim = fit_elimn.predict(val_elim)
+#glm: like this they aren't valid -> link function
+pred_rawg = fit_rawg.predict(val_raw)
+pred_elimg = fit_elimg.predict(val_elim)
+
+r2_score(dmaize_val_raw['Y'], pred_raw) #0.3297567051138425
+r2_score(dmaize_val_elim['Y'], pred_elim) #0.34027102028441003
+r2_score(dmaize_val_raw['Y'], pred_rawg) 
+r2_score(dmaize_val_elim['Y'], pred_elimg) 
+
+plt.scatter(pred_raw, dmaize_val_raw['Y'])
+plt.scatter(pred_rawg, dmaize_val_raw['Y'])
+plt.scatter(pred_elim, dmaize_val_elim['Y'])
+plt.scatter(pred_elimg, dmaize_val_elim['Y'])
+
+plt.scatter(dmaize_val_raw['n_total'], pred_raw)
+plt.scatter(dmaize_val_raw['n_total'], dmaize_val_raw['Y'])
+plt.scatter(dmaize_val_elim['n_total'], pred_elim)
+plt.scatter(dmaize_val_elim['n_total'], dmaize_val_elim['Y'])
+plt.scatter(dmaize_val_raw['n_total'], pred_rawg)
+plt.scatter(dmaize_val_elim['n_total'], pred_elimg)
+
+an_raw = pd.concat([dmaize_val_raw, pred_raw, pred_rawg], axis='columns')
+an_raw = an_raw.rename(columns={0:"pred_raw", 1:"pred_rawg"}, errors="raise")
+sb.lmplot(x='pred_raw', y='Y', data=an_raw)
+
+plt.hist(pred_elimg, bins=50)
+plt.title('Maize yield ha/kg')
+plt.xlabel('yield kg/ha')
+plt.ylabel('density')
+
+##############LOG################################
+#rename Y variable
+dmaize_fit_log= dmaize_fit_log.rename(columns={'yield':'Y'}, errors='raise')
+#determine models
+mod_logn = smf.ols(formula=' Y ~ n_total + p_fertilizer + mechanized +  C(thz_class) + \
+              C(mst_class) + C(soil_class) ', data=dmaize_fit_log)           
+#Fit models
+fit_logn = mod_logn.fit()
+#print results
+print(fit_logn.summary())
+
+
+
+
+
+
 
 #R-style formula
 #doesn't work for some reason... I always get parsing errors and I don't know why

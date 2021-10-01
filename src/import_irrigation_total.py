@@ -35,7 +35,7 @@ import geopandas as gpd
 from geopandas.tools import sjoin
 import rasterio
 import utilities
-import resource
+#import resource
 from sys import platform
 if platform == "linux" or platform == "linux2":
 	#this is to ensure Morgan's computer doesn't crash
@@ -53,7 +53,7 @@ fracActuallyIrrigatedData=rasterio.open(params.irrigationDataLoc+'gmia_v5_aai_pc
 
 print('reading irrigation fraction data')
 eArr=fracEquippedData.read(1)
-aiArr=fracEquippedData.read(1)
+aiArr=fracActuallyIrrigatedData.read(1) #fracEquippedData was used twice
 fArr = np.multiply(eArr,aiArr)/100/100
 # we ignore the last latitude cell
 lats = np.linspace(-90, 90 - five_minute, \
