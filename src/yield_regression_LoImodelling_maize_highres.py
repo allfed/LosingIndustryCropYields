@@ -62,10 +62,26 @@ mmean_total = ( maize_nozero['totalYield'].sum()) / (maize_nozero['growArea'].su
 mmean_weighted = round(np.average(maize_kgha, weights=maize_nozero['growArea']),2)
 #now they align!
 
+maize_nozero['growArea'].min() #0.1 ha
+maize_nozero['growArea'].max() #10945.4 ha
+maize_nozero['growArea'].mean() #292.94 ha
+tt3 = (maize_nozero['yield_kgPerHa'] * maize_nozero['growArea']).sum()
+ar_t = maize_nozero.loc[maize_nozero['growArea'] < 10] #148655 cells ~26.46%
+ar_t1 = maize_nozero.loc[maize_nozero['growArea'] > 1000] #44900 cells ~7.99% but ~61.99% of the yield...
+tt = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum()
+ar_t2 = maize_nozero.loc[maize_nozero['growArea'] > 100] #235669 cells ~41.95% but ~96.76% of the yield...
+tt2 = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum()
+825496849007.0315/853148561445.0236 #
+ax = sb.boxplot(x=maize_nozero["growArea"])
+235669/561780
 #check the datatype of yield_kgPerHa and logarithmize the values
 #logging is done to check the histogram and regoression fit of the transformed values
 maize_kgha.dtype
 maize_kgha_log=np.log(maize_kgha)
+
+plt.hist(ar_t1['yield_kgPerHa'], bins=50)
+x = sb.boxplot(x=ar_t1["yield_kgPerHa"])
+plt.scatter(ar_t1["growArea"], ar_t1["yield_kgPerHa"])
 
 #plot maize yield distribution in a histogram
 plt.hist(maize_kgha, bins=50)
@@ -106,7 +122,7 @@ dist_listm = []
 param_dictm ={"Values":[]}
 #set xm to bins in the range of the raw data
 xm = np.linspace(0.01,
-                25500, 100)
+                11000, 100)
 
 ###################################################################################
 #####Testing of multiple distributions visually and using logLik, AIC and BIC######
@@ -529,6 +545,54 @@ dm0_elog['n_fertilizer'] = dm0_elog['n_fertilizer'].replace(0,0.1)
 dm0_elog['p_fertilizer'] = dm0_elog['p_fertilizer'].replace(0,0.09)
 dm0_elog['n_total'] = dm0_elog['n_total'].replace(0,0.0000000009)
 
+###############Outliers###########################
+m_out_f = dm0_elim.loc[dm0_elim['n_fertilizer'] > 400] #only 78 left
+m_out_p = dm0_elim.loc[dm0_elim['p_fertilizer'] > 100] #169
+m_out_man = dm0_elim.loc[dm0_elim['n_manure'] > 250] #35; 69 bei 200
+m_out_prod = dm0_elim.loc[dm0_elim['n_man_prod'] > 1000] #32
+m_out_n = dm0_elim.loc[(dm0_elim['n_manure'] > 250) | (dm0_elim['n_fertilizer'] > 400)] #has to be 78+35-1=112
+
+m_mman = dm0_elim['n_manure'].mean() #5.103560635784215
+m_medman = dm0_elim['n_manure'].median() #2.6500869750976563
+
+dm0_qt = dm0_elim.quantile([.1, .5, .75, .9, .95, .99, .999])
+
+#Boxplot of all the variables
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+fig.suptitle('dm0_elim Boxplots for each variable')
+
+sb.boxplot(ax=axes[0, 0], data=dm0_elim, x='n_fertilizer')
+sb.boxplot(ax=axes[0, 1], data=dm0_elim, x='p_fertilizer')
+sb.boxplot(ax=axes[0, 2], data=dm0_elim, x='n_manure')
+sb.boxplot(ax=axes[1, 0], data=dm0_elim, x='n_total')
+sb.boxplot(ax=axes[1, 1], data=dm0_elim, x='pesticides_H')
+sb.boxplot(ax=axes[1, 2], data=dm0_elim, x='Y')
+
+ax = sb.boxplot(x=dm0_elim["Y"], orient='v')
+ax = sb.boxplot(x=dm0_elim["n_fertilizer"])
+ax = sb.boxplot(x=dm0_elim["p_fertilizer"])
+ax = sb.boxplot(x=dm0_elim["n_manure"])
+ax = sb.boxplot(x=dm0_elim["n_total"])
+ax = sb.boxplot(x=dm0_elim["pesticides_H"])
+ax = sb.boxplot(x=dm0_elim["irrigation_tot"])
+ax = sb.boxplot(x=dm0_elim["irrigation_rel"])
+ax = sb.boxplot(x="mechanized", y='Y', data=dm0_elim)
+ax = sb.boxplot(x="thz_class", y='Y', hue='mechanized', data=dm0_elim)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="mst_class", y='Y', data=dm0_elim)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="soil_class", y='Y', data=dm0_elim)
+
+#replace nonsense values in fertilizer and manure datasets
+dm0_elim.loc[dm0_elim['n_fertilizer'] > 400, 'n_fertilizer'] = np.nan
+dm0_elim.loc[dm0_elim['p_fertilizer'] > 100, 'p_fertilizer'] = np.nan
+dm0_elim.loc[dm0_elim['n_manure'] > 250, 'n_manure'] = np.nan
+#dm0_elim.loc[dm0_elim['n_man_prod'] > 1000, 'n_man_prod'] = np.nan
+dm0_elim = dm0_elim.fillna(method='ffill')
+dm0_elim['n_total'] = dm0_elim['n_manure'] + dm0_elim['n_fertilizer']
+
+
 
 ###############################################################################
 ############Loading log transformed values for all variables##################
@@ -657,9 +721,9 @@ plt.ylabel('density')
 
 #scatterplots for #RAW variables
 
-dm0_raw.plot.scatter(x = 'n_fertilizer', y = 'Y')
+dm0_elim.plot.scatter(x = 'n_total', y = 'Y')
 dm0_raw.plot.scatter(x = 'p_fertilizer', y = 'yield')
-dm0_raw.plot.scatter(x = 'n_manure', y = 'yield')
+dm0_elim.plot.scatter(x = 'n_total', y = 'Y')
 dm0_raw.plot.scatter(x = 'mechanized', y = 'yield')
 dm0_raw.plot.scatter(x = 'thz_class', y = 'yield')
 dm0_raw.plot.scatter(x = 'soil_class', y = 'yield')
@@ -670,12 +734,12 @@ dm0_log.plot.scatter(x = 'p_fertilizer', y = 'yield')
 dm0_log.plot.scatter(x = 'pesticides_H', y = 'yield')
 dm0_log.plot.scatter(x = 'mechanized', y = 'yield')
 dm0_log.plot.scatter(x = 'n_total', y = 'yield')
-dm0_log.plot.scatter(x = 'irrigation', y = 'yield')
+dm0_elim.plot.scatter(x = 'irrigation_tot', y = 'Y')
 dm0_log.plot.scatter(x = 'thz_class', y = 'yield')
-dm0_log.plot.scatter(x = 'mst_class', y = 'yield')
+dm0_elim.plot.scatter(x = 'mst_class', y = 'Y')
 dm0_log.plot.scatter(x = 'soil_class', y = 'yield')
 
-plt.hist(dm0_log['n_fertilizer'], bins=50)
+plt.hist(dm0_elim['n_fertilizer'], bins=50)
 plt.hist(dm0_log['p_fertilizer'], bins=50)
 plt.hist(dm0_log['n_total'], bins=50)
 plt.hist(dm0_log['pesticides_H'], bins=100)
@@ -688,6 +752,22 @@ plt.ylim(0,5000)
 plt.title('Maize yield ha/kg')
 plt.xlabel('yield kg/ha')
 plt.ylabel('density')
+
+param6 = stats.norm.fit(dm0_elim['Y'])
+#param_list.append(param6)
+param_dictm["Values"].append(param6)
+print(param6)
+#calculate pdf
+pdf_fitted6 = stats.norm.pdf(xm, *param6)
+#calculate log pdf and store it in the list
+pdf_fitted_log6 = stats.norm.logpdf(dm0_elim['Y'], *param6)
+pdf_listm.append(pdf_fitted_log6)
+#plot data histogram and pdf curve
+h = plt.hist(dm0_elim['Y'], bins=50, density=True)
+plt.plot(xm, pdf_fitted6, lw=2, label="Fitted Gamma distribution")
+plt.legend()
+plt.show()
+
 
 #mst, thz and soil are categorical variables which need to be converted into dummy variables before running the regression
 #####Get dummies##########
@@ -754,26 +834,186 @@ sp.iloc[1,2:5]
 
 ############Variance inflation factor##########################
 
-X = add_constant(dmaize_cor_raw)
+X = add_constant(dmaize_cor_elim)
 pd.Series([variance_inflation_factor(X.values, i) 
                for i in range(X.shape[1])], 
               index=X.columns)
-#drop separate n variables
-cor_n_total_raw = dmaize_cor_raw.drop(['n_fertilizer', 'n_manure', 'p_fertilizer', 'thz_class', 'mst_class', 'soil_class'], axis='columns')
-X1 = add_constant(cor_n_total_raw)
+
+'''
+const                618.200415
+p_fertilizer           5.144046
+n_total                6.458572
+pesticides_H           1.995414
+mechanized             2.042481
+irrigation_tot         2.040981
+LGP<60days            19.495530
+60-120days            66.122849
+120-180days          107.508652
+180-225days           83.373819
+225-270days           66.015922
+270-365days           78.714485
+Trop_low               3.882418
+Trop_high              3.002226
+Sub-trop_warm          8.022661
+Sub-trop_mod_cool     10.808561
+Sub-trop_cool          9.378346
+Temp_mod              10.195501
+Temp_cool             17.624626
+S1_very_steep          1.379885
+S2_hydro_soil          1.361384
+S3_no-slight_lim       3.735970
+S4_moderate_lim        2.982573
+S5_severe_lim          1.464532
+dtype: float64
+'''
+
+
+X = add_constant(dmaize_cor_elim)
+pd.Series([variance_inflation_factor(X.values, i) 
+               for i in range(X.shape[1])], 
+              index=X.columns)
+'''
+Out[195]: 
+const                706.047259
+p_fertilizer           6.075385
+n_total                6.055918
+pesticides_H           2.094650
+mechanized             1.441289
+irrigation_tot         1.896832
+LGP<60days             2.803385
+60-120days             8.540601
+120-180days           20.675855
+180-225days           19.111780
+225-270days           17.741380
+270-365days           23.367627
+Trop_low             133.287284
+Trop_high             26.817987
+Sub-trop_warm         39.693882
+Sub-trop_mod_cool     57.442973
+Sub-trop_cool         35.391055
+Temp_mod              68.672860
+Temp_cool             96.951993
+S1_very_steep          1.388502
+S2_hydro_soil          1.319893
+S3_no-slight_lim       3.887261
+S4_moderate_lim        3.940900
+S5_severe_lim          1.785457
+dtype: float64
+'''
+
+#drop aggregated climate classes
+cor_elim = dmaize_cor_elim.drop(['270-365days', 'Trop_low'], axis='columns')
+cor_elim = dmaize_cor_elim.drop(['LGP<60days', 'Trop_high'], axis='columns')
+cor_elim = dmaize_cor_elim.drop(['LGP<60days', '60-120days', '120-180days',
+                                    '180-225days', '225-270days', 
+                                    '270-365days'], axis='columns')
+X1 = add_constant(cor_elim)
 pd.Series([variance_inflation_factor(X1.values, i) 
                for i in range(X1.shape[1])], 
               index=X1.columns)
-#if I leave p_fertilizer in, the respective VIF for p and n are a little over 5 but still fine I guess
-#if I drop p_fertilizer they are all good
-#if I drop S4_moderate_lim the soil variables are fine and if I drop Trop_low the temp variables are fine
-#all with a VIF around 1
-#I don't know what that means though and how to handle this with categorcial data
+#thz and mst factor levels are pretty highly correlated
 
-###########LOG##################
+
+######################TEST#########################
+
+test_M = dm0_elim.drop(['lat', 'lon', 'area', 'Y',
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                         'irrigation_rel'], axis='columns')
+test_M['thz_class'] = test_M['thz_class'].replace([8],7)
+
+test_M['mst_class'] = test_M['mst_class'].replace([2],1)
+test_M['mst_class'] = test_M['mst_class'].replace([7],6)
+
+plt.hist(dm0_elim['soil_class'])
+bor_test = dm0_elim.loc[dm0_elim['thz_class'] == 8] #602
+
+md_mst = pd.get_dummies(test_M['mst_class'])
+md_thz = pd.get_dummies(test_M['thz_class'])
+
+md_mst = md_mst.rename(columns={1:"LGP<120days", 3:"120-180days", 4:"180-225days",
+                                  5:"225-270days", 6:"270+days"}, errors="raise")
+md_thz = md_thz.rename(columns={1:"Trop_low", 2:"Trop_high", 3:"Sub-trop_warm", 4:"Sub-trop_mod_cool", 5:"Sub-trop_cool", 
+                                6:"Temp_mod", 7:"Temp_cool+Bor+Arctic"}, errors="raise")
+test_M = pd.concat([test_M, md_mst, md_thz, mdum_soil], axis='columns')
+#drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
+test_M.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns', inplace=True)
+
+test_cor_elim = test_M.drop(['thz_class','mst_class', 'soil_class'], axis='columns')
+
+#drop dummy variables
+cor_test = test_cor_elim.loc[:,['n_manure', 'mechanized', 'thz_class', 'mst_class', 
+                                   'soil_class']]
+X2 = add_constant(test_cor_elim)
+pd.Series([variance_inflation_factor(X2.values, i) 
+               for i in range(X2.shape[1])], 
+              index=X2.columns)
+
+plt.hist(test_M['mst_class'], bins=50)
+ax = sb.boxplot(x=test_M["mst_class"], y=dm0_elim['Y'])
+plt.ylim(0,20000)
+
+'''
+mst_test
+
+const                606.320177
+p_fertilizer           6.070693
+n_total                6.032359
+pesticides_H           2.087932
+mechanized             1.433503
+irrigation_tot         1.884955
+LGP<120days            1.469800
+120-180days            1.696699
+180-225days            1.631926
+225-270days            1.439098
+Trop_low             134.007259
+Trop_high             27.017447
+Sub-trop_warm         39.723240
+Sub-trop_mod_cool     57.521198
+Sub-trop_cool         35.687529
+Temp_mod              69.075323
+Temp_cool             97.349586
+S1_very_steep          1.386676
+S2_hydro_soil          1.321069
+S3_no-slight_lim       3.883745
+S4_moderate_lim        3.946254
+S5_severe_lim          1.785712
+dtype: float64
+
+thz_test
+ 
+const                35.974383
+p_fertilizer          6.066513
+n_total               6.024629
+pesticides_H          2.085353
+mechanized            1.432192
+irrigation_tot        1.882304
+LGP<120days           1.469619
+120-180days           1.696031
+180-225days           1.631311
+225-270days           1.438670
+Trop_low              2.907152
+Trop_high             1.397176
+Sub-trop_warm         1.605076
+Sub-trop_mod_cool     1.620597
+Sub-trop_cool         1.429233
+Temp_mod              1.575785
+S1_very_steep         1.384446
+S2_hydro_soil         1.320858
+S3_no-slight_lim      3.883476
+S4_moderate_lim       3.943208
+S5_severe_lim         1.783290
+dtype: float64
+'''
+
 
 
 ######################Regression##############################
+
+'''
+#rename Y variable
+dmaize_fit_raw = dmaize_fit_raw.rename(columns={'yield':'Y'}, errors='raise')
+dmaize_fit_elim = dmaize_fit_elim.rename(columns={'yield':'Y'}, errors='raise')
+'''
 
 #determine models
 #Normal distribution
@@ -890,6 +1130,51 @@ pseudoR = 1-(148190/189950)
 #use patsy to create endog and exog matrices in an Rlike style
 y, X = dmatrices('yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dmaize_fit_raw, return_type='dataframe')
 
+
+#Python design matrices
+#define x and y dataframes
+#Y containing only yield
+m_endog_raw = dmaize_fit_raw.iloc[:,3] #RAW
+m_endog_elim = dmaize_fit_elim.iloc[:,3] #RAW
+m_endog_log = dmaize_fit_log.iloc[:,0] #LOG
+#X containing all variables
+m_exog_alln_raw = dmaize_fit_raw.drop(['Y', 'lat', 'lon', 'area', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #RAW
+m_exog_alln_elim = dmaize_fit_elim.drop(['Y', 'lat', 'lon', 'area', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #RAW
+m_exog_alln_log = dmaize_fit_log.drop(['Y', 'mst_class', 'thz_class', 'soil_class'], axis='columns') #LOG
+
+
+####testing regression
+#determining the models
+###RAW###
+mod_alln_raw = sm.OLS(m_endog_raw, m_exog_alln_raw)
+mod_alln_elim = sm.OLS(m_endog_elim, m_exog_alln_elim)
+mod_alln_rawg = sm.GLM(m_endog_raw, m_exog_alln_raw, family=sm.families.Gamma())
+mod_alln_elimg = sm.GLM(m_endog_elim, m_exog_alln_elim, family=sm.families.Gamma())
+###LOG
+mod_alln_log = sm.OLS(m_endog_log, m_exog_alln_log)
+####LOG DEPENDENT####
+mod_alln_mix = sm.OLS(m_endog_log, m_exog_alln_raw)
+
+#fitting the models
+#####RAW#####
+mod_res_alln_raw = mod_alln_raw.fit(method='qr')
+mod_res_alln_elim = mod_alln_elim.fit(method='qr')
+mod_res_alln_rawg = mod_alln_rawg.fit()
+mod_res_alln_elimg = mod_alln_elimg.fit()
+####LOG####
+mod_res_alln_log = mod_alln_log.fit(method='qr')
+####LOG DEPENDENT####
+mod_res_alln_mix = mod_alln_mix.fit()
+
+#printing the results
+print(mod_res_alln_raw.summary())
+print(mod_res_alln_elim.summary())
+print(mod_res_alln_rawg.summary())
+print(mod_res_alln_elimg.summary())
+
+print(mod_res_alln_log.summary())
+
+print(mod_res_alln_mix.summary())
 
 #define x and y dataframes
 #Y containing only yield

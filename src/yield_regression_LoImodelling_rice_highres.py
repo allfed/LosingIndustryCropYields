@@ -49,6 +49,7 @@ rice_yield.head()
 rice_nozero=rice_yield.loc[rice_yield['growArea'] > 0]
 #compile yield data where area is greater 0 in a new array
 rice_kgha=rice_nozero['yield_kgPerHa']
+rice_kgha=rice_kgha.loc[rice_kgha < 17000]
 #calculate descriptive statistics values (mean, median, standard deviation and variance)
 #for the yield data with a value greater 0
 rmean=rice_kgha.mean()
@@ -169,7 +170,7 @@ plt.show()
 
 
 xr2 = np.linspace(0.01,
-                15500, 100)
+                17000, 100)
 #Gamma distribution
 dist_listr.append('Gamma')
 #get parameters and store them in the dictionary
@@ -271,26 +272,32 @@ print(fertilizer.head())
 fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv') #kg/km²
 print(fertilizer_man.columns)
 print(fertilizer_man.head())
-#irrigation=pd.read_csv(params.geopandasDataDir + 'IrrigationHighRes.csv')
-#print(irrigation.columns)
-#print(irrigation.head())
-#check on Tillage because Morgan didn't change the allocation of conservation agriculture to mechanized
-r_tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResrice.csv')
-print(r_tillage.columns)
-print(r_tillage.head())
-#tillage0=pd.read_csv(params.geopandasDataDir + 'Tillage0.csv')
-#print(tillage0.head())
+irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
+print(irr_t.columns)
+print(irr_t.head())
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
+irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+print(tillage.columns)
+print(tillage.head())
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 print(aez.columns)
 print(aez.head())
 print(aez.dtypes)
 
+#fraction of irrigation total is of total cell area so I have to divide it by the
+#fraction of crop area in a cell and set all values >1 to 1
+irr_tot = irr_t['fraction']/crop['fraction']
+irr_tot.loc[irr_tot > 1] = 1
+#dividing by 0 leaves a NaN value, so I have them all back to 0
+irr_tot.loc[irr_tot.isna()] = 0
+
 #print the value of each variable at the same index to make sure that coordinates align (they do)
 print(r_pesticides.loc[6040])
 print(fertilizer.loc[6040])
 print(fertilizer_man.loc[6040])
-#print(irrigation.loc[6040])
-print(r_tillage.loc[6040])
+print(irr_t.loc[6040])
+print(tillage.loc[6040])
 print(aez.loc[6040])
 print(rice_yield.loc[6040])
 
@@ -323,14 +330,16 @@ l = rice_yield.loc[:,'lats']
 data_raw = {"lat": rice_yield.loc[:,'lats'],
 		"lon": rice_yield.loc[:,'lons'],
 		"area": rice_yield.loc[:,'growArea'],
-        "yield": rice_yield.loc[:,'yield_kgPerHa'],
+        "Y": rice_yield.loc[:,'yield_kgPerHa'],
 		"n_fertilizer": fertilizer.loc[:,'n_kgha'],
 		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
+        "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
         "n_total" : N_total,
         "pesticides_H": r_pesticides.loc[:,'total_H'],
-        "mechanized": r_tillage.loc[:,'rice_is_mech'],
-#        "irrigation": irrigation.loc[:,'area'],
+        "mechanized": tillage.loc[:,'is_mech'],
+        "irrigation_tot": irr_tot,
+        "irrigation_rel": irr_rel.loc[:,'frac_reliant'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
@@ -340,6 +349,9 @@ data_raw = {"lat": rice_yield.loc[:,'lats'],
 drice_raw = pd.DataFrame(data=data_raw)
 #select only the rows where the area of the cropland is larger than 0
 dr0_raw=drice_raw.loc[drice_raw['area'] > 0]
+
+dr0_raw['pesticides_H'] = dr0_raw['pesticides_H'].replace(np.nan, -9)
+dr0_raw['irrigation_rel'] = dr0_raw['irrigation_rel'].replace(np.nan, -9)
 
 #test if there are cells with 0s for the AEZ classes (there shouldn't be any)
 r_testt = dr0_raw.loc[dr0_raw['thz_class'] == 0] #only 82 0s
@@ -376,28 +388,96 @@ r_test_s8 = dr0_raw.loc[dr0_raw['soil_class'] == 8]
 #I could substitute them like the water bodies
 
 #test mech dataset values
-r_test_mech0 = dr0_raw.loc[dr0_raw['mechanized'] == 0] #123886
-r_test_mech1 = dr0_raw.loc[dr0_raw['mechanized'] == 1] #119848
-r_test_mechn = dr0_raw.loc[dr0_raw['mechanized'] == -9] #64831
+r_test_mech0 = dr0_raw.loc[dr0_raw['mechanized'] == 0] #134976
+r_test_mech1 = dr0_raw.loc[dr0_raw['mechanized'] == 1] #132231
+r_test_mechn = dr0_raw.loc[dr0_raw['mechanized'] == -9] #41358
 #this is a problem: -9 is used as NaN value and there are way, way too many
 
-r_test_f = dr0_raw.loc[dr0_raw['n_fertilizer'] == 0] #23014
-r_test_pf = dr0_raw.loc[dr0_raw['p_fertilizer'] == 0] #27110
-r_test_man = dr0_raw.loc[dr0_raw['n_manure'] == 0] #17699
-r_test_p = dr0_raw.loc[dr0_raw['pesticides_H'] == 0] #130979
+r_test_f = dr0_raw.loc[dr0_raw['n_fertilizer'] < 0] #15974 0s, 7040 NaNs
+r_test_pf = dr0_raw.loc[dr0_raw['p_fertilizer'] < 0] #20070 0s, 7040 NaNs 
+r_test_man = dr0_raw.loc[dr0_raw['n_manure'] < 0] #17699 0s, no NaNs
+r_test_p = dr0_raw.loc[dr0_raw['pesticides_H'] < 0] #no 0s, 130979 NaNs
 
-#replace 0s in the moisture, climate and soil classes with NaN values so they
-#can be handled with the .fillna method
 dr0_raw['thz_class'] = dr0_raw['thz_class'].replace(0,np.nan)
 dr0_raw['mst_class'] = dr0_raw['mst_class'].replace(0,np.nan)
-dr0_raw['soil_class'] = dr0_raw['soil_class'].replace(0,np.nan)
-#NaN values throw errors in the regression, they need to be handled beforehand
+dr0_raw['soil_class'] = dr0_raw['soil_class'].replace([0,7,8],np.nan)
+#replace 9 & 10 with 8 to combine all three classes into one Bor+Arctic class
+dr0_raw['thz_class'] = dr0_raw['thz_class'].replace([9,10],8)
+
 #fill in the NaN vlaues in the dataset with a forward filling method
 #(replacing NaN with the value in the cell before)
-#this is fine for now as there most likely won't be any NaN values at full resolution
 dr0_raw = dr0_raw.fillna(method='ffill')
-#fill in the remaining couple of nans at the top of mechanized column
-dr0_raw['mechanized'] = dr0_raw['mechanized'].fillna(1)
+
+#Handle the data by eliminating the rows without data:
+dr0_elim = dr0_raw.loc[dr0_raw['pesticides_H'] > -9]
+dr0_elim = dr0_elim.loc[dr0_raw['mechanized'] > -9] 
+
+est_mechn = dr0_elim.loc[dr0_elim['n_fertilizer'] < 0] #98798
+
+#replace remaining no data values in the fertilizer datasets with NaN and then fill them
+dr0_elim.loc[dr0_elim['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan #only 2304 left, so ffill 
+dr0_elim.loc[dr0_elim['p_fertilizer'] < 0, 'p_fertilizer'] = np.nan
+dr0_elim = dr0_elim.fillna(method='ffill')
+#replace no data values in n_total with the sum of the newly filled n_fertilizer and the
+#n_manure values
+dr0_elim.loc[dr0_elim['n_total'] < 0, 'n_total'] = dr0_elim['n_fertilizer'] + dr0_elim['n_manure']
+
+plt.hist(dr0_elim['mst_class'])
+
+###############################################################################
+##################################Outliers####################################
+##############################################################################
+
+r_out_f = dr0_elim.loc[dr0_elim['n_fertilizer'] > 400] #only 36 left
+r_out_p = dr0_elim.loc[dr0_elim['p_fertilizer'] > 100] #36
+r_out_man = dr0_elim.loc[dr0_elim['n_manure'] > 250] #9
+r_out_prod = dr0_elim.loc[dr0_elim['n_man_prod'] > 1000] #9
+r_out_n = dr0_elim.loc[(dr0_elim['n_manure'] > 250) | (dr0_elim['n_fertilizer'] > 400)] #has to be 78+35-1=112
+
+r_mman = dr0_elim['n_manure'].mean() #5.046215311442884
+r_medman = dr0_elim['n_manure'].median() #2.8063108825683596
+
+print(dr0_raw['Y'].median())
+dr0_qt = dr0_elim.quantile([.1, .25, .5, .75, .8, .95, .999,.9999])
+dr0_qt = dr0_raw.quantile([.999,.9999])
+dr0_qt.reset_index(inplace=True, drop=True)
+dr0_yqt = dr0_elim.loc[dr0_elim['Y'] > dr0_qt.iloc[0,3]]
+163504*0.001
+
+#Boxplot of all the variables
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+fig.suptitle('dr0_elim Boxplots for each variable')
+
+sb.boxplot(ax=axes[0, 0], data=dr0_elim, x='n_fertilizer')
+sb.boxplot(ax=axes[0, 1], data=dr0_elim, x='p_fertilizer')
+sb.boxplot(ax=axes[0, 2], data=dr0_elim, x='n_manure')
+sb.boxplot(ax=axes[1, 0], data=dr0_elim, x='n_total')
+sb.boxplot(ax=axes[1, 1], data=dr0_elim, x='pesticides_H')
+sb.boxplot(ax=axes[1, 2], data=dr0_elim, x='Y')
+
+ax = sb.boxplot(x=dr0_elim["Y"], orient='v')
+ax = sb.boxplot(x=dr0_elim["n_fertilizer"])
+ax = sb.boxplot(x=dr0_elim["p_fertilizer"])
+ax = sb.boxplot(x=dr0_elim["n_manure"])
+ax = sb.boxplot(x=dr0_elim["n_total"])
+ax = sb.boxplot(x=dr0_elim["pesticides_H"])
+ax = sb.boxplot(x=dr0_elim["irrigation_tot"])
+ax = sb.boxplot(x=dr0_elim["irrigation_rel"])
+ax = sb.boxplot(x="mechanized", y='Y', data=dr0_elim)
+ax = sb.boxplot(x="thz_class", y='Y', hue='mechanized', data=dr0_elim)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="mst_class", y='Y', data=dr0_elim)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="soil_class", y='Y', data=dr0_elim)
+
+#replace nonsense values in fertilizer and manure datasets
+dr0_elim.loc[dr0_elim['n_fertilizer'] > 400, 'n_fertilizer'] = np.nan
+dr0_elim.loc[dr0_elim['p_fertilizer'] > 100, 'p_fertilizer'] = np.nan
+dr0_elim.loc[dr0_elim['n_manure'] > 250, 'n_manure'] = np.nan
+#dr0_elim.loc[dr0_elim['n_man_prod'] > 1000, 'n_man_prod'] = np.nan
+dr0_elim = dr0_elim.fillna(method='ffill')
+dr0_elim['n_total'] = dr0_elim['n_manure'] + dr0_elim['n_fertilizer']
 
 ###############################################################################
 ############Loading log transformed values for all variables##################
@@ -587,23 +667,130 @@ sp.iloc[1,2:5]
 
 ############Variance inflation factor##########################
 
-X = add_constant(drice_cor_raw)
+X = add_constant(drice_cor_elim)
 pd.Series([variance_inflation_factor(X.values, i) 
                for i in range(X.shape[1])], 
               index=X.columns)
-#drop separate n variables
-cor_n_total_raw = drice_cor_raw.drop(['n_fertilizer', 'n_manure', 'p_fertilizer', 'S4_moderate_lim', 'Trop_low'], axis='columns')
-X1 = add_constant(cor_n_total_raw)
-pd.Series([variance_inflation_factor(X1.values, i) 
-               for i in range(X1.shape[1])], 
-              index=X1.columns)
-#if I leave p_fertilizer in, the respective VIF for p and n are a little over 5 but still fine I guess
-#if I drop p_fertilizer they are all good
-#if I drop S4_moderate_lim the soil variables are fine and if I drop Trop_low the temp variables are fine
-#all with a VIF around 1
-#I don't know what that means though and how to handle this with categorcial data
+'''
+const                328.358538
+p_fertilizer           6.140546
+n_total                5.846132
+pesticides_H           2.272387
+mechanized             1.342700
+irrigation_tot         1.857810
+LGP<60days             2.334439
+60-120days             3.651814
+120-180days            7.431414
+180-225days            7.002788
+225-270days            7.775257
+270-365days           11.823382
+Trop_low              67.483514
+Trop_high              6.937229
+Sub-trop_warm         35.702874
+Sub-trop_mod_cool     28.018553
+Sub-trop_cool         14.587196
+Temp_mod              20.954271
+Temp_cool             10.144699
+S1_very_steep          1.406882
+S2_hydro_soil          1.213223
+S3_no-slight_lim       2.180892
+S4_moderate_lim        3.037877
+S5_severe_lim          1.807235
+dtype: float64
+'''
 
-###########LOG##################
+######################TEST#########################
+
+test_R = dr0_elim.drop(['lat', 'lon', 'area', 'Y',
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                         'irrigation_rel'], axis='columns')
+test_R['thz_class'] = test_R['thz_class'].replace([8],7)
+
+test_R['mst_class'] = test_R['mst_class'].replace([2],1)
+test_R['mst_class'] = test_R['mst_class'].replace([7],6)
+
+plt.hist(dr0_elim['soil_class'])
+bor_test = dr0_elim.loc[dr0_elim['thz_class'] == 8] #614
+
+rd_mst = pd.get_dummies(test_R['mst_class'])
+rd_thz = pd.get_dummies(test_R['thz_class'])
+
+rd_mst = rd_mst.rename(columns={1:"LGP<120days", 3:"120-180days", 4:"180-225days",
+                                  5:"225-270days", 6:"270+days"}, errors="raise")
+rd_thz = rd_thz.rename(columns={1:"Trop_low", 2:"Trop_high", 3:"Sub-trop_warm", 4:"Sub-trop_mod_cool", 5:"Sub-trop_cool", 
+                                6:"Temp_mod", 7:"Temp_cool+Bor+Arctic"}, errors="raise")
+test_R = pd.concat([test_R, rd_mst, rd_thz, dur_soil_elim], axis='columns')
+#drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
+test_R.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns', inplace=True)
+
+test_cor_elim = test_R.drop(['thz_class','mst_class', 'soil_class'], axis='columns')
+
+#drop dummy variables
+cor_test = test_cor_elim.loc[:,['n_manure', 'mechanized', 'thz_class', 'mst_class', 
+                                   'soil_class']]
+X2 = add_constant(test_cor_elim)
+pd.Series([variance_inflation_factor(X2.values, i) 
+               for i in range(X2.shape[1])], 
+              index=X2.columns)
+
+plt.hist(test_R['mst_class'], bins=50)
+ax = sb.boxplot(x=test_R["mst_class"], y=dr0_elim['Y'])
+plt.ylim(0,20000)
+
+'''
+mst_test
+
+const                294.210696
+p_fertilizer           6.077448
+n_total                5.774830
+pesticides_H           2.279151
+mechanized             1.330683
+irrigation_tot         1.855685
+LGP<120days            1.387747
+120-180days            1.482771
+180-225days            1.342825
+225-270days            1.271386
+Trop_low              68.502526
+Trop_high              7.046224
+Sub-trop_warm         36.221347
+Sub-trop_mod_cool     28.506731
+Sub-trop_cool         14.763804
+Temp_mod              21.244114
+Temp_cool             10.371542
+S1_very_steep          1.402698
+S2_hydro_soil          1.211018
+S3_no-slight_lim       2.168223
+S4_moderate_lim        3.026065
+S5_severe_lim          1.804808
+dtype: float64
+
+thz_test
+
+const                53.903056
+p_fertilizer          6.070424
+n_total               5.773618
+pesticides_H          2.277836
+mechanized            1.324546
+irrigation_tot        1.849693
+LGP<120days           1.386966
+120-180days           1.480541
+180-225days           1.339101
+225-270days           1.270193
+Trop_low              8.397431
+Trop_high             1.643247
+Sub-trop_warm         4.974006
+Sub-trop_mod_cool     3.708061
+Sub-trop_cool         2.430022
+Temp_mod              2.967455
+S1_very_steep         1.388197
+S2_hydro_soil         1.210928
+S3_no-slight_lim      2.167974
+S4_moderate_lim       3.016111
+S5_severe_lim         1.800800
+dtype: float64
+
+'''
+
 
 
 ######################Regression##############################

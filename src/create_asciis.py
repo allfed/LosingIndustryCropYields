@@ -114,4 +114,18 @@ if create_cell_area.startswith('y'):
 
 	cell=pd.read_csv(params.geopandasDataDir + 'CellAreaHighRes.csv')
 	utilities.create5minASCII(cell,'area',params.asciiDir+'cellAreaFraction')
+    
+create_LoI_y2 = input('Would you like to create LoI yield for year 2? (enter y/n): \n').lower()
+if create_LoI_y2.startswith('y'):
+	print('Creating LoI y2')
+
+	cell=pd.read_csv(params.geopandasDataDir + 'LoIy2HighRes.csv')
+	utilities.create5minASCII(cell,'0',params.asciiDir+'LoI_yield_y2')
+    
+create_LoI_cy2 = input('Would you like to create LoI yield change for year 2? (enter y/n): \n').lower()
+if create_LoI_cy2.startswith('y'):
+	print('Creating LoI y2')
+
+	cell=pd.read_csv(params.geopandasDataDir + 'LoIy2HighRes.csv')
+	utilities.create5minASCII(cell,'1',params.asciiDir+'LoI_yieldchange_y2')
 
