@@ -28,6 +28,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import r2_score
+from sys import platform
 
 if platform == "linux" or platform == "linux2":
     #this is to ensure Morgan's computer doesn't crash
@@ -46,7 +47,7 @@ Import data, extract zeros and explore data statistic values and plots
 
 #import yield geopandas data for maize
 
-maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
+maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldFiltered.csv')
 
 #select all rows from maize_yield for which the column growArea has a value greater than zero
 maize_nozero=maize_yield.loc[maize_yield['growArea'] > 0]
@@ -68,7 +69,7 @@ plt.ylabel('density')
 
 #plot log transformed values of yield_kgPerHa
 plt.hist(maize_kgha_log, bins=50)
-
+plt.show()
 '''
 Fitting of distributions to the data and comparing the fit
 '''
@@ -89,14 +90,14 @@ Fitting of distributions to the data and comparing the fit
 '''
 Load factor data and extract zeros
 '''
-m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesHighRes.csv')
-fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
-fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv') #kg/km²
-irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
-crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
-irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
-aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
+m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesFiltered.csv')
+fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerFiltered.csv') #kg/m²
+fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureFiltered.csv') #kg/km²
+irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaFiltered.csv')
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaFiltered.csv')
+irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantFiltered.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsFiltered.csv')
+aez=pd.read_csv(params.geopandasDataDir + 'AEZFiltered.csv')
 
 #fraction of irrigation total is of total cell area so I have to divide it by the
 #fraction of crop area in a cell and set all values >1 to 1
@@ -311,7 +312,9 @@ m_fit_elim0 = m_mod_elim0.fit()
 #print results
 #print(m_fit_elimn.summary())
 #LogLik: -2547000; AIC: 5094000; BIC: 5094000
+print('m_fit_elimg.summary()')
 print(m_fit_elimg.summary())
+print('m_fit_elim0.summary()')
 print(m_fit_elim0.summary())
 
 
@@ -319,6 +322,7 @@ print(m_fit_elim0.summary())
 #calculate pseudo R² for the Gamma distribution
 m_pseudoR_elim = 1-(121800/196880) #0.38135
 #m_pseudoR_elim = 1-(53432/102030) # 0.4763 without the cells above 100 ha
+print('m_pseudoR_elim')
 print(m_pseudoR_elim)
 
 #calculate AIC and BIC for Gamma
@@ -337,7 +341,8 @@ m_pred_elimg = m_fit_elimg.predict(m_val_elim)
 
 #calculate the R² scores
 #r2_score(dmaize_val_elim['Y'], pred_elim) #0.3711
-r2_score(dmaize_val_elim['Y'], m_pred_elimg) #0.3572
+print("r2_score(dmaize_val_elim['Y'], m_pred_elimg)") #0.3572
+print(r2_score(dmaize_val_elim['Y'], m_pred_elimg)) #0.3572
 #.49432 without cells below 100ha
 '''
 #plot the predicted against the observed values
@@ -402,98 +407,103 @@ m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=2705)
 
 #########Studentized residuals vs. fitted values on link scale######
 
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
-plt.scatter('Fitted_link', 'resid_stud', data=m_elimg_infl)
-plot_elimg.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
-plot_elimg.axes[0].set_xlabel('Fitted values on link scale')
-plot_elimg.axes[0].set_ylabel('Studentized Residuals')
+# plot_elimg = plt.figure(4)
+# plot_elimg.set_figheight(8)
+# plot_elimg.set_figwidth(12)
+# plt.scatter('Fitted_link', 'resid_stud', data=m_elimg_infl)
+# plot_elimg.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
+# plot_elimg.axes[0].set_xlabel('Fitted values on link scale')
+# plot_elimg.axes[0].set_ylabel('Studentized Residuals')
+# plt.show()
 
 #########Response residuals vs. fitted values on response scale#######
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
+# plot_elimg = plt.figure(4)
+# plot_elimg.set_figheight(8)
+# plot_elimg.set_figwidth(12)
 
 
-plot_elimg.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=m_elimg_infl, 
-                          #lowess=True, 
-                          scatter_kws={'alpha': 0.5}, 
-                          line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
+# plot_elimg.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=m_elimg_infl, 
+#                           #lowess=True, 
+#                           scatter_kws={'alpha': 0.5}, 
+#                           line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
-plot_elimg.axes[0].set_title('Residuals vs Fitted')
-plot_elimg.axes[0].set_xlabel('Fitted values')
-plot_elimg.axes[0].set_ylabel('Residuals')
+# plot_elimg.axes[0].set_title('Residuals vs Fitted')
+# plot_elimg.axes[0].set_xlabel('Fitted values')
+# plot_elimg.axes[0].set_ylabel('Residuals')
 
-# annotations
-abs_resid = m_elimg_infl['resid_resp_abs'].sort_values(ascending=False)
-abs_resid_top_3 = abs_resid[:3]
+# # annotations
+# abs_resid = m_elimg_infl['resid_resp_abs'].sort_values(ascending=False)
+# abs_resid_top_3 = abs_resid[:3]
 
-for i in abs_resid_top_3.index:
-    plot_elimg.axes[0].annotate(i, 
-                               xy=(m_elimg_infl['GLM_fitted'][i], 
-                                   m_elimg_infl['resid_resp_abs'][i]))
+# for i in abs_resid_top_3.index:
+#     plot_elimg.axes[0].annotate(i, 
+#                                xy=(m_elimg_infl['GLM_fitted'][i], 
+#                                    m_elimg_infl['resid_resp_abs'][i]))
 
+# plt.show()
 ###############QQ-Plot########################
 
-QQ = ProbPlot(m_elimg_infl['resid_stud'])
-plot_lm_2 = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
+# plt.figure()
+# QQ = ProbPlot(m_elimg_infl['resid_stud'])
+# plot_lm_2 = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
 
-plot_lm_2.set_figheight(8)
-plot_lm_2.set_figwidth(12)
+# plot_lm_2.set_figheight(8)
+# plot_lm_2.set_figwidth(12)
 
-plot_lm_2.axes[0].set_title('Normal Q-Q')
-plot_lm_2.axes[0].set_xlabel('Theoretical Quantiles')
-plot_lm_2.axes[0].set_ylabel('Standardized Residuals');
+# plot_lm_2.axes[0].set_title('Normal Q-Q')
+# plot_lm_2.axes[0].set_xlabel('Theoretical Quantiles')
+# plot_lm_2.axes[0].set_ylabel('Standardized Residuals');
 
-# annotations
-abs_norm_resid = np.flip(np.argsort(np.abs(m_elimg_infl['resid_stud'])), 0)
-abs_norm_resid_top_3 = abs_norm_resid[:3]
+# # annotations
+# abs_norm_resid = np.flip(np.argsort(np.abs(m_elimg_infl['resid_stud'])), 0)
+# abs_norm_resid_top_3 = abs_norm_resid[:3]
 
-for r, i in enumerate(abs_norm_resid_top_3):
-    plot_lm_2.axes[0].annotate(i, 
-                               xy=(np.flip(QQ.theoretical_quantiles, 0)[r],
-                                   m_elimg_infl['resid_stud'][i]));
+# for r, i in enumerate(abs_norm_resid_top_3):
+#     plot_lm_2.axes[0].annotate(i, 
+#                                xy=(np.flip(QQ.theoretical_quantiles, 0)[r],
+#                                    m_elimg_infl['resid_stud'][i]));
+# plt.show()
 
 ############Cook's distance plot##########
 
 #############Cook's distance vs. no of observation######
+# plt.figure()
+# #sort cook's distance value to get the value for the largest distance####
+# cook_sort = m_elimg_cook.sort_values(ascending=False)
+# #select all Cook's distance values which are greater than 4/n (n=number of datapoints)
+# cook_infl = m_elimg_cook.loc[m_elimg_cook > (4/273772)].sort_values(ascending=False)
 
-#sort cook's distance value to get the value for the largest distance####
-cook_sort = m_elimg_cook.sort_values(ascending=False)
-#select all Cook's distance values which are greater than 4/n (n=number of datapoints)
-cook_infl = m_elimg_cook.loc[m_elimg_cook > (4/273772)].sort_values(ascending=False)
+# #barplot for values with the strongest influence (=largest Cook's distance)
+# #because running the function on all values takes a little longer
+# plt.bar(cook_infl.index, cook_infl)
+# plt.ylim(0, 0.01)
 
-#barplot for values with the strongest influence (=largest Cook's distance)
-#because running the function on all values takes a little longer
-plt.bar(cook_infl.index, cook_infl)
-plt.ylim(0, 0.01)
-
-#plots for largest 3 cook values, the ones greater than 4/n and all distance values
-plt.scatter(cook_infl.index[0:3], cook_infl[0:3])
-plt.scatter(cook_infl.index, cook_infl)
-plt.scatter(m_elimg_cook.index, m_elimg_cook)
-plt.ylim(0, 0.01)
-
+# #plots for largest 3 cook values, the ones greater than 4/n and all distance values
+# plt.scatter(cook_infl.index[0:3], cook_infl[0:3])
+# plt.scatter(cook_infl.index, cook_infl)
+# plt.scatter(m_elimg_cook.index, m_elimg_cook)
+# plt.ylim(0, 0.01)
+# plt.show()
 ############Studentized Residuals vs. Leverage w. Cook's distance line#####
 
-plot_lm_4 = plt.figure(4)
-plot_lm_4.set_figheight(8)
-plot_lm_4.set_figwidth(12)
+# plot_lm_4 = plt.figure(4)
+# plot_lm_4.set_figheight(8)
+# plot_lm_4.set_figwidth(12)
 
-plt.scatter(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], alpha=0.5)
-sb.regplot(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], 
-            scatter=False, 
-            ci=False, 
-            #lowess=True,
-            line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
+# plt.scatter(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], alpha=0.5)
+# sb.regplot(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], 
+#             scatter=False, 
+#             ci=False, 
+#             #lowess=True,
+#             line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
 
-plot_lm_4.axes[0].set_xlim(0, 0.004)
-plot_lm_4.axes[0].set_ylim(-3, 21)
-plot_lm_4.axes[0].set_title('Residuals vs Leverage')
-plot_lm_4.axes[0].set_xlabel('Leverage')
-plot_lm_4.axes[0].set_ylabel('Standardized Residuals')
+# plot_lm_4.axes[0].set_xlim(0, 0.004)
+# plot_lm_4.axes[0].set_ylim(-3, 21)
+# plot_lm_4.axes[0].set_title('Residuals vs Leverage')
+# plot_lm_4.axes[0].set_xlabel('Leverage')
+# plot_lm_4.axes[0].set_ylabel('Standardized Residuals')
+# plt.show()
 
 # annotate the three points with the largest Cooks distance value
 leverage_top_3 = np.flip(np.argsort(m_elimg_infl["Cooks_d"]), 0)[:3]
@@ -511,12 +521,13 @@ def graph(formula, x_range, label=None):
 
 p = len(m_fit_elimg.params) # number of model parameters
 
-graph(lambda x: np.sqrt((0.5 * p * (1 - x)) / x), 
-      np.linspace(0.001, 0.200, 50), 
-      'Cook\'s distance') # 0.5 line
-graph(lambda x: np.sqrt((1 * p * (1 - x)) / x), 
-      np.linspace(0.001, 0.200, 50)) # 1 line
-plt.legend(loc='upper right');
+# graph(lambda x: np.sqrt((0.5 * p * (1 - x)) / x), 
+#       np.linspace(0.001, 0.200, 50), 
+#       'Cook\'s distance') # 0.5 line
+# graph(lambda x: np.sqrt((1 * p * (1 - x)) / x), 
+#       np.linspace(0.001, 0.200, 50)) # 1 line
+# plt.legend(loc='upper right');
+# plt.show()
 
     
 
@@ -776,4 +787,4 @@ mmin_y2c = m_y2_change.min() #-0.9503 (~-95%)
 LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], m_yield_y1,
                        m_y1_change, m_yield_y2, m_y2_change], axis='columns')
 #save the dataframe in a csv
-LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldHighRes.csv")
+LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldFiltered.csv")

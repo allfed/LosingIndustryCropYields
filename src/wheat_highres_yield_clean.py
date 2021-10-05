@@ -8,7 +8,7 @@ import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
-	sys.path.append(module_path)
+      sys.path.append(module_path)
 
 from src import params
 from src import outdoor_growth
@@ -97,7 +97,7 @@ fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.cs
 irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
 crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
 irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 
 #fraction of irrigation total is of total cell area so I have to divide it by the
@@ -128,11 +128,11 @@ N_total = fertilizer['n_kgha'] + fertilizer_man['applied_kgha'] #kg/ha
 ##############Loading variables without log to test the effect###################
 #################################################################################
 dataw_raw = {"lat": wheat_yield.loc[:,'lats'],
-		"lon": wheat_yield.loc[:,'lons'],
-		"area": wheat_yield.loc[:,'growArea'],
+            "lon": wheat_yield.loc[:,'lons'],
+            "area": wheat_yield.loc[:,'growArea'],
         "Y": wheat_yield.loc[:,'yield_kgPerHa'],
-		"n_fertilizer": fertilizer.loc[:,'n_kgha'],
-		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
+            "n_fertilizer": fertilizer.loc[:,'n_kgha'],
+            "p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
         "n_total" : N_total,
@@ -143,7 +143,7 @@ dataw_raw = {"lat": wheat_yield.loc[:,'lats'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
-		}
+            }
 
 #arrange data_raw in a dataframe
 dwheat_raw = pd.DataFrame(data=dataw_raw)

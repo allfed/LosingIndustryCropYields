@@ -218,7 +218,7 @@ df['is_mech'] = np.where(allcrops['mask'],-9,allcrops['is_mech'])
 del allcrops
 del cBinnedReoriented
 print('save for all crops ')
-df.to_csv(params.geopandasDataDir + "TillageHighResAllCrops.csv")
+df.to_csv(params.geopandasDataDir + "TillageAllCropsHighRes.csv")
 
 # Plotter.plotMap(grid,'whea_is_not_mech',title,label,'TillageMechWheat',plotGrowArea)
 if(MAKE_GRID):
