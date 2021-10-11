@@ -29,11 +29,6 @@ from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import r2_score
 
-if platform == "linux" or platform == "linux2":
-    #this is to ensure Morgan's computer doesn't crash
-    import resource
-    rsrc = resource.RLIMIT_AS
-    resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 
 
@@ -46,7 +41,7 @@ Import data, extract zeros and explore data statistic values and plots
 
 #import yield geopandas data for maize
 
-maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
+maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldFiltered.csv')
 
 #select all rows from maize_yield for which the column growArea has a value greater than zero
 maize_nozero=maize_yield.loc[maize_yield['growArea'] > 0]
@@ -89,14 +84,14 @@ Fitting of distributions to the data and comparing the fit
 '''
 Load factor data and extract zeros
 '''
-m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesHighRes.csv')
-fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
-fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv') #kg/km²
-irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
-crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
-irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
-aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
+m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesFiltered.csv')
+fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerFiltered.csv') #kg/m²
+fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureFiltered.csv') #kg/km²
+irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaFiltered.csv')
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaFiltered.csv')
+irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantFiltered.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsFiltered.csv')
+aez=pd.read_csv(params.geopandasDataDir + 'AEZFiltered.csv')
 
 #fraction of irrigation total is of total cell area so I have to divide it by the
 #fraction of crop area in a cell and set all values >1 to 1
@@ -249,9 +244,9 @@ dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index) #RAW
 #extract lat, lon, area and yield from the fit dataset to test the correlations among the
 #independent variables
 dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
-                                        'n_fertilizer', 'n_manure', 'n_man_prod',
-                                         'irrigation_rel','thz_class',
-                                        'mst_class', 'soil_class'], axis='columns')
+                                    'n_fertilizer', 'n_manure', 'n_man_prod',
+                                     'irrigation_rel','thz_class',
+                                    'mst_class', 'soil_class'], axis='columns')
 #calculate spearman (rank transformed) correlation coeficcients between the 
 #independent variables and save the values in a dataframe
 sp_m = dmaize_cor_elim.corr(method='spearman')
@@ -329,6 +324,16 @@ m_bic = m_fit_elimg.bic_llf
 ########Validation against the validation dataset########
 
 #select the independent variables from the val dataset
+print(dmaize_val_elim.columns)
+
+for i in np.arange(0,15):
+    print(i)
+    m_val_elim = dmaize_val_elim.iloc[:,[i]]
+    print(m_val_elim)
+    column = dmaize_val_elim.columns[i]
+    print(column)
+
+print(len(dmaize_val_elim))
 m_val_elim = dmaize_val_elim.iloc[:,[5,8,9,10,11,13,14,15]]
 
 #fit the model against the validation data
@@ -720,6 +725,9 @@ LoI_melim = LoI_melim.loc[LoI_melim['n_total'] < dm0_qt.iloc[12,8]] #~195
 
 #select the rows from LoI_melim which contain the independent variables for year 1
 LoI_m_year1 = LoI_melim.iloc[:,[10,13,14,15,17,19,22,25]]
+print(LoI_melim.columns)
+print(LoI_m_year1)
+print(LoI_m_year1.columns)
 #reorder the columns according to the order in dm0_elim
 LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
                        'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
@@ -748,6 +756,8 @@ mmin_y1c = m_y1_change.min() #-0.94897 (~-95%)
 
 #select the rows from LoI_melim which contain the independent variables for year 2
 LoI_m_year2 = LoI_melim.iloc[:,[13,14,15,16,19,23,24,26]]
+print(LoI_m_year2.columns)
+quit()
 #reorder the columns according to the order in dm0_elim
 LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
                        'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
@@ -776,4 +786,4 @@ mmin_y2c = m_y2_change.min() #-0.9503 (~-95%)
 LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], m_yield_y1,
                        m_y1_change, m_yield_y2, m_y2_change], axis='columns')
 #save the dataframe in a csv
-LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldHighRes.csv")
+LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldFiltered.csv")

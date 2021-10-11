@@ -46,8 +46,19 @@ Import data, extract zeros and explore data statistic values and plots
 '''
 
 #import yield geopandas data for maize
+IRRIGATED_AND_RAINFED = True
+IRRIGATED=True
+CROP = 'MAIZ'
 
-maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldFiltered.csv')
+if(IRRIGATED):
+    if(IRRIGATED_AND_RAINFED):
+        postfix = ''
+    else:
+        postfix = 'Irr'
+else:
+    postfix = "Rf"
+
+maize_yield=pd.read_csv(params.geopandasDataDir + CROP+'CropYield'+postfix+'Filtered.csv')
 
 #select all rows from maize_yield for which the column growArea has a value greater than zero
 maize_nozero=maize_yield.loc[maize_yield['growArea'] > 0]
@@ -61,15 +72,16 @@ matplotlib.rcParams['figure.figsize'] = (16.0, 12.0)
 matplotlib.style.use('ggplot')
 
 #plot maize yield distribution in a histogram
-plt.hist(maize_kgha, bins=50)
-plt.title('Maize yield ha/kg')
-plt.xlabel('yield kg/ha')
-plt.ylabel('density')
+# plt.hist(maize_kgha, bins=50)
+# plt.title('Maize yield ha/kg')
+# plt.xlabel('yield kg/ha')
+# plt.ylabel('density')
 
 
 #plot log transformed values of yield_kgPerHa
-plt.hist(maize_kgha_log, bins=50)
-plt.show()
+# plt.hist(maize_kgha_log, bins=50)
+# plt.show()
+
 '''
 Fitting of distributions to the data and comparing the fit
 '''
@@ -90,21 +102,25 @@ Fitting of distributions to the data and comparing the fit
 '''
 Load factor data and extract zeros
 '''
-m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesFiltered.csv')
-fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerFiltered.csv') #kg/m²
-fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureFiltered.csv') #kg/km²
-irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaFiltered.csv')
-crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaFiltered.csv')
-irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantFiltered.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsFiltered.csv')
-aez=pd.read_csv(params.geopandasDataDir + 'AEZFiltered.csv')
+
+m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticides'+postfix+'Filtered.csv')
+fertilizer=pd.read_csv(params.geopandasDataDir + 'Fertilizer'+postfix+'Filtered.csv') #kg/m²
+fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManure'+postfix+'Filtered.csv') #kg/km²
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropArea'+postfix+'Filtered.csv')
+if(IRRIGATED):
+    irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliant'+postfix+'Filtered.csv')
+    irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationArea'+postfix+'Filtered.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCrops'+postfix+'Filtered.csv')
+aez=pd.read_csv(params.geopandasDataDir + 'AEZ'+postfix+'Filtered.csv')
 
 #fraction of irrigation total is of total cell area so I have to divide it by the
 #fraction of crop area in a cell and set all values >1 to 1
-irr_tot = irr_t['fraction']/crop['fraction']
-irr_tot.loc[irr_tot > 1] = 1
-#dividing by 0 leaves a NaN value, so I have them all back to 0
-irr_tot.loc[irr_tot.isna()] = 0
+if(IRRIGATED):
+    irr_tot = irr_t['fraction']/crop['fraction']
+    irr_tot.loc[irr_tot > 1] = 1
+    #dividing by 0 leaves a NaN value, so I have them all back to 0
+    irr_tot.loc[irr_tot.isna()] = 0
+
 
 #fertilizer is in kg/m² and fertilizer_man is in kg/km² while yield and pesticides are in kg/ha
 #I would like to have all continuous variables in kg/ha
@@ -137,12 +153,13 @@ datam_raw = {"lat": maize_yield.loc[:,'lats'],
         "n_total" : N_total,
         "pesticides_H": m_pesticides.loc[:,'total_H'],
         "mechanized": tillage.loc[:,'is_mech'],
-        "irrigation_tot": irr_tot,
-        "irrigation_rel": irr_rel.loc[:,'frac_reliant'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
         }
+if(IRRIGATED):
+    datam_raw['irrigation_tot'] = irr_tot
+    datam_raw['irrigation_rel'] = irr_rel.loc[:,'frac_reliant']
 
 #arrange data_raw in a dataframe
 dmaize_raw = pd.DataFrame(data=datam_raw)
@@ -150,7 +167,8 @@ dmaize_raw = pd.DataFrame(data=datam_raw)
 dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
 
 dm0_raw['pesticides_H'] = dm0_raw['pesticides_H'].replace(np.nan, -9)
-dm0_raw['irrigation_rel'] = dm0_raw['irrigation_rel'].replace(np.nan, 0)
+if(IRRIGATED):
+    dm0_raw['irrigation_rel'] = dm0_raw['irrigation_rel'].replace(np.nan, 0)
 
 #replace 0s in the moisture, climate and soil classes as well as 7 & 8 in the
 #soil class with NaN values so they can be handled with the .fillna method
@@ -235,7 +253,10 @@ mdum_soil = mdum_soil.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil", 3:"S
 #merge the two dummy dataframes with the rest of the variables
 dmaize_d_elim = pd.concat([dm0_elim, mdum_mst, mdum_thz, mdum_soil], axis='columns')
 #drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
-dmaize_dum_elim = dmaize_d_elim.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns')
+if(IRRIGATED):
+    dmaize_dum_elim = dmaize_d_elim.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns')
+else:
+    dmaize_dum_elim = dmaize_d_elim.drop(['270+days','Temp_cool+Bor+Arctic'], axis='columns')
 
 #select a random sample of 20% from the dataset to set aside for later validation
 #random_state argument ensures that the same sample is returned each time the code is run
@@ -249,9 +270,15 @@ dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index) #RAW
 
 #extract lat, lon, area and yield from the fit dataset to test the correlations among the
 #independent variables
-dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
+if(IRRIGATED):
+    dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
                                         'n_fertilizer', 'n_manure', 'n_man_prod',
                                          'irrigation_rel','thz_class',
+                                        'mst_class', 'soil_class'], axis='columns')
+else:
+    dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                        'thz_class',
                                         'mst_class', 'soil_class'], axis='columns')
 #calculate spearman (rank transformed) correlation coeficcients between the 
 #independent variables and save the values in a dataframe
@@ -300,9 +327,19 @@ dtype: float64
 #m_mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
 #              C(mst_class) + C(soil_class) ', data=dmaize_fit_elim)
 #Gamma distribution
-m_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+if(IRRIGATED):
+    # m_mod_elimg = smf.glm(formula='Y ~ n_total + mechanized + \
+    #           C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
+    #           family=sm.families.Gamma(link=sm.families.links.log))
+    m_mod_elimg = smf.glm(formula='Y ~ n_total + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
+               family=sm.families.Gamma(link=sm.families.links.log))
+
+else:
+    m_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + mechanized + \
               C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
               family=sm.families.Gamma(link=sm.families.links.log))
+
 #Nullmodel
 m_mod_elim0 = smf.glm(formula='Y ~ 1', data=dmaize_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
 #Fit models
@@ -320,10 +357,10 @@ print(m_fit_elim0.summary())
 
 ###########Fit statistics#############
 #calculate pseudo R² for the Gamma distribution
-m_pseudoR_elim = 1-(121800/196880) #0.38135
+# m_pseudoR_elim = 1-(121800/196880) #0.38135
 #m_pseudoR_elim = 1-(53432/102030) # 0.4763 without the cells above 100 ha
-print('m_pseudoR_elim')
-print(m_pseudoR_elim)
+# print('m_pseudoR_elim')
+# print(m_pseudoR_elim)
 
 #calculate AIC and BIC for Gamma
 m_aic = m_fit_elimg.aic 
@@ -333,17 +370,81 @@ m_bic = m_fit_elimg.bic_llf
 ########Validation against the validation dataset########
 
 #select the independent variables from the val dataset
-m_val_elim = dmaize_val_elim.iloc[:,[5,8,9,10,11,13,14,15]]
+if(IRRIGATED):
+    independent_columns=['n_total','mechanized','thz_class','mst_class','soil_class']
+else:
+    independent_columns=['p_fertilizer','n_total','pesticides_H','mechanized','thz_class','mst_class','soil_class']
+
+independent_column_indices = []
+for i in np.arange(0,len(dmaize_val_elim.columns)):
+    m_val_elim = dmaize_val_elim.iloc[:,[i]]
+    column = dmaize_val_elim.columns[i]
+    if(column in independent_columns):
+        independent_column_indices.append(i)
+
+
+m_val_elim = dmaize_val_elim.iloc[:,independent_column_indices]
 
 #fit the model against the validation data
 #pred_elim = m_fit_elimn.predict(m_val_elim)
 m_pred_elimg = m_fit_elimg.predict(m_val_elim)
 
-#calculate the R² scores
-#r2_score(dmaize_val_elim['Y'], pred_elim) #0.3711
+
+# print(dmaize_val_elim[])
+# print(m_pred_elimg)
+# quit()
+# ################### Change Resolution ##################
 print("r2_score(dmaize_val_elim['Y'], m_pred_elimg)") #0.3572
 print(r2_score(dmaize_val_elim['Y'], m_pred_elimg)) #0.3572
+
+r2_scores = []
+five_minute = 5/60 #degrees
+for scale in np.arange(1,500,5):
+    step = five_minute*scale # degrees 
+    to_bin = lambda x: np.floor(x / step) * step
+    dmaize_val_elim["latbin"] = dmaize_val_elim['lat'].map(to_bin)
+    dmaize_val_elim["lonbin"] = dmaize_val_elim['lon'].map(to_bin)
+    groups = dmaize_val_elim.groupby(["latbin", "lonbin"])
+
+    # print('by area')
+    dmaize_val_elim['predicted'] = m_pred_elimg
+    dmaize_val_elim['sumproduct']=dmaize_val_elim['Y']*dmaize_val_elim['area']
+    dmaize_val_elim['sumproduct_pred']=dmaize_val_elim['predicted']*dmaize_val_elim['area']
+
+    # dmaize_val_elim.assign(net_area=dmaize_val_elim['area']).groupby(["latbin", "lonbin"]).net_area.sum()
+
+
+    newlist = pd.DataFrame({})
+    newlist['area']=dmaize_val_elim.groupby(["latbin", "lonbin"]).area.sum()
+    newlist['sumproduct']=dmaize_val_elim.groupby(["latbin", "lonbin"]).sumproduct.sum()
+    newlist['sumproduct_pred']=dmaize_val_elim.groupby(["latbin", "lonbin"]).sumproduct_pred.sum()
+    newlist['mean']= newlist['sumproduct'] / newlist['area']
+    newlist['mean_pred']= newlist['sumproduct_pred'] / newlist['area']
+
+    # print("len(newlist['mean'])")
+    # print("len(newlist['mean_pred'])")
+
+    # print(len(newlist['mean']))
+    # print(len(newlist['mean_pred']))
+
+    del dmaize_val_elim['sumproduct_pred']
+    del dmaize_val_elim['sumproduct']
+    del dmaize_val_elim['predicted']
+
+
+
+    #calculate the R² scores
+    #r2_score(dmaize_val_elim['Y'], pred_elim) #0.3711
+    # print("r2_score(newlist['mean'], newlist['mean_pred'])") #0.3572
+    # print(r2_score(newlist['mean'],newlist['mean_pred'])) #0.3572
+    r2_scores.append(r2_score(newlist['mean'],newlist['mean_pred']))
+plt.figure()
+plt.plot(r2_scores)
+plt.show()
+# print("r2_score(newlist['mean'], newlist['mean_pred'])") #0.3572
+# print(r2_score(newlist['mean'],newlist['mean_pred'])) #0.3572
 #.49432 without cells below 100ha
+
 '''
 #plot the predicted against the observed values
 plt.scatter(pred_elim, dmaize_val_elim['Y'])
@@ -371,7 +472,7 @@ sb.lmplot(x='pred_elimg', y='Y', data=an_elim)
 
 
 #select the independent variables from the fit dataset
-m_fit_elim = dmaize_fit_elim.iloc[:,[5,8,9,10,11,13,14,15]]
+m_fit_elim = dmaize_fit_elim.iloc[:,independent_column_indices]
 
 #get the influence of the GLM model
 m_stat_elimg = m_fit_elimg.get_influence()
@@ -399,7 +500,7 @@ m_elimg_infl = pd.concat([m_elimg_infl, m_elimg_cook], axis='columns')
 
 
 #take a sample of the influence dataframe to plot the lowess line
-m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=2705)
+m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=3163)
 
 
 
@@ -506,12 +607,12 @@ m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=2705)
 # plt.show()
 
 # annotate the three points with the largest Cooks distance value
-leverage_top_3 = np.flip(np.argsort(m_elimg_infl["Cooks_d"]), 0)[:3]
+# leverage_top_3 = np.flip(np.argsort(m_elimg_infl["Cooks_d"]), 0)[:3]
 
-for i in leverage_top_3:
-    plot_elimg.axes[0].annotate(i, 
-                               xy=(m_elimg_infl['hat_matrix'][i], 
-                                   m_elimg_infl['resid_stud'][i]))
+# for i in leverage_top_3:
+#     plot_elimg.axes[0].annotate(i, 
+#                                xy=(m_elimg_infl['hat_matrix'][i], 
+#                                    m_elimg_infl['resid_stud'][i]))
 
 # shenanigans for cook's distance contours
 def graph(formula, x_range, label=None):
@@ -704,7 +805,8 @@ LoI_melimp['pest_y2'] = 0
 #calculate fraction of cropland area actually irrigated in a cell in LoI by multiplying
 #'irrigation_tot' (fraction of cropland irrigated in cell) with 1-'irrigation_rel'
 #(fraction of irrigated cropland reliant on electricity)
-LoI_melim['irr_LoI'] = LoI_melim['irrigation_tot'] * (1- LoI_melim['irrigation_rel'])
+if(IRRIGATED):
+    LoI_melim['irr_LoI'] = LoI_melim['irrigation_tot'] * (1- LoI_melim['irrigation_rel'])
 
 ###########Combine the different dataframes and drop rows with missing values#########
 
@@ -724,20 +826,42 @@ LoI_melim = LoI_melim.loc[LoI_melim['Y'] < dm0_qt.iloc[12,3]] #~12500
 #dm0_elim = dm0_elim.loc[dm0_elim['n_man_prod'] < dm0_qt.iloc[12,7]] #~44
 LoI_melim = LoI_melim.loc[LoI_melim['n_total'] < dm0_qt.iloc[12,8]] #~195
 
+# quit()
 
 #########################Prediction of LoI yields#########################
 
 ################## Year 1 ##################
 
 #select the rows from LoI_melim which contain the independent variables for year 1
-LoI_m_year1 = LoI_melim.iloc[:,[10,13,14,15,17,19,22,25]]
+
+# independent_columns=['thz_class','mst_class','soil_class','120-180days','225-270days','Sub-trop_warm','Temp_mod']
+independent_columns = ['mechanized', 'thz_class', 'mst_class', 'soil_class',
+    'N_toty1','irr_LoI', 'p_fert_y1', 'pest_y1']
+
+independent_column_indices = []
+for i in np.arange(0,len(LoI_melim.columns)):
+    m_val_elim = LoI_melim.iloc[:,[i]]
+    column = LoI_melim.columns[i]
+    if(column in independent_columns):
+        independent_column_indices.append(i)
+
+
+LoI_m_year1 = LoI_melim.iloc[:,independent_column_indices]
+
 #reorder the columns according to the order in dm0_elim
-LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
-                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
-#rename the columns according to the names used in the model formular
-LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
-                                      'pest_y1':"pesticides_H",
-                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+if(IRRIGATED):
+    LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
+                           'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
+                                          'pest_y1':"pesticides_H",
+                                          'irr_LoI':"irrigation_tot"}, errors="raise")
+else:
+    LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
+                       'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
+                                          'pest_y1':"pesticides_H"}, errors="raise")
 #predict the yield for year 1 using the gamma GLM
 m_yield_y1 = m_fit_elimg.predict(LoI_m_year1)
 #calculate the change rate from actual yield to the predicted yield
@@ -758,14 +882,31 @@ mmin_y1c = m_y1_change.min() #-0.94897 (~-95%)
 ################## Year 2 ##################
 
 #select the rows from LoI_melim which contain the independent variables for year 2
-LoI_m_year2 = LoI_melim.iloc[:,[13,14,15,16,19,23,24,26]]
-#reorder the columns according to the order in dm0_elim
-LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
-                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
-#rename the columns according to the names used in the model formular
-LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
-                                      'pest_y2':"pesticides_H",'mechanized_y2':"mechanized",
-                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+# independent_columns=['thz_class','mst_class','soil_class','LGP<120days','225-270days','Sub-trop_mod_cool','Sub-trop_cool','S1_very_steep']
+independent_columns=['thz_class', 'mst_class', 'soil_class', 'mechanized_y2', 'irr_LoI',
+       'p_fert_y2', 'man_fert', 'pest_y2']
+
+independent_column_indices = []
+for i in np.arange(0,len(LoI_melim.columns)):
+    m_val_elim = LoI_melim.iloc[:,[i]]
+    column = LoI_melim.columns[i]
+    if(column in independent_columns):
+        independent_column_indices.append(i)
+
+LoI_m_year2 = LoI_melim.iloc[:,independent_column_indices]#reorder the columns according to the order in dm0_elim
+if(IRRIGATED):
+    LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
+                           'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
+                                          'pest_y2':"pesticides_H",'mechanized_y2':"mechanized",
+                                          'irr_LoI':"irrigation_tot"}, errors="raise")
+else:
+    LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
+                                          'pest_y2':"pesticides_H",'mechanized_y2':"mechanized"}, errors="raise")    
+
 #predict the yield for year 2 using the gamma GLM
 m_yield_y2 = m_fit_elimg.predict(LoI_m_year2)
 #calculate the change from actual yield to the predicted yield
@@ -785,6 +926,7 @@ mmin_y2c = m_y2_change.min() #-0.9503 (~-95%)
 
 #combine both yields and change rates with the latitude and longitude values
 LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], m_yield_y1,
-                       m_y1_change, m_yield_y2, m_y2_change], axis='columns')
+                m_y1_change, m_yield_y2, m_y2_change], axis='columns')
 #save the dataframe in a csv
-LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldFiltered.csv")
+LoI_maize.to_csv(params.geopandasDataDir + "LoI"+CROP+"Yield"+postfix+"Filtered.csv")
+print('saved')
