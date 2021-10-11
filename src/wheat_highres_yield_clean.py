@@ -340,9 +340,58 @@ w_val_elim = dwheat_val_elim.iloc[:,[5,8,9,10,11,13,14,15]]
 w_pred_elim = w_fit_elimn.predict(w_val_elim)
 w_pred_elimg = w_fit_elimg.predict(w_val_elim)
 
-#calculate the R² scores
-r2_score(dwheat_val_elim['Y'], w_pred_elim) #0.3387
-r2_score(dwheat_val_elim['Y'], w_pred_elimg) #0.3279
+# ################### Change Resolution ##################
+print("r2_score(dmaize_val_elim['Y'], m_pred_elimg)") #0.3572
+print(r2_score(dmaize_val_elim['Y'], m_pred_elimg)) #0.3572
+
+r2_scores = []
+five_minute = 5/60 #degrees
+for scale in np.arange(1,250,5):
+    step = five_minute*scale # degrees 
+    to_bin = lambda x: np.floor(x / step) * step
+    dmaize_val_elim["latbin"] = dmaize_val_elim['lat'].map(to_bin)
+    dmaize_val_elim["lonbin"] = dmaize_val_elim['lon'].map(to_bin)
+    groups = dmaize_val_elim.groupby(["latbin", "lonbin"])
+
+    # print('by area')
+    dmaize_val_elim['predicted'] = m_pred_elimg
+    dmaize_val_elim['sumproduct']=dmaize_val_elim['Y']*dmaize_val_elim['area']
+    dmaize_val_elim['sumproduct_pred']=dmaize_val_elim['predicted']*dmaize_val_elim['area']
+
+    # dmaize_val_elim.assign(net_area=dmaize_val_elim['area']).groupby(["latbin", "lonbin"]).net_area.sum()
+
+
+    newlist = pd.DataFrame({})
+    newlist['area']=dmaize_val_elim.groupby(["latbin", "lonbin"]).area.sum()
+    newlist['sumproduct']=dmaize_val_elim.groupby(["latbin", "lonbin"]).sumproduct.sum()
+    newlist['sumproduct_pred']=dmaize_val_elim.groupby(["latbin", "lonbin"]).sumproduct_pred.sum()
+    newlist['mean']= newlist['sumproduct'] / newlist['area']
+    newlist['mean_pred']= newlist['sumproduct_pred'] / newlist['area']
+
+    # print("len(newlist['mean'])")
+    # print("len(newlist['mean_pred'])")
+
+    # print(len(newlist['mean']))
+    # print(len(newlist['mean_pred']))
+
+    del dmaize_val_elim['sumproduct_pred']
+    del dmaize_val_elim['sumproduct']
+    del dmaize_val_elim['predicted']
+
+
+
+    #calculate the R² scores
+    #r2_score(dmaize_val_elim['Y'], pred_elim) #0.3711
+    # print("r2_score(newlist['mean'], newlist['mean_pred'])") #0.3572
+    # print(r2_score(newlist['mean'],newlist['mean_pred'])) #0.3572
+    r2_scores.append(r2_score(newlist['mean'],newlist['mean_pred']))
+plt.figure()
+x = np.linspace(5/60,len(r2_scores)*5/60,len(r2_scores))
+plt.scatter(x,r2_scores)
+plt.title(CROP + ' Variable Resolution Validation R^2')
+plt.xlabel('resolution, degrees')
+plt.ylabel('R^2 between predicted and validation data')
+plt.show()
 
 #plot the predicted against the observed values
 plt.scatter(w_pred_elim, dwheat_val_elim['Y'])
