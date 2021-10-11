@@ -63,9 +63,14 @@ dm0_elim=dmaize_raw[~(dmaize_raw['growArea'] > 100)]
 # dm0_elim=dmaize_raw.drop(dmaize_raw['growArea'] > 100,axis==0)
 
 all_files = [\
-    'mzeYieldGap',\
     'MAIZCropYield',\
     'CornPesticides',\
+    'RICECropYield',\
+    'RicePesticides',\
+    'SOYBCropYield',\
+    'SoybeanPesticides',\
+    'WHEACropYield',\
+    'WheatPesticides',\
     'Fertilizer',\
     'FertilizerManure',\
     'FracIrrigationArea',\
