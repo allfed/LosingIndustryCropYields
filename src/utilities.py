@@ -132,6 +132,39 @@ def saveDictasgeopandas(name,data):
 
 	return grid
 
+#create a global ascii at arbitrary resolution
+def createASCII(df,column,fn):
+	#set creates a list of unique values
+	cellsizelats = 180/len(set(df['lats']))
+	cellsizelons = 360/len(set(df['lons']))
+	assert(cellsizelats==cellsizelons)
+	print('cellsizelats')
+	print(cellsizelats)
+	print('cellsizelons')
+	print(cellsizelons)
+	file1 = open(fn+".asc","w")#write mode
+	ncols = len(set(df['lons']))
+	nrows = len(set(df['lats']))
+	array = np.array(df[column]).astype('float32')
+	arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
+	# np.savetxt(params.asciiDir)
+	pretext = \
+'''ncols         %s
+nrows         %s
+xllcorner     -180
+yllcorner     -90
+cellsize      %s
+NODATA_value  -9
+''' % (str(ncols),str(nrows),str(cellsizelats))
+	file1.write(pretext)
+	print(len(arrayWithNoData))
+	print(min(arrayWithNoData))
+	print(max(arrayWithNoData))
+	flippedarr=np.ravel(np.flipud(arrayWithNoData.reshape((ncols,nrows))))
+	file1.write(" ".join(map(str,flippedarr)))
+	file1.close()
+
+
 #create a global ascii at 5 minute resolution
 def create5minASCII(df,column,fn):
 	file1 = open(fn+".asc","w")#write mode
@@ -139,13 +172,13 @@ def create5minASCII(df,column,fn):
 	arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
 	# np.savetxt(params.asciiDir)
 	pretext = \
-'''ncols         4320
-nrows         2160
-xllcorner     -180
-yllcorner     -90
-cellsize      0.083333333333333
-NODATA_value  -9
-'''
+	'''ncols         4320
+	nrows         2160
+	xllcorner     -180
+	yllcorner     -90
+	cellsize      0.083333333333333
+	NODATA_value  -9
+	'''
 	file1.write(pretext)
 	print(len(arrayWithNoData))
 	print(min(arrayWithNoData))
@@ -153,4 +186,4 @@ NODATA_value  -9
 	flippedarr=np.ravel(np.flipud(np.transpose(arrayWithNoData.reshape((4320,2160)))))
 	file1.write(" ".join(map(str,flippedarr)))
 	file1.close()
-	
+		
