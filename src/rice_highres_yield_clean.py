@@ -14,6 +14,7 @@ from src import params
 from src import outdoor_growth
 from src.outdoor_growth import OutdoorGrowth
 from src import stat_ut
+from src import utilities
 import pandas as pd
 import scipy
 from scipy import stats
@@ -32,6 +33,8 @@ from statsmodels.stats.outliers_influence import GLMInfluence
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import r2_score
+from sklearn.metrics import d2_tweedie_score
+from sklearn.metrics import mean_tweedie_deviance
 
 params.importAll()
 
@@ -157,22 +160,11 @@ datar_raw = {"lat": rice_yield.loc[:,'lats'],
 
 #arrange data_raw in a dataframe
 drice_raw = pd.DataFrame(data=datar_raw)
-#select only the rows where the area of the cropland is larger than 0
-dr0_raw=drice_raw.loc[drice_raw['area'] > 0]
+#select only the rows where the area of the cropland is larger than 100 ha
+dr0_raw=drice_raw.loc[drice_raw['area'] > 100]
 
 dr0_raw['pesticides_H'] = dr0_raw['pesticides_H'].replace(np.nan, -9)
 dr0_raw['irrigation_rel'] = dr0_raw['irrigation_rel'].replace(np.nan, -9)
-
-#test mech dataset values
-r_test_Rech0 = dr0_raw.loc[dr0_raw['mechanized'] == 0] #134976
-r_test_Rech1 = dr0_raw.loc[dr0_raw['mechanized'] == 1] #132231
-r_test_Rechn = dr0_raw.loc[dr0_raw['mechanized'] == -9] #41358
-#this is a problem: -9 is used as NaN value and there are way, way too many
-
-r_test_f = dr0_raw.loc[dr0_raw['n_fertilizer'] < 0] #15974 0s, 7040 NaNs
-r_test_pf = dr0_raw.loc[dr0_raw['p_fertilizer'] < 0] #20070 0s, 7040 NaNs 
-r_test_Ran = dr0_raw.loc[dr0_raw['n_manure'] < 0] #17699 0s, no NaNs
-r_test_p = dr0_raw.loc[dr0_raw['pesticides_H'] < 0] #no 0s, 130979 NaNs
 
 dr0_raw['thz_class'] = dr0_raw['thz_class'].replace(0,np.nan)
 dr0_raw['mst_class'] = dr0_raw['mst_class'].replace(0,np.nan)
@@ -212,11 +204,11 @@ dr0_elim = dr0_elim.loc[dr0_elim['n_man_prod'] < dr0_qt.iloc[6,7]]
 dr0_elim = dr0_elim.loc[dr0_elim['n_total'] < dr0_qt.iloc[6,8]]
 dr0_elim = dr0_elim.loc[dr0_elim['pesticides_H'] < dr0_qt.iloc[6,9]]
 
-plt.hist(dr0_elim['thz_class'], bins=50)
+#drop all rows with an area below 100 ha
+#dr0_elim=dr0_elim.loc[dr0_elim['area'] > 100]
 
-###############################################################################
-##################################Outliers####################################
-##############################################################################
+'''
+plt.hist(dr0_elim['thz_class'], bins=50)
 
 #Boxplot of all the variables
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
@@ -239,6 +231,7 @@ plt.ylim(0,20000)
 ax = sb.boxplot(x="mst_class", y='Y', data=dr0_elim)
 plt.ylim(0,20000)
 ax = sb.boxplot(x="soil_class", y='Y', data=dr0_elim)
+'''
 
 #############################Get Dummies#####################
 
@@ -259,7 +252,7 @@ drice_d_elim = pd.concat([dr0_elim, dur_mst_elim, dur_thz_elim, dur_soil_elim], 
 drice_dur_elim = drice_d_elim.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns')
 
 #select a random sample of 20% from the dataset to set aside for later validation
-#random_state argument ensures that the same sample is returned each time the code is run
+#randor_state argument ensures that the same sample is returned each time the code is run
 drice_val_elim = drice_dur_elim.sample(frac=0.2, random_state=2705) #RAW
 #drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
 drice_fit_elim = drice_dur_elim.drop(drice_val_elim.index) #RAW
@@ -287,27 +280,27 @@ pd.Series([variance_inflation_factor(Xr.values, i)
                for i in range(Xr.shape[1])], 
               index=Xr.columns)
 '''
-const                53.903056
-p_fertilizer          6.070424
-n_total               5.773618
-pesticides_H          2.277836
-mechanized            1.324546
-irrigation_tot        1.849693
-LGP<120days           1.386966
-120-180days           1.480541
-180-225days           1.339101
-225-270days           1.270193
-Trop_low              8.397431
-Trop_high             1.643247
-Sub-trop_warm         4.974006
-Sub-trop_mod_cool     3.708061
-Sub-trop_cool         2.430022
-Temp_mod              2.967455
-S1_very_steep         1.388197
-S2_hydro_soil         1.210928
-S3_no-slight_lim      2.167974
-S4_moderate_lim       3.016111
-S5_severe_lim         1.800800
+const                74.703572
+p_fertilizer          8.900688
+n_total               8.657282
+pesticides_H          2.818537
+mechanized            1.362047
+irrigation_tot        1.953442
+LGP<120days           1.379230
+120-180days           1.636072
+180-225days           1.502411
+225-270days           1.328974
+Trop_low             12.422695
+Trop_high             1.756088
+Sub-trop_warm         8.000736
+Sub-trop_mod_cool     5.289685
+Sub-trop_cool         2.420536
+Temp_mod              3.960040
+S1_very_steep         1.276521
+S2_hydro_soil         1.190554
+S3_no-slight_lim      1.865182
+S4_moderate_lim       2.469434
+S5_severe_lim         1.536933
 dtype: float64
 '''
 
@@ -330,7 +323,7 @@ r_fit_elimn = r_mod_elimn.fit()
 r_fit_elimg = r_mod_elimg.fit()
 r_fit_elim0 = r_mod_elim0.fit()
 #print results
-print(r_fit_elimn.summary()) #0.428
+print(r_fit_elimn.summary()) #0.492
 #LogLik: -1164400; AIC: 2329000; BIC: 2329000
 print(r_fit_elimg.summary())
 print(r_fit_elim0.summary())
@@ -338,13 +331,19 @@ print(r_fit_elim0.summary())
 
 ###########Fit statistics#############
 #calculate pseudo R² for the Gamma distribution
-r_pseudoR_elim = 1-(40887/63577) #0.35689
+r_pseudoR_elim = 1-(18486/31420) #0.35689 0.4116
 print(r_pseudoR_elim)
+
+d2_tweedie_score(drice_fit_elim['Y'], r_fit_elimg.fittedvalues, power=2) #0.4117
+np.sqrt(mean_tweedie_deviance(drice_fit_elim['Y'], r_fit_elimg.fittedvalues, power=2)) #0.4936
+
+d2_tweedie_score(drice_fit_elim['Y'], r_fit_elimn.fittedvalues, power=0) #0.4923
+np.sqrt(mean_tweedie_deviance(drice_fit_elim['Y'], r_fit_elimn.fittedvalues, power=0)) #1717.925
 
 #calculate AIC and BIC for Gamma
 r_aic = r_fit_elimg.aic 
 r_bic = r_fit_elimg.bic_llf
-#LogLik: -118600; AIC: 2305951; BIC: 2306157 (-3305574: this doesn't track)
+#LogLik: -670710; AIC: 1341464; BIC: 1341658
 
 ########Validation against the validation dataset########
 
@@ -356,8 +355,8 @@ r_pred_elim = r_fit_elimn.predict(r_val_elim)
 r_pred_elimg = r_fit_elimg.predict(r_val_elim)
 
 #calculate the R² scores
-r2_score(drice_val_elim['Y'], r_pred_elim) #0.4239
-r2_score(drice_val_elim['Y'], r_pred_elimg) #0.3776
+r2_score(drice_val_elim['Y'], r_pred_elim) #0.4912
+d2_tweedie_score(drice_val_elim['Y'], r_pred_elimg, power=2)#0.4136
 
 #plot the predicted against the observed values
 plt.scatter(r_pred_elim, drice_val_elim['Y'])
@@ -365,7 +364,7 @@ plt.scatter(r_pred_elimg, drice_val_elim['Y'])
 
 #plot the histogram
 plt.hist(r_pred_elimg, bins=50)
-plt.title('Maize yield ha/kg')
+plt.title('rice yield ha/kg')
 plt.xlabel('yield kg/ha')
 plt.ylabel('density')
 
@@ -377,83 +376,128 @@ an_elim = an_elim.rename(columns={0:"pred_elim", 1:"pred_elimg"}, errors="raise"
 sb.lmplot(x='pred_elimg', y='Y', data=an_elim)
 '''
 
+##########RESIDUALS for the Gamma distribution#############
 
 
-##########RESIDUALS#############
-
-#######Gamma
+#select the independent variables from the fit dataset
+r_fit_elim = drice_fit_elim.iloc[:,[5,8,9,10,11,13,14,15]]
 
 #get the influence of the GLM model
 r_stat_elimg = r_fit_elimg.get_influence()
 #print(r_stat_elimg.summary_table()), there seems to be too much data
-r_elimg_cook = pd.DataFrame(r_stat_elimg.cooks_distance).transpose()
-r_elimg_cook = r_elimg_cook.rename(columns={0:"Cooks_d", 1:"ones"}, errors="raise")
-r_data_infl = {'GLM_fitted': r_fit_elimg.fittedvalues,
-       'hat_matrix':r_stat_elimg.hat_matrix_diag, 
-       'resid_stud' : r_stat_elimg.resid_studentized}
+
+#store cook's distance in a variable
+r_elimg_cook = pd.Series(r_stat_elimg.cooks_distance[0]).transpose()
+r_elimg_cook = r_elimg_cook.rename("Cooks_d", errors="raise")
+
+#store the actual yield, the fitted values on response and link scale, 
+#the diagnole of the hat matrix (leverage), the pearson and studentized residuals,
+#the absolute value of the resp and the sqrt of the stud residuals in a dataframe
+#reset the index but keep the old one as a column in order to combine the dataframe
+#with Cook's distance
+r_data_infl = { 'Yield': drice_fit_elim['Y'],
+                'GLM_fitted': r_fit_elimg.fittedvalues,
+               'Fitted_link': r_fit_elimg.predict(r_fit_elim, linear=True),
+               'resid_pear': r_fit_elimg.resid_pearson, 
+               'resid_stud' : r_stat_elimg.resid_studentized,
+               'resid_resp_abs' : np.abs(r_fit_elimg.resid_response),
+               'resid_stud_sqrt' : np.sqrt(np.abs(r_stat_elimg.resid_studentized)),
+               'hat_matrix':r_stat_elimg.hat_matrix_diag}
 r_elimg_infl = pd.DataFrame(data=r_data_infl).reset_index()
 r_elimg_infl = pd.concat([r_elimg_infl, r_elimg_cook], axis='columns')
-r_yiel_res =drice_fit_elim['Y'].reset_index(drop=True)
 
-r_mod_resid = r_fit_elimg.resid_response.reset_index(drop=True)
-r_mod_abs_resid = np.abs(r_mod_resid)
-r_stud_sqrt = np.sqrt(np.abs(r_elimg_infl['resid_stud']))
-r_resid = pd.concat([r_mod_resid, r_mod_abs_resid, r_stud_sqrt], axis='columns')
-r_resid = r_resid.rename(columns={0:"resid_pear", 1:"resid_pear_abs", 'resid_stud':"resid_stud_sqrt"}, errors="raise")
 
-r_elimg_infl_sample = pd.concat([r_elimg_infl, r_resid, r_yiel_res], axis='columns')
-r_elimg_infl_sample = r_elimg_infl_sample.sample(frac=0.2, random_state=2705)
+#take a sample of the influence dataframe to plot the lowess line
+r_elimg_infl_sample = r_elimg_infl.sample(frac=0.1, random_state=2705)
+
+
 
 ##########Residual Plot############
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
+
+#########Studentized residuals vs. fitted values on link scale######
+
+plot_rs = plt.figure(4)
+plot_rs.set_figheight(8)
+plot_rs.set_figwidth(12)
+plot_rs.axes[0] = sb.regplot('Fitted_link', 'resid_stud', data=r_elimg_infl_sample, 
+                          lowess=True, 
+                          scatter_kws={'alpha': 0.5}, 
+                          line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
+#plt.scatter('Fitted_link', 'resid_stud', data=r_elimg_infl)
+plot_rs.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
+plot_rs.axes[0].set_xlabel('Fitted values on link scale')
+plot_rs.axes[0].set_ylabel('Studentized Residuals')
+
+#########Response residuals vs. fitted values on response scale#######
+plot_rr = plt.figure(4)
+plot_rr.set_figheight(8)
+plot_rr.set_figwidth(12)
 
 
-plot_elimg.axes[0] = sb.residplot(r_elimg_infl['GLM_fitted'], drice_fit_elim['Y'], 
+plot_rr.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=r_elimg_infl, 
                           #lowess=True, 
                           scatter_kws={'alpha': 0.5}, 
                           line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
-plot_elimg.axes[0].set_title('Residuals vs Fitted')
-plot_elimg.axes[0].set_xlabel('Fitted values')
-plot_elimg.axes[0].set_ylabel('Residuals')
+plot_rr.axes[0].set_title('Residuals vs Fitted')
+plot_rr.axes[0].set_xlabel('Fitted values')
+plot_rr.axes[0].set_ylabel('Residuals')
 
 # annotations
-r_abs_resid = r_mod_resid.sort_values(ascending=False)
-r_abs_resid_top_3 = r_abs_resid[:3]
+abs_resid = r_elimg_infl['resid_resp_abs'].sort_values(ascending=False)
+abs_resid_top_3 = abs_resid[:3]
 
-for i in r_abs_resid_top_3.index:
-    plot_elimg.axes[0].annotate(i, 
+for i in abs_resid_top_3.index:
+    plot_rr.axes[0].annotate(i, 
                                xy=(r_elimg_infl['GLM_fitted'][i], 
-                                   r_mod_resid[i]))
+                                   r_elimg_infl['resid_resp_abs'][i]))
 
 ###############QQ-Plot########################
 
 QQ = ProbPlot(r_elimg_infl['resid_stud'])
-plot_lm_2 = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
+plot_rq = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
 
-plot_lm_2.set_figheight(8)
-plot_lm_2.set_figwidth(12)
+plot_rq.set_figheight(8)
+plot_rq.set_figwidth(12)
 
-plot_lm_2.axes[0].set_title('Normal Q-Q')
-plot_lm_2.axes[0].set_xlabel('Theoretical Quantiles')
-plot_lm_2.axes[0].set_ylabel('Standardized Residuals');
+plot_rq.axes[0].set_title('Normal Q-Q')
+plot_rq.axes[0].set_xlabel('Theoretical Quantiles')
+plot_rq.axes[0].set_ylabel('Standardized Residuals');
 
 # annotations
-r_abs_norm_resid = np.flip(np.argsort(np.abs(r_elimg_infl['resid_stud'])), 0)
-r_abs_norm_resid_top_3 = r_abs_norm_resid[:3]
+abs_norm_resid = np.flip(np.argsort(np.abs(r_elimg_infl['resid_stud'])), 0)
+abs_norm_resid_top_3 = abs_norm_resid[:3]
 
-for r, i in enumerate(r_abs_norm_resid_top_3):
-    plot_lm_2.axes[0].annotate(i, 
+for r, i in enumerate(abs_norm_resid_top_3):
+    plot_rq.axes[0].annotate(i, 
                                xy=(np.flip(QQ.theoretical_quantiles, 0)[r],
                                    r_elimg_infl['resid_stud'][i]));
 
 ############Cook's distance plot##########
 
-plot_lm_4 = plt.figure(4)
-plot_lm_4.set_figheight(8)
-plot_lm_4.set_figwidth(12)
+#############Cook's distance vs. no of observation######
+
+#sort cook's distance value to get the value for the largest distance####
+r_cook_sort = r_elimg_cook.sort_values(ascending=False)
+#select all Cook's distance values which are greater than 4/n (n=number of datapoints)
+r_cook_infl = r_elimg_cook.loc[r_elimg_cook > (4/273772)].sort_values(ascending=False)
+
+#barplot for values with the strongest influence (=largest Cook's distance)
+#because running the function on all values takes a little longer
+plt.bar(r_cook_infl.index, r_cook_infl)
+plt.ylim(0, 0.01)
+
+#plots for largest 3 cook values, the ones greater than 4/n and all distance values
+plt.scatter(r_cook_infl.index[0:3], r_cook_infl[0:3])
+plt.scatter(r_cook_infl.index, r_cook_infl)
+plt.scatter(r_elimg_cook.index, r_elimg_cook)
+plt.ylim(0, 0.01)
+
+############Studentized Residuals vs. Leverage w. Cook's distance line#####
+
+plot_rc = plt.figure(4)
+plot_rc.set_figheight(8)
+plot_rc.set_figwidth(12)
 
 plt.scatter(r_elimg_infl['hat_matrix'], r_elimg_infl['resid_stud'], alpha=0.5)
 sb.regplot(r_elimg_infl['hat_matrix'], r_elimg_infl['resid_stud'], 
@@ -463,17 +507,17 @@ sb.regplot(r_elimg_infl['hat_matrix'], r_elimg_infl['resid_stud'],
             line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
 
-plot_lm_4.axes[0].set_xlim(0, 0.004)
-plot_lm_4.axes[0].set_ylim(-3, 21)
-plot_lm_4.axes[0].set_title('Residuals vs Leverage')
-plot_lm_4.axes[0].set_xlabel('Leverage')
-plot_lm_4.axes[0].set_ylabel('Standardized Residuals')
+plot_rc.axes[0].set_xlim(0, 0.004)
+plot_rc.axes[0].set_ylim(-3, 21)
+plot_rc.axes[0].set_title('Residuals vs Leverage')
+plot_rc.axes[0].set_xlabel('Leverage')
+plot_rc.axes[0].set_ylabel('Standardized Residuals')
 
-# annotations
-r_leverage_top_3 = np.flip(np.argsort(r_elimg_infl["Cooks_d"]), 0)[:3]
+# annotate the three points with the largest Cooks distance value
+leverage_top_3 = np.flip(np.argsort(r_elimg_infl["Cooks_d"]), 0)[:3]
 
-for i in r_leverage_top_3:
-    plot_elimg.axes[0].annotate(i, 
+for i in leverage_top_3:
+    plot_rc.axes[0].annotate(i, 
                                xy=(r_elimg_infl['hat_matrix'][i], 
                                    r_elimg_infl['resid_stud'][i]))
 
@@ -492,10 +536,14 @@ graph(lambda x: np.sqrt((1 * p * (1 - x)) / x),
       np.linspace(0.001, 0.200, 50)) # 1 line
 plt.legend(loc='upper right');
 
-
-
+    
 
 '''
+#index of leverage top 3 is not the index of the datapoints, therefore I print
+#the r_elimg_infl rows at this index because it contains the old index as a column
+for i in leverage_top_3:
+    print(r_elimg_infl.iloc[i])
+
 sm.graphics.plot_regress_exog(r_fit_elimg, 'n_total')
 plt.show()
 
@@ -508,28 +556,116 @@ plt.show()
 
 ####################Data Prepping########################################
 
-man_tot = fertilizer_man['applied_kgha'].loc[fertilizer_man['applied_kgha'] > -1].sum()
-man_ptot = fertilizer_man['produced_kgha'].loc[fertilizer_man['produced_kgha'] > -1].sum()
-per_man = man_tot/man_ptot *100
+#take the raw dataset to calculate the distribution of remaining fertilizer/pesticides
+#and available manure correctly
+LoI_relim = dr0_raw
 
-LoI_relim = dr0_elim.drop(['Y'], axis='columns')
+LoI_relim['mechanized'] = LoI_relim['mechanized'].replace(-9,np.nan)
+LoI_relim['pesticides_H'] = LoI_relim['pesticides_H'].replace(-9,np.nan)
+
+############ Mechanised ##########################
 
 #set mechanization to 0 in year 2, due to fuel estimations it could be kept the 
 #same for 1 year
 LoI_relim['mechanized_y2'] = LoI_relim['mechanized'].replace(1,0)
 
+############ N fertilizer #########################
+
+rn_drop= LoI_relim[((LoI_relim['mechanized'].isna())|(LoI_relim['pesticides_H'].isna()))
+                & (LoI_relim['n_fertilizer']<0)].index
+LoI_relim_pn = LoI_relim.drop(rn_drop)
+
+#replace remaining no data values in the fertilizer datasets with NaN and then fill them
+LoI_relim_pn.loc[LoI_relim_pn['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan #only 2304 left, so ffill 
+LoI_relim_pn.loc[LoI_relim_pn['p_fertilizer'] < 0, 'p_fertilizer'] = np.nan
+LoI_relim_pn[['n_fertilizer','p_fertilizer']] = LoI_relim_pn[['n_fertilizer','p_fertilizer']].fillna(method='ffill')
+#replace no data values in n_total with the sum of the newly filled n_fertilizer and the
+#n_manure values
+LoI_relim_pn.loc[LoI_relim_pn['n_total'] < 0, 'n_total'] = LoI_relim_pn['n_fertilizer'] + LoI_relim_pn['n_manure']
+
+#drop the nonsense values (99.9th percentile) in the n and p fertilizer columns
+LoI_relim_pn = LoI_relim_pn.loc[LoI_relim_pn['n_fertilizer'] < dr0_qt.iloc[6,4]]#~180
+LoI_relim_pn = LoI_relim_pn.loc[LoI_relim_pn['p_fertilizer'] < dr0_qt.iloc[6,5]] #~34
+
 #in year 1, there will probably be a slight surplus of N (production>application)
-#divivde each cell of n_fertilizer with the sum of all cells and multiply with new total
-LoI_relim['n_fert_y1'] = LoI_relim['n_fertilzer']/LoI_relim['n_fertilizer'].sum() * 14477
+#calculate kg N applied per cell
+LoI_relim_pn['n_kg'] = LoI_relim_pn['n_fertilizer']*LoI_relim_pn['area']
+#calculate the fraction of the total N applied to rice fields for each cell
+LoI_relim_pn['n_ffrac'] = LoI_relim_pn['n_kg']/(LoI_relim_pn['n_kg'].sum())
+
+#calculate the fraction of total N applied to rice fields on the total N applied
+#divide total of rice N by 1000000 to get from kg to thousand t
+r_nfert_frac = (LoI_relim_pn['n_kg'].sum())/1000000/118763
+#calculate the new total for N rice in year one based on the N total surplus
+r_ntot_new = r_nfert_frac * 14477 * 1000000
+
+#calculate the new value of N application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_relim_pn['n_fert_y1'] = (r_ntot_new * LoI_relim_pn['n_ffrac']) / LoI_relim_pn['area']
+
 #in year 2 no industrially produced fertilizer will be available anymore: set to 0
-LoI_relim.loc[LoI_relim['n_fert_y2'] > 0, 'n_fert_y1'] = 0
-#LoI_mraw['n_fert_y1'] = LoI_mraw['n_fertilizer'].replace(1,0)
+LoI_relim_pn['n_fert_y2'] = 0
+#LoI_relim_pn.loc[LoI_relim_pn['n_fert_y2'] > 0, 'n_fert_y1'] = 0
+
+############## P Fertilizer #####################
+
+#in year 1, there will probably be a slight surplus of P (production>application)
+#calculate kg p applied per cell
+LoI_relim_pn['p_kg'] = LoI_relim_pn['p_fertilizer']*LoI_relim_pn['area']
+#calculate the fraction of the total N applied to rice fields for each cell
+LoI_relim_pn['p_ffrac'] = LoI_relim_pn['p_kg']/(LoI_relim_pn['p_kg'].sum())
+
+#calculate the fraction of total P applied to rice fields on the total P applied to cropland
+#divide total of rice P by 1000000 to get from kg to thousand t
+r_pfert_frac = (LoI_relim_pn['p_kg'].sum())/1000000/45858
+#calculate the new total for P rice in year one based on the P total surplus
+r_ptot_new = r_pfert_frac * 4142 * 1000000
+
+#calculate the new value of P application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_relim_pn['p_fert_y1'] = (r_ptot_new * LoI_relim_pn['p_ffrac']) / LoI_relim_pn['area']
+
+#in year 2 no industrially produced fertilizer will be available anymore: set to 0
+LoI_relim_pn['p_fert_y2'] = 0
+
+############# N Manure ###################
+
+#drop the rows containing nonsense values (99th percentile) in the manure column
+LoI_relim_man = LoI_relim.loc[LoI_relim['n_manure'] < dr0_qt.iloc[6,6]] #~11
+
+#calculate kg N applied per cell: 1,018,425,976.75 kg total
+LoI_relim_man['man_kg'] = LoI_relim_man['n_manure']*LoI_relim_man['area']
+#calculate the fraction of the total N applied to rice fields for each cell
+LoI_relim_man['n_mfrac'] = LoI_relim_man['man_kg']/(LoI_relim_man['man_kg'].sum())
+
+#calculate the fraction of total N applied to rice fields of the total N applied to cropland
+#divide total of rice N by 1000000 to get from kg to thousand t
+r_nman_frac = (LoI_relim_man['man_kg'].sum())/1000000/24000
 
 #calculate animal labor demand by dividing the area in a cell by the area a cow
 #can be assumed to work
-LoI_relim['labor'] = LoI_relim['area']/7.4 #current value is taken from Dave's paper
+LoI_relim_man['labor'] = LoI_relim_man['area']/5 #current value (7.4) is taken from Dave's paper
 #might be quite inaccurate considering the information I have from the farmer
+#I chose 5 now just because I don't believe 7.4 is correct
 
+#calculate mean excretion rate of each cow in one year: cattle supplied ~ 43.7% of 131000 thousand t
+#manure production in 2014, there were ~ 1.008.570.000(Statista)/1.439.413.930(FAOSTAT) 
+#heads of cattle in 2014
+cow_excr = 131000000000*0.437/1439413930
+
+#calculate available manure based on cow labor demand: 1,278,868,812.065 kg
+r_man_av = cow_excr * LoI_relim_man['labor'].sum()
+#more manure avialable then currently applied, but that is good as N from mineral
+#fertilizer will be missing
+
+#calculate the new value of man application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_relim_man['man_fert'] = (r_man_av * LoI_relim_man['n_mfrac']) / LoI_relim_man['area']
+
+
+########### N total ######################
+
+LoI_relim['N_toty1'] = LoI_relim_pn['n_fert_y1'] + LoI_relim_man['man_fert']
 #multiply area with a factor which accounts for the reduction of farmed area due to
 #longer/different crop rotations being necessary to induce enough nitrogen and
 #recovery times against pests in the rotation
@@ -539,8 +675,142 @@ LoI_relim['area_LoI'] = LoI_relim['area']*(2/3) #value is just a placeholder
 #maybe it accounts for it implicitly, though: farms with zero to low pesticide use
 #probably have different crop rotations
 
+############## Pesticides #####################
 
-LoI_relim['mechanized'] = LoI_relim['mechanized'].replace(1,0)
-LoI_relim['labor'] = LoI_relim['area']/7.4
+LoI_relimp = LoI_relim.loc[LoI_relim['pesticides_H'].notna()]
+LoI_relimp = LoI_relimp.loc[LoI_relimp['pesticides_H'] < dr0_qt.iloc[6,9]]#~11
+#in year 1, there will probably be a slight surplus of Pesticides (production>application)
+#calculate kg p applied per cell
+LoI_relimp['pest_kg'] = LoI_relimp['pesticides_H']*LoI_relimp['area']
+#calculate the fraction of the total N applied to rice fields for each cell
+LoI_relimp['pest_frac'] = LoI_relimp['pest_kg']/(LoI_relimp['pest_kg'].sum())
+
+#calculate the fraction of total pesticides applied to rice fields on the total pesticides applied to cropland
+#divide total of rice pesticides by 1000 to get from kg to t
+r_pest_frac = (LoI_relimp['pest_kg'].sum())/1000/4190985
+
+#due to missing reasonable data on the pesticide surplus, it is assumed that the
+#surplus is in the same range as for P and N fertilizer
+frac_pest = ((14477/118763) + (4142/45858))/2
+#calculate the new total for pesticides rice in year one based on the pesticides total surplus
+r_pestot_new = r_pest_frac * (4190985 * frac_pest) * 1000
+
+#calculate the new value of pesticides application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_relimp['pest_y1'] = (r_pestot_new * LoI_relimp['pest_frac']) / LoI_relimp['area']
+
+#in year 2 no industrially produced fertilizer will be available anymore: set to 0
+LoI_relimp['pest_y2'] = 0
 
 
+########## Irrigation ####################
+
+#in LoI it is assumed that only irrigation which is not reliant on electricity
+#can still be maintained
+#calculate fraction of cropland area actually irrigated in a cell in LoI by multiplying
+#'irrigation_tot' (fraction of cropland irrigated in cell) with 1-'irrigation_rel'
+#(fraction of irrigated cropland reliant on electricity)
+LoI_relim['irr_LoI'] = LoI_relim['irrigation_tot'] * (1- LoI_relim['irrigation_rel'])
+
+###########Combine the different dataframes and drop rows with missing values#########
+
+LoI_relim = pd.concat([LoI_relim, LoI_relim_pn['n_fert_y1'], LoI_relim_pn['n_fert_y2'],
+                       LoI_relim_pn['p_fert_y1'], LoI_relim_pn['p_fert_y2'],
+                       LoI_relim_man['man_fert'], LoI_relimp['pest_y1'], 
+                       LoI_relimp['pest_y2']], axis='columns')
+
+#Handle the data by eliminating the rows without data:
+LoI_relim = LoI_relim.dropna()
+
+#Handle outliers by eliminating all points above the 99.9th percentile
+#I delete the points because the aim of this model is to predict well in the lower yields
+#dr0_qt = dr0_elim.quantile([.1, .25, .5, .75, .8,.85, .87, .9, .95,.975, .99,.995, .999,.9999])
+#dr0_qt.reset_index(inplace=True, drop=True)
+LoI_relim = LoI_relim.loc[LoI_relim['Y'] < dr0_qt.iloc[6,3]] #~12500
+#dr0_elim = dr0_elim.loc[dr0_elim['n_man_prod'] < dr0_qt.iloc[12,7]] #~44
+LoI_relim = LoI_relim.loc[LoI_relim['n_total'] < dr0_qt.iloc[6,8]] #~195
+
+
+#########################Prediction of LoI yields#########################
+
+################## Year 1 ##################
+
+#select the rows from LoI_relim which contain the independent variables for year 1
+LoI_r_year1 = LoI_relim.iloc[:,[10,13,14,15,17,19,22,25]]
+#reorder the columns according to the order in dr0_elim
+LoI_r_year1 = LoI_r_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
+                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+#rename the columns according to the names used in the model formular
+LoI_r_year1 = LoI_r_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
+                                      'pest_y1':"pesticides_H",
+                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+#predict the yield for year 1 using the gamma GLM
+r_yield_y1 = r_fit_elimg.predict(LoI_r_year1)
+#calculate the change rate from actual yield to the predicted yield
+r_y1_change = ((r_yield_y1-rice_kgha)/rice_kgha).dropna()
+
+#calculate statistics for yield and change rate
+
+#yield
+rmean_y1_weigh = round(np.average(r_yield_y1, weights=LoI_relim['area']),2) #3167.43kg/ha
+rmax_y1 = r_yield_y1.max() #7786.82 kg/ha
+rmin_y1 = r_yield_y1.min() #1357.98 kg/ha
+
+#change rate
+rmean_y1c_weigh = round(np.average(r_y1_change, weights=LoI_relim['area']),2) #-0.08 (~8%)
+rmax_y1c = r_y1_change.max() # +38.35 (~+10600%)
+rmin_y1c = r_y1_change.min() #-0.8655 (~-87%)
+
+################## Year 2 ##################
+
+#select the rows from LoI_relim which contain the independent variables for year 2
+LoI_r_year2 = LoI_relim.iloc[:,[13,14,15,16,19,23,24,26]]
+#reorder the columns according to the order in dr0_elim
+LoI_r_year2 = LoI_r_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
+                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+#rename the columns according to the names used in the model formular
+LoI_r_year2 = LoI_r_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
+                                      'pest_y2':"pesticides_H",'mechanized_y2':"mechanized",
+                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+#predict the yield for year 2 using the gamma GLM
+r_yield_y2 = r_fit_elimg.predict(LoI_r_year2)
+#calculate the change from actual yield to the predicted yield
+r_y2_change = ((r_yield_y2-rice_kgha)/rice_kgha).dropna()
+
+#calculate statistics for yield and change rate
+
+#yield
+rmean_y2_weigh = round(np.average(r_yield_y2, weights=LoI_relim['area']),2) #2969.48kg/ha
+rmax_y2 = r_yield_y2.max() #6561.44kg/ha
+rmin_y2 = r_yield_y2.min() #1338.97kg/ha
+
+#change rate
+rmean_y2c_weigh = round(np.average(r_y2_change, weights=LoI_relim['area']),2) #-0.14 (~-14%)
+rmax_y2c = r_y2_change.max() #35.74 (~+3570%)
+rmin_y2c = r_y2_change.min() #-0.8706 (~-87%)
+
+#combine both yields and change rates with the latitude and longitude values
+LoI_rice = pd.concat([rice_yield['lats'], rice_yield['lons'], r_yield_y1,
+                       r_y1_change, r_yield_y2, r_y2_change], axis='columns')
+LoI_rice = LoI_rice.rename(columns={0:"r_yield_y1", 1:"r_y1_change", 
+                                      2:"r_yield_y2",3:"r_y2_change"}, errors="raise")
+#save the dataframe in a csv
+LoI_rice.to_csv(params.geopandasDataDir + "LoIRiceYieldHighRes.csv")
+
+round(r_y1_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
+round(r_y2_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
+
+round(np.average(dr0_elim['Y'], weights=dr0_elim['area']),2)
+#Year 1 yield
+3167.43/4431.0 #~71.5% of current average yield
+(r_yield_y1 * LoI_relim['area']).sum()
+464651900282.09436/702990513639.2616 #~66.1% of current total yield
+#Year 2 yield
+2969.48/4431.0 #67.0% of current average yield
+(r_yield_y2 * LoI_relim['area']).sum()
+435614416134.91364/702990513639.2616 #~61.97% of current total yield
+
+utilities.create5minASCIIneg(LoI_rice,'r_y1_change',params.asciiDir+'LoIRiceYieldChange_y1')
+utilities.create5minASCIIneg(LoI_rice,'r_yield_y1',params.asciiDir+'LoIRiceYield_y1')
+utilities.create5minASCIIneg(LoI_rice,'r_y2_change',params.asciiDir+'LoIRiceYieldChange_y2')
+utilities.create5minASCIIneg(LoI_rice,'r_yield_y2',params.asciiDir+'LoIRiceYield_y2')

@@ -315,7 +315,7 @@ print(irrigation.head())
 tillage=pd.read_pickle(params.geopandasDataDir + 'Tillage.pkl')
 print(tillage.columns)
 print(tillage.head())
-#tillage0=pd.read_pickle(params.geopandasDataDir + 'Tillage0.pkl')
+tillage0=pd.read_pickle(params.geopandasDataDir + 'Tillage0.pkl')
 #print(tillage0.head())
 aez=pd.read_pickle(params.geopandasDataDir + 'AEZ.pkl')
 print(aez.columns)
@@ -360,13 +360,13 @@ l = maize_yield.loc[:,'lats']
 data_raw = {"lat": maize_yield.loc[:,'lats'],
 		"lon": maize_yield.loc[:,'lons'],
 		"area": maize_yield.loc[:,'growArea'],
-        "yield": maize_yield.loc[:,'yield_kgPerHa'],
+        "Y": maize_yield.loc[:,'yield_kgPerHa'],
 		"n_fertilizer": fertilizer.loc[:,'n_kgha'],
 		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_total" : N_total,
         "pesticides_H": pesticides.loc[:,'total_H'],
-        "mechanized": tillage.loc[:,'maiz_is_mech'],
+        "mechanized": tillage0.loc[:,'maiz_is_mech'],
         "irrigation": irrigation.loc[:,'area'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
@@ -378,18 +378,48 @@ dmaize_raw = pd.DataFrame(data=data_raw)
 #select only the rows where the area of the cropland is larger than 0
 dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
 
-#replace 0s in the moisture, climate and soil classes with NaN values so they
-#can be handled with the .fillna method
+dm0_raw['area'].min() #0.09 ha
+dm0_raw['area'].max() #1,192,761.5 ha
+tt3 = (dm0_raw['Y'] * dm0_raw['area']).sum() #853,148,570,000.0
+ar_t = maize_nozero.loc[maize_nozero['growArea'] < 10] #211 cells ~6.21%
+ar_t1 = maize_nozero.loc[maize_nozero['growArea'] > 10000] #1492 cells ~43.93% but ~98.32% of the yield...
+tt = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum()
+ar_t2 = maize_nozero.loc[maize_nozero['growArea'] > 100] #235669 cells ~41.95% but ~96.76% of the yield...
+tt2 = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum()
+838775340000.0/853148570000.0 #
+1492/3396
+
+#replace 0s in the moisture, climate and soil classes as well as 7 & 8 in the
+#soil class with NaN values so they can be handled with the .fillna method
 dm0_raw['thz_class'] = dm0_raw['thz_class'].replace(0,np.nan)
 dm0_raw['mst_class'] = dm0_raw['mst_class'].replace(0,np.nan)
-dm0_raw['soil_class'] = dm0_raw['soil_class'].replace(0,np.nan)
-#NaN values throw errors in the regression, they need to be handled beforehand
+dm0_raw['soil_class'] = dm0_raw['soil_class'].replace([0,7,8],np.nan)
+#replace 9 & 10 with 8 to combine all three classes into one Bor+Arctic class
+dm0_raw['thz_class'] = dm0_raw['thz_class'].replace([8,9,10],7)
+dm0_raw['mst_class'] = dm0_raw['mst_class'].replace(2,1)
+dm0_raw['mst_class'] = dm0_raw['mst_class'].replace(7,6)
+dm0_raw = dm0_raw.loc[dm0_raw['mechanized'].notna()]
 #fill in the NaN vlaues in the dataset with a forward filling method
 #(replacing NaN with the value in the cell before)
-#this is fine for now as there most likely won't be any NaN values at full resolution
 dm0_raw = dm0_raw.fillna(method='ffill')
+
+
 #fill in the remaining couple of nans at the top of mechanized column
 dm0_raw['mechanized'] = dm0_raw['mechanized'].fillna(1)
+
+dm0_raw = dm0_raw.loc[dm0_raw['n_total'] >= 0]
+
+dm0_qt = dm0_raw.quantile([.1, .25, .5, .75, .8,.85, .87, .9, .95,.975, .99,.995, .999,.9999])
+dm0_qt.reset_index(inplace=True, drop=True)
+dm0_elim = dm0_raw.loc[dm0_raw['Y'] < dm0_qt.iloc[11,3]] #~12500
+dm0_elim = dm0_elim.loc[dm0_elim['n_total'] < dm0_qt.iloc[11,4]]#~180
+dm0_elim=dm0_elim.loc[dm0_elim['area'] > 10000]
+
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+sb.boxplot(data=dm0_raw, x='n_total')
+sb.boxplot(data=dm0_elim, x='Y')
+
+plt.scatter('n_total', 'Y', data=dm0_elim)
 
 ###############################################################################
 ############Loading log transformed values for all variables##################
@@ -642,6 +672,32 @@ plt.show()
 ######################Regression##############################
 
 #R-style formula
+
+
+m_mod_elimg = smf.glm(formula='Y ~ n_total'
+                      # mechanized + C(thz_class) + C(mst_class) + C(soil_class) \
+                       , data=dm0_elim, family=sm.families.Gamma(link=sm.families.links.log))
+#Nullmodel
+m_mod_elim0 = smf.glm(formula='Y ~ 1', data=dm0_elim, family=sm.families.Gamma(link=sm.families.links.log))
+#Fit models
+#m_fit_elimn = m_mod_elimn.fit()
+m_fit_elimg = m_mod_elimg.fit()
+m_fit_elim0 = m_mod_elim0.fit()
+#print results
+#print(m_fit_elimn.summary())
+#LogLik: -2547000; AIC: 5094000; BIC: 5094000
+print(m_fit_elimg.summary())
+print(m_fit_elim0.summary())
+
+R2 = 1 - (404.47/781.97) 
+#~6% deviance for only N without any adjustments
+#~31% deviance for N and climate classes without any adjustments
+#~44.57% deviance for N and climate classes with deletion of outliers and cells below 10000ha
+#~49.15% deviance for N, climate classes and mechanized
+#~48.28% deviance after accounting for climate class correlation
+#11.21% deviance for only N total after deleting outliers and stuff
+np.exp(0.0014)
+
 #doesn't work for some reason... I always get parsing errors and I don't know why
 mod = smf.ols(formula='yield ~ n_total * pesticides_H', data=dmaize_fit_raw)
 mod1 = smf.ols(formula='n_total ~ pesticides_H + mechanized + irrigation', data=dmaize_fit_raw)

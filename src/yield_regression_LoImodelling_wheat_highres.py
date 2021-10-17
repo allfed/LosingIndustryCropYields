@@ -51,6 +51,19 @@ wheat_nozero=wheat_yield.loc[wheat_yield['growArea'] > 0]
 wheat_kgha=wheat_nozero['yield_kgPerHa']
 wheat_kgha = wheat_kgha.loc[wheat_kgha < 14000]
 
+wheat_nozero['growArea'].min() #0.1 ha
+wheat_nozero['growArea'].max() #10253.6 ha
+wheat_nozero['growArea'].mean() #477.71 ha
+tt3 = (wheat_nozero['yield_kgPerHa'] * wheat_nozero['growArea']).sum()
+ar_t = wheat_nozero.loc[wheat_nozero['growArea'] < 10] #99701 cells ~21.58%
+ar_t1 = wheat_nozero.loc[wheat_nozero['growArea'] > 1000] #72408 cells ~15.67% but ~64.61% of the yield...
+tt = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum() #436049166701.7425 kg
+ar_t2 = wheat_nozero.loc[wheat_nozero['growArea'] > 100] #255326 cells ~55.26% but ~98.19% of the yield...
+tt2 = (ar_t2['yield_kgPerHa'] * ar_t2['growArea']).sum()
+662594058048.5144/674830448927.756 #
+ax = sb.boxplot(x=ar_t2["growArea"])
+255326/462033
+
 '''
 Attempts to weight the values (not successful so far)
 wheat_kg = wheat_nozero['totalYield']
@@ -460,7 +473,7 @@ w_test_mechn = dw0_raw.loc[dw0_raw['mechanized'] == -9] #98798
 w_test_f = dw0_raw.loc[dw0_raw['n_fertilizer'] < 0] #19044 0s, 4512 NaNs
 w_test_pf = dw0_raw.loc[dw0_raw['p_fertilizer'] < 0] #25889 0s, 4512 NaNs
 w_test_man = dw0_raw.loc[dw0_raw['n_manure'] < 0] #12296 0s, 0 NaNs
-w_test_p = dw0_raw.loc[dw0_raw['pesticides_H'] < 0] #no 0s, 120056 NaNs
+w_test_p = dw0_raw.loc[dw0_raw['pesticides_H'].isna()] #no 0s, 120056 NaNs
 
 dw0_raw['thz_class'] = dw0_raw['thz_class'].replace(0,np.nan)
 dw0_raw['mst_class'] = dw0_raw['mst_class'].replace(0,np.nan)
@@ -864,13 +877,35 @@ dtype: float64
 
 #R-style formula
 #doesn't work for some reason... I always get parsing errors and I don't know why
-mod = smf.ols(formula=' yield ~ n_total + pesticides_H + mechanized + irrigation', data=dwheat_fit_raw)
+#determine models
+#Normal distribution
+w_mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
+              C(mst_class) + C(soil_class) ', data=dwheat_fit_elim)
+#Gamma distribution
+w_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dwheat_fit_elim, 
+              family=sm.families.Gamma(link=sm.families.links.log))
+#Nullmodel
+w_mod_elim0 = smf.glm(formula='Y ~ 1', data=dwheat_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
+#Fit models
+w_fit_elimn = w_mod_elimn.fit()
+w_fit_elimg = w_mod_elimg.fit()
+w_fit_elim0 = w_mod_elim0.fit()
+#print results
+print(w_fit_elimn.summary()) #0.335
+#LogLik: -2021300; AIC: 4043000; BIC: 4043000
+print(w_fit_elimg.summary())
+print(w_fit_elim0.summary())
 
-mod = smf.ols(formula='yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dwheat_fit_raw)
 
-#use patsy to create endog and exog matrices in an Rlike style
-y, X = dmatrices('yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dwheat_fit_raw, return_type='dataframe')
+###########Fit statistics#############
+#calculate pseudo R² for the Gamma distribution
+w_pseudoR_elim = 1-(77588/112650) #0.31124
+print(w_pseudoR_elim)
 
+#calculate AIC and BIC for Gamma
+w_aic = w_fit_elimg.aic 
+w_bic = w_fit_elimg.bic_llf
 
 #define x and y dataframes
 #Y containing only yield

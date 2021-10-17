@@ -46,9 +46,24 @@ soyb_yield=pd.read_csv(params.geopandasDataDir + 'SOYBCropYieldHighRes.csv')
 soyb_yield.head()
 
 #select all rows from soyb_yield for which the column growArea has a value greater than zero
-soyb_nozero=soyb_yield.loc[soyb_yield['growArea'] > 0]
+soyb_nozero=soyb_yield.loc[soyb_yield['growArea'] > 100]
 #compile yield data where area is greater 0 in a new array
 soyb_kgha=soyb_nozero['yield_kgPerHa']
+
+
+soyb_nozero['growArea'].min() #0.1 ha
+soyb_nozero['growArea'].max() #9053.2 ha
+soyb_nozero['growArea'].mean() #295.23 ha
+tt3 = (soyb_nozero['yield_kgPerHa'] * soyb_nozero['growArea']).sum()
+ar_t = soyb_nozero.loc[soyb_nozero['growArea'] < 10] #160924 cells ~46.66%
+ar_t1 = soyb_nozero.loc[soyb_nozero['growArea'] > 1000] #34096 cells ~9.87% but ~78.21% of the yield...
+tt = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum() #195623962690.36334 kg
+ar_t2 = soyb_nozero.loc[soyb_nozero['growArea'] > 100] #97637 cells ~28.27% but ~97.39% of the yield...
+tt2 = (ar_t2['yield_kgPerHa'] * ar_t2['growArea']).sum()
+243598120402.9715/250114718599.569 #
+ax = sb.boxplot(x=ar_t2["growArea"])
+97637/345296
+
 #calculate descriptive statistics values (mean, median, standard deviation and variance)
 #for the yield data with a value greater 0
 smean=soyb_kgha.mean()
@@ -373,7 +388,7 @@ s_test_mechn = ds0_raw.loc[ds0_raw['mechanized'] == -9] #90658, now 52934
 s_test_f = ds0_raw.loc[ds0_raw['n_fertilizer'] < 0] #11074 0s, 4205 NaNs
 s_test_pf = ds0_raw.loc[ds0_raw['p_fertilizer'] < 0] #11770 0s, 4205 NaNs
 s_test_man = ds0_raw.loc[ds0_raw['n_manure'] < 0] #9794 0s, 0 NaNs
-s_test_p = ds0_raw.loc[ds0_raw['pesticides_H'] < 0] #183822 NaNs but no 0s
+s_test_p = ds0_raw.loc[ds0_raw['pesticides_H'].isna()] #183822 NaNs but no 0s
 
 #replace 0s in the moisture, climate and soil classes as well as 7 & 8 in the
 #soil class with NaN values so they can be handled with the .fillna method

@@ -50,6 +50,20 @@ rice_nozero=rice_yield.loc[rice_yield['growArea'] > 0]
 #compile yield data where area is greater 0 in a new array
 rice_kgha=rice_nozero['yield_kgPerHa']
 rice_kgha=rice_kgha.loc[rice_kgha < 17000]
+
+rice_nozero['growArea'].min() #0.1 ha
+rice_nozero['growArea'].max() #19344.3 ha
+rice_nozero['growArea'].mean() #520.9 ha
+tt3 = (rice_nozero['yield_kgPerHa'] * rice_nozero['growArea']).sum()
+ar_t = rice_nozero.loc[rice_nozero['growArea'] < 10] #107085 cells ~34.70%
+ar_t1 = rice_nozero.loc[rice_nozero['growArea'] > 1000] #43474 cells ~14.09% but ~84.57% of the yield...
+tt = (ar_t1['yield_kgPerHa'] * ar_t1['growArea']).sum() #594513042345.2303 kg
+ar_t2 = rice_nozero.loc[rice_nozero['growArea'] > 100] #112482 cells ~36.45% but ~98.41% of the yield...
+tt2 = (ar_t2['yield_kgPerHa'] * ar_t2['growArea']).sum()
+691837363443.2887/702990513639.2616 #
+ax = sb.boxplot(x=rice_nozero["growArea"])
+112482/308565
+
 #calculate descriptive statistics values (mean, median, standard deviation and variance)
 #for the yield data with a value greater 0
 rmean=rice_kgha.mean()
@@ -396,7 +410,7 @@ r_test_mechn = dr0_raw.loc[dr0_raw['mechanized'] == -9] #41358
 r_test_f = dr0_raw.loc[dr0_raw['n_fertilizer'] < 0] #15974 0s, 7040 NaNs
 r_test_pf = dr0_raw.loc[dr0_raw['p_fertilizer'] < 0] #20070 0s, 7040 NaNs 
 r_test_man = dr0_raw.loc[dr0_raw['n_manure'] < 0] #17699 0s, no NaNs
-r_test_p = dr0_raw.loc[dr0_raw['pesticides_H'] < 0] #no 0s, 130979 NaNs
+r_test_p = dr0_raw.loc[dr0_raw['pesticides_H'].isna()] #no 0s, 130979 NaNs
 
 dr0_raw['thz_class'] = dr0_raw['thz_class'].replace(0,np.nan)
 dr0_raw['mst_class'] = dr0_raw['mst_class'].replace(0,np.nan)

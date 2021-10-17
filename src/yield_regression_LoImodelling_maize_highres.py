@@ -1309,3 +1309,280 @@ mod_res_alln_log = mod2.fit(method='qr')
 y, X = dmatrices('yield ~ n_fertilizer + pesticides_H + mechanized + irrigation', data=dmaize_rg, return_type='dataframe')
 
 
+#########################################################################
+################Loss of Industry Modelling###############################
+#########################################################################
+
+####################Data Prepping########################################
+
+#take the raw dataset to calculate the distribution of remaining fertilizer/pesticides
+#and available manure correctly
+LoI_melim = dm0_raw
+
+LoI_melim['mechanized'] = LoI_melim['mechanized'].replace(-9,np.nan)
+LoI_melim['pesticides_H'] = LoI_melim['pesticides_H'].replace(-9,np.nan)
+
+############ Mechanised ##########################
+
+#set mechanization to 0 in year 2, due to fuel estimations it could be kept the 
+#same for 1 year
+LoI_melim['mechanized_y2'] = LoI_melim['mechanized'].replace(1,0)
+
+############ N fertilizer #########################
+
+mn_drop= LoI_melim[((LoI_melim['mechanized'].isna())|(LoI_melim['pesticides_H'].isna()))
+                & (LoI_melim['n_fertilizer']<0)].index
+LoI_melim_pn = LoI_melim.drop(mn_drop)
+
+#replace remaining no data values in the fertilizer datasets with NaN and then fill them
+LoI_melim_pn.loc[LoI_melim_pn['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan #only 2304 left, so ffill 
+LoI_melim_pn.loc[LoI_melim_pn['p_fertilizer'] < 0, 'p_fertilizer'] = np.nan
+LoI_melim_pn[['n_fertilizer','p_fertilizer']] = LoI_melim_pn[['n_fertilizer','p_fertilizer']].fillna(method='ffill')
+#replace no data values in n_total with the sum of the newly filled n_fertilizer and the
+#n_manure values
+LoI_melim_pn.loc[LoI_melim_pn['n_total'] < 0, 'n_total'] = LoI_melim_pn['n_fertilizer'] + LoI_melim_pn['n_manure']
+
+#drop the nonsense values (99.9th percentile) in the n and p fertilizer columns
+LoI_melim_pn = LoI_melim_pn.loc[LoI_melim_pn['n_fertilizer'] < dm0_qt.iloc[12,4]]#~180
+LoI_melim_pn = LoI_melim_pn.loc[LoI_melim_pn['p_fertilizer'] < dm0_qt.iloc[12,5]] #~34
+
+#in year 1, there will probably be a slight surplus of N (production>application)
+#calculate kg N applied per cell
+LoI_melim_pn['n_kg'] = LoI_melim_pn['n_fertilizer']*LoI_melim_pn['area']
+#calculate the fraction of the total N applied to maize fields for each cell
+LoI_melim_pn['n_ffrac'] = LoI_melim_pn['n_kg']/(LoI_melim_pn['n_kg'].sum())
+
+#calculate the fraction of total N applied to maize fields on the total N applied
+#divide total of maize N by 1000000 to get from kg to thousand t
+m_nfert_frac = (LoI_melim_pn['n_kg'].sum())/1000000/118763
+#calculate the new total for N maize in year one based on the N total surplus
+m_ntot_new = m_nfert_frac * 14477 * 1000000
+
+#calculate the new value of N application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_melim_pn['n_fert_y1'] = (m_ntot_new * LoI_melim_pn['n_ffrac']) / LoI_melim_pn['area']
+
+#in year 2 no industrially produced fertilizer will be available anymore: set to 0
+LoI_melim_pn['n_fert_y2'] = 0
+#LoI_melim_pn.loc[LoI_melim_pn['n_fert_y2'] > 0, 'n_fert_y1'] = 0
+
+############## P Fertilizer #####################
+
+#in year 1, there will probably be a slight surplus of P (production>application)
+#calculate kg p applied per cell
+LoI_melim_pn['p_kg'] = LoI_melim_pn['p_fertilizer']*LoI_melim_pn['area']
+#calculate the fraction of the total N applied to maize fields for each cell
+LoI_melim_pn['p_ffrac'] = LoI_melim_pn['p_kg']/(LoI_melim_pn['p_kg'].sum())
+
+#calculate the fraction of total P applied to maize fields on the total P applied to cropland
+#divide total of maize P by 1000000 to get from kg to thousand t
+m_pfert_frac = (LoI_melim_pn['p_kg'].sum())/1000000/45858
+#calculate the new total for P maize in year one based on the P total surplus
+m_ptot_new = m_pfert_frac * 4142 * 1000000
+
+#calculate the new value of P application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_melim_pn['p_fert_y1'] = (m_ptot_new * LoI_melim_pn['p_ffrac']) / LoI_melim_pn['area']
+
+#in year 2 no industrially produced fertilizer will be available anymore: set to 0
+LoI_melim_pn['p_fert_y2'] = 0
+
+############# N Manure ###################
+
+#drop the rows containing nonsense values (99th percentile) in the manure column
+LoI_melim_man = LoI_melim.loc[LoI_melim['n_manure'] < dm0_qt.iloc[10,6]] #~11
+
+#calculate kg N applied per cell: 1,018,425,976.75 kg total
+LoI_melim_man['man_kg'] = LoI_melim_man['n_manure']*LoI_melim_man['area']
+#calculate the fraction of the total N applied to maize fields for each cell
+LoI_melim_man['n_mfrac'] = LoI_melim_man['man_kg']/(LoI_melim_man['man_kg'].sum())
+
+#calculate the fraction of total N applied to maize fields of the total N applied to cropland
+#divide total of maize N by 1000000 to get from kg to thousand t
+m_nman_frac = (LoI_melim_man['man_kg'].sum())/1000000/24000
+
+#calculate animal labor demand by dividing the area in a cell by the area a cow
+#can be assumed to work
+LoI_melim_man['labor'] = LoI_melim_man['area']/5 #current value (7.4) is taken from Dave's paper
+#might be quite inaccurate considering the information I have from the farmer
+#I chose 5 now just because I don't believe 7.4 is correct
+
+#calculate mean excretion rate of each cow in one year: cattle supplied ~ 43.7% of 131000 thousand t
+#manure production in 2014, there were ~ 1.008.570.000(Statista)/1.439.413.930(FAOSTAT) 
+#heads of cattle in 2014
+cow_excr = 131000000000*0.437/1439413930
+
+#calculate available manure based on cow labor demand: 1,278,868,812.065 kg
+m_man_av = cow_excr * LoI_melim_man['labor'].sum()
+#more manure avialable then currently applied, but that is good as N from mineral
+#fertilizer will be missing
+
+#calculate the new value of man application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_melim_man['man_fert'] = (m_man_av * LoI_melim_man['n_mfrac']) / LoI_melim_man['area']
+
+
+########### N total ######################
+
+LoI_melim['N_toty1'] = LoI_melim_pn['n_fert_y1'] + LoI_melim_man['man_fert']
+#multiply area with a factor which accounts for the reduction of farmed area due to
+#longer/different crop rotations being necessary to induce enough nitrogen and
+#recovery times against pests in the rotation
+LoI_melim['area_LoI'] = LoI_melim['area']*(2/3) #value is just a placeholder
+#maybe this is not the way, because it's something the calculation doesn't account for:
+# if less pesticides are used, the yield will go down accordingly without considering rotation
+#maybe it accounts for it implicitly, though: farms with zero to low pesticide use
+#probably have different crop rotations
+
+############## Pesticides #####################
+
+LoI_melimp = LoI_melim.loc[LoI_melim['pesticides_H'].notna()]
+LoI_melimp = LoI_melimp.loc[LoI_melimp['pesticides_H'] < dm0_qt.iloc[12,9]]#~11
+#in year 1, there will probably be a slight surplus of Pesticides (production>application)
+#calculate kg p applied per cell
+LoI_melimp['pest_kg'] = LoI_melimp['pesticides_H']*LoI_melimp['area']
+#calculate the fraction of the total N applied to maize fields for each cell
+LoI_melimp['pest_frac'] = LoI_melimp['pest_kg']/(LoI_melimp['pest_kg'].sum())
+
+#calculate the fraction of total pesticides applied to maize fields on the total pesticides applied to cropland
+#divide total of maize pesticides by 1000 to get from kg to t
+m_pest_frac = (LoI_melimp['pest_kg'].sum())/1000/4190985
+
+#due to missing reasonable data on the pesticide surplus, it is assumed that the
+#surplus is in the same range as for P and N fertilizer
+frac_pest = ((14477/118763) + (4142/45858))/2
+#calculate the new total for pesticides maize in year one based on the pesticides total surplus
+m_pestot_new = m_pest_frac * (4190985 * frac_pest) * 1000
+
+#calculate the new value of pesticides application rate in kg per ha per cell, assuming
+#the distribution remains the same as before the catastrophe
+LoI_melimp['pest_y1'] = (m_pestot_new * LoI_melimp['pest_frac']) / LoI_melimp['area']
+
+#in year 2 no industrially produced fertilizer will be available anymore: set to 0
+LoI_melimp['pest_y2'] = 0
+
+
+########## Irrigation ####################
+
+#in LoI it is assumed that only irrigation which is not reliant on electricity
+#can still be maintained
+#calculate fraction of cropland area actually irrigated in a cell in LoI by multiplying
+#'irrigation_tot' (fraction of cropland irrigated in cell) with 1-'irrigation_rel'
+#(fraction of irrigated cropland reliant on electricity)
+LoI_melim['irr_LoI'] = LoI_melim['irrigation_tot'] * (1- LoI_melim['irrigation_rel'])
+
+###########Combine the different dataframes and drop rows with missing values#########
+
+LoI_melim = pd.concat([LoI_melim, LoI_melim_pn['n_fert_y1'], LoI_melim_pn['n_fert_y2'],
+                       LoI_melim_pn['p_fert_y1'], LoI_melim_pn['p_fert_y2'],
+                       LoI_melim_man['man_fert'], LoI_melimp['pest_y1'], 
+                       LoI_melimp['pest_y2']], axis='columns')
+
+#Handle the data by eliminating the rows without data:
+LoI_melim = LoI_melim.dropna()
+
+#Handle outliers by eliminating all points above the 99.9th percentile
+#I delete the points because the aim of this model is to predict well in the lower yields
+#dm0_qt = dm0_elim.quantile([.1, .25, .5, .75, .8,.85, .87, .9, .95,.975, .99,.995, .999,.9999])
+#dm0_qt.reset_index(inplace=True, drop=True)
+LoI_melim = LoI_melim.loc[LoI_melim['Y'] < dm0_qt.iloc[12,3]] #~12500
+#dm0_elim = dm0_elim.loc[dm0_elim['n_man_prod'] < dm0_qt.iloc[12,7]] #~44
+LoI_melim = LoI_melim.loc[LoI_melim['n_total'] < dm0_qt.iloc[12,8]] #~195
+
+
+#########################Prediction of LoI yields#########################
+
+################## Year 1 ##################
+
+#select the rows from LoI_melim which contain the independent variables for year 1
+LoI_m_year1 = LoI_melim.iloc[:,[10,13,14,15,17,19,22,25]]
+#reorder the columns according to the order in dm0_elim
+LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
+                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+#rename the columns according to the names used in the model formular
+LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
+                                      'pest_y1':"pesticides_H",
+                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+#predict the yield for year 1 using the gamma GLM
+m_yield_y1 = m_fit_elimg.predict(LoI_m_year1)
+#calculate the change rate from actual yield to the predicted yield
+m_y1_change = ((m_yield_y1-maize_kgha)/maize_kgha).dropna()
+
+#calculate statistics for yield and change rate
+
+#yield
+mmean_y1_weigh = round(np.average(m_yield_y1, weights=LoI_melim['area']),2) #3832.02kg/ha
+mmax_y1 = m_yield_y1.max() #10002.44 kg/ha
+mmin_y1 = m_yield_y1.min() #691.74 kg/ha
+
+#change rate
+mmean_y1c_weigh = round(np.average(m_y1_change, weights=LoI_melim['area']),2) #+0.26 (~+26%)
+mmax_y1c = m_y1_change.max() # +105.997 (~+10600%)
+mmin_y1c = m_y1_change.min() #-0.94897 (~-95%)
+
+################## Year 2 ##################
+
+#select the rows from LoI_melim which contain the independent variables for year 2
+LoI_m_year2 = LoI_melim.iloc[:,[13,14,15,16,19,23,24,26]]
+#reorder the columns according to the order in dm0_elim
+LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
+                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+#rename the columns according to the names used in the model formular
+LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
+                                      'pest_y2':"pesticides_H",'mechanized_y2':"mechanized",
+                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+#predict the yield for year 2 using the gamma GLM
+m_yield_y2 = m_fit_elimg.predict(LoI_m_year2)
+#calculate the change from actual yield to the predicted yield
+m_y2_change = ((m_yield_y2-maize_kgha)/maize_kgha).dropna()
+s = m_y2_change.loc[m_y2_change>0]
+
+#calculate statistics for yield and change rate
+
+#yield
+mmean_y2_weigh = round(np.average(m_yield_y2, weights=LoI_melim['area']),2) #2792.08kg/ha
+mmax_y2 = m_yield_y2.max() #6551.74kg/ha
+mmin_y2 = m_yield_y2.min() #689.79kg/ha
+
+#change rate
+mmean_y2c_weigh = round(np.average(m_y2_change, weights=LoI_melim['Y']),2) #+0.02 (~+2%) -0.31?
+mmax_y2c = m_y2_change.max() #70.087 (~+7000%)
+mmin_y2c = m_y2_change.min() #-0.9503 (~-95%)
+m_y2_change.median()
+#combine both yields and change rates with the latitude and longitude values
+LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], maize_yield['growArea'], m_yield_y1,
+                       m_y1_change, m_yield_y2, m_y2_change], axis='columns')
+LoI_maize = LoI_maize.rename(columns={0:"m_yield_y1", 1:"m_y1_change", 
+                                      2:"m_yield_y2",3:"m_y2_change"}, errors="raise")
+
+round(m_y1_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
+round(m_y2_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
+
+
+#Year 1 yield
+3832.02/5525.85 #~69.3% of current average yield
+(m_yield_y1 * LoI_melim['area']).sum()
+625446340077.8394/825496849007.0315 #~75.8% of current total yield
+#Year 2 yield
+2792.08/5525.85 #50.5% of current average yield
+(m_yield_y2 * LoI_melim['area']).sum()
+467475696977.07184/825496849007.0315 #~56.6% of current total yield
+
+
+ch = LoI_maize.loc[LoI_maize[3]>0]
+chm = LoI_maize.loc[LoI_maize[3]<=0]
+ch['growArea'].sum()/LoI_maize['growArea'].sum()
+38788651.6
+
+#save the dataframe in a csv
+LoI_m_year2.to_csv(params.geopandasDataDir + "Test.csv")
+LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldHighRes.csv")
+
+plt.scatter('n_total', 'Y', data=dm0_elim, alpha=0.3)
+
+utilities.create5minASCIIneg(LoI_maize,'m_y1_change',params.asciiDir+'LoIMaizeYieldChange_y1')
+utilities.create5minASCIIneg(LoI_maize,'m_yield_y1',params.asciiDir+'LoIMaizeYield_y1')
+utilities.create5minASCIIneg(LoI_maize,'m_y2_change',params.asciiDir+'LoIMaizeYieldChange_y2')
+utilities.create5minASCIIneg(LoI_maize,'m_yield_y2',params.asciiDir+'LoIMaizeYield_y2')
+
+
