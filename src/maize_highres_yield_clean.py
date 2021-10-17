@@ -8,12 +8,13 @@ import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
-    sys.path.append(module_path)
+	sys.path.append(module_path)
 
 from src import params
 from src import outdoor_growth
 from src.outdoor_growth import OutdoorGrowth
 from src import stat_ut
+from src import utilities
 import pandas as pd
 import scipy
 from scipy import stats
@@ -28,9 +29,8 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import r2_score
-
-
-
+from sklearn.metrics import d2_tweedie_score
+from sklearn.metrics import mean_tweedie_deviance
 
 params.importAll()
 
@@ -41,12 +41,14 @@ Import data, extract zeros and explore data statistic values and plots
 
 #import yield geopandas data for maize
 
-maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldFiltered.csv')
+maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
 
 #select all rows from maize_yield for which the column growArea has a value greater than zero
 maize_nozero=maize_yield.loc[maize_yield['growArea'] > 0]
 #compile yield data where area is greater 0 in a new array
 maize_kgha=maize_nozero['yield_kgPerHa']
+
+round(np.average(maize_kgha, weights=maize_nozero['growArea']),2)
 
 maize_kgha_log=np.log(maize_kgha)
 
@@ -84,14 +86,14 @@ Fitting of distributions to the data and comparing the fit
 '''
 Load factor data and extract zeros
 '''
-m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesFiltered.csv')
-fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerFiltered.csv') #kg/m²
-fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureFiltered.csv') #kg/km²
-irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaFiltered.csv')
-crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaFiltered.csv')
-irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantFiltered.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsFiltered.csv')
-aez=pd.read_csv(params.geopandasDataDir + 'AEZFiltered.csv')
+m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesHighRes.csv')
+fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
+fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv') #kg/km²
+irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
+irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 
 #fraction of irrigation total is of total cell area so I have to divide it by the
 #fraction of crop area in a cell and set all values >1 to 1
@@ -121,11 +123,11 @@ N_total = fertilizer['n_kgha'] + fertilizer_man['applied_kgha'] #kg/ha
 ##############Loading variables without log to test the effect###################
 #################################################################################
 datam_raw = {"lat": maize_yield.loc[:,'lats'],
-        "lon": maize_yield.loc[:,'lons'],
-        "area": maize_yield.loc[:,'growArea'],
+		"lon": maize_yield.loc[:,'lons'],
+		"area": maize_yield.loc[:,'growArea'],
         "Y": maize_yield.loc[:,'yield_kgPerHa'],
-        "n_fertilizer": fertilizer.loc[:,'n_kgha'],
-        "p_fertilizer": fertilizer.loc[:,'p_kgha'],
+		"n_fertilizer": fertilizer.loc[:,'n_kgha'],
+		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
         "n_total" : N_total,
@@ -136,12 +138,12 @@ datam_raw = {"lat": maize_yield.loc[:,'lats'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
-        }
+		}
 
 #arrange data_raw in a dataframe
 dmaize_raw = pd.DataFrame(data=datam_raw)
-#select only the rows where the area of the cropland is larger than 0
-dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
+#select only the rows where the area of the cropland is larger than 100 ha
+dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 100]
 
 dm0_raw['pesticides_H'] = dm0_raw['pesticides_H'].replace(np.nan, -9)
 dm0_raw['irrigation_rel'] = dm0_raw['irrigation_rel'].replace(np.nan, 0)
@@ -186,6 +188,7 @@ dm0_elim = dm0_elim.loc[dm0_elim['pesticides_H'] < dm0_qt.iloc[12,9]]#~11
 #drop all rows with an area below 100 ha
 #dm0_elim=dm0_elim.loc[dm0_elim['area'] > 100]
 
+round(np.average(dm0_elim['Y'], weights=dm0_elim['area']),2)
 
 '''
 plt.scatter(dm0_elim["p_fertilizer"], dm0_elim["Y"])
@@ -214,6 +217,8 @@ ax = sb.boxplot(x="mst_class", y='Y', data=dm0_elim)
 plt.ylim(0,20000)
 ax = sb.boxplot(x="soil_class", y='Y', data=dm0_elim)
 '''
+#############################Get Dummies#####################
+
 #mst, thz and soil are categorical variables which need to be converted into dummy variables for calculating VIF
 #####Get dummies##########
 mdum_mst = pd.get_dummies(dm0_elim['mst_class'])
@@ -244,9 +249,9 @@ dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index) #RAW
 #extract lat, lon, area and yield from the fit dataset to test the correlations among the
 #independent variables
 dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
-                                    'n_fertilizer', 'n_manure', 'n_man_prod',
-                                     'irrigation_rel','thz_class',
-                                    'mst_class', 'soil_class'], axis='columns')
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                         'irrigation_rel','thz_class',
+                                        'mst_class', 'soil_class'], axis='columns')
 #calculate spearman (rank transformed) correlation coeficcients between the 
 #independent variables and save the values in a dataframe
 sp_m = dmaize_cor_elim.corr(method='spearman')
@@ -261,27 +266,27 @@ pd.Series([variance_inflation_factor(Xm.values, i)
               index=Xm.columns)
 
 '''
-const                38.602255
-p_fertilizer          5.199395
-n_total               6.325616
-pesticides_H          2.413725
-mechanized            1.627253
-irrigation_tot        1.926472
-LGP<120days           1.474690
-120-180days           1.698274
-180-225days           1.635152
-225-270days           1.443363
-Trop_low              3.113578
-Trop_high             1.423234
-Sub-trop_warm         1.611023
-Sub-trop_mod_cool     1.656092
-Sub-trop_cool         1.435898
-Temp_mod              1.576973
-S1_very_steep         1.384381
-S2_hydro_soil         1.322476
-S3_no-slight_lim      3.896556
-S4_moderate_lim       3.959483
-S5_severe_lim         1.779372
+const                40.847986
+p_fertilizer          5.509180
+n_total               6.761342
+pesticides_H          2.718888
+mechanized            1.705572
+irrigation_tot        2.207995
+LGP<120days           1.425328
+120-180days           1.724666
+180-225days           1.685247
+225-270days           1.524806
+Trop_low              3.497253
+Trop_high             1.547520
+Sub-trop_warm         1.708242
+Sub-trop_mod_cool     1.683744
+Sub-trop_cool         1.349665
+Temp_mod              1.736324
+S1_very_steep         1.359520
+S2_hydro_soil         1.333951
+S3_no-slight_lim      4.021156
+S4_moderate_lim       4.026990
+S5_severe_lim         1.696426
 dtype: float64
 '''
 
@@ -291,20 +296,20 @@ dtype: float64
 
 #determine models
 #Normal distribution
-#m_mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
-#              C(mst_class) + C(soil_class) ', data=dmaize_fit_elim)
+m_mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
+              C(mst_class) + C(soil_class) ', data=dmaize_fit_elim)
 #Gamma distribution
-m_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+m_mod_elimg = smf.glm(formula='Y ~ n_total + mechanized + \
               C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
               family=sm.families.Gamma(link=sm.families.links.log))
 #Nullmodel
 m_mod_elim0 = smf.glm(formula='Y ~ 1', data=dmaize_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
 #Fit models
-#m_fit_elimn = m_mod_elimn.fit()
+m_fit_elimn = m_mod_elimn.fit()
 m_fit_elimg = m_mod_elimg.fit()
 m_fit_elim0 = m_mod_elim0.fit()
 #print results
-#print(m_fit_elimn.summary())
+print(m_fit_elimn.summary()) #0.505
 #LogLik: -2547000; AIC: 5094000; BIC: 5094000
 print(m_fit_elimg.summary())
 print(m_fit_elim0.summary())
@@ -313,8 +318,16 @@ print(m_fit_elim0.summary())
 ###########Fit statistics#############
 #calculate pseudo R² for the Gamma distribution
 m_pseudoR_elim = 1-(121800/196880) #0.38135
+m_pseudoR_elim = 1-(55590/102030)
+
 #m_pseudoR_elim = 1-(53432/102030) # 0.4763 without the cells above 100 ha
 print(m_pseudoR_elim)
+
+d2_tweedie_score(dmaize_fit_elim['Y'], m_fit_elimg.fittedvalues, power=2) #0.455
+np.sqrt(mean_tweedie_deviance(dmaize_fit_elim['Y'], m_fit_elimg.fittedvalues, power=2)) #0.5968
+
+d2_tweedie_score(dmaize_fit_elim['Y'], m_fit_elimn.fittedvalues, power=0) #0.505
+np.sqrt(mean_tweedie_deviance(dmaize_fit_elim['Y'], m_fit_elimn.fittedvalues, power=0)) #2337.09
 
 #calculate AIC and BIC for Gamma
 m_aic = m_fit_elimg.aic 
@@ -324,26 +337,19 @@ m_bic = m_fit_elimg.bic_llf
 ########Validation against the validation dataset########
 
 #select the independent variables from the val dataset
-print(dmaize_val_elim.columns)
-
-for i in np.arange(0,15):
-    print(i)
-    m_val_elim = dmaize_val_elim.iloc[:,[i]]
-    print(m_val_elim)
-    column = dmaize_val_elim.columns[i]
-    print(column)
-
-print(len(dmaize_val_elim))
 m_val_elim = dmaize_val_elim.iloc[:,[5,8,9,10,11,13,14,15]]
 
 #fit the model against the validation data
-#pred_elim = m_fit_elimn.predict(m_val_elim)
+pred_elim = m_fit_elimn.predict(m_val_elim)
 m_pred_elimg = m_fit_elimg.predict(m_val_elim)
 
 #calculate the R² scores
-#r2_score(dmaize_val_elim['Y'], pred_elim) #0.3711
-r2_score(dmaize_val_elim['Y'], m_pred_elimg) #0.3572
+r2_score(dmaize_val_elim['Y'], pred_elim) #0.50421
+d2_tweedie_score(dmaize_val_elim['Y'], m_pred_elimg, power=2) #.04598
 #.49432 without cells below 100ha
+
+
+
 '''
 #plot the predicted against the observed values
 plt.scatter(pred_elim, dmaize_val_elim['Y'])
@@ -399,7 +405,7 @@ m_elimg_infl = pd.concat([m_elimg_infl, m_elimg_cook], axis='columns')
 
 
 #take a sample of the influence dataframe to plot the lowess line
-m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=2705)
+m_elimg_infl_sample = m_elimg_infl.sample(frac=0.01, random_state=2705)
 
 
 
@@ -407,56 +413,56 @@ m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=2705)
 
 #########Studentized residuals vs. fitted values on link scale######
 
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
+plot_ms = plt.figure(4)
+plot_ms.set_figheight(8)
+plot_ms.set_figwidth(12)
 plt.scatter('Fitted_link', 'resid_stud', data=m_elimg_infl)
-plot_elimg.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
-plot_elimg.axes[0].set_xlabel('Fitted values on link scale')
-plot_elimg.axes[0].set_ylabel('Studentized Residuals')
+plot_ms.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
+plot_ms.axes[0].set_xlabel('Fitted values on link scale')
+plot_ms.axes[0].set_ylabel('Studentized Residuals')
 
 #########Response residuals vs. fitted values on response scale#######
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
+plot_mr = plt.figure(4)
+plot_mr.set_figheight(8)
+plot_mr.set_figwidth(12)
 
 
-plot_elimg.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=m_elimg_infl, 
+plot_mr.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=m_elimg_infl, 
                           #lowess=True, 
                           scatter_kws={'alpha': 0.5}, 
                           line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
-plot_elimg.axes[0].set_title('Residuals vs Fitted')
-plot_elimg.axes[0].set_xlabel('Fitted values')
-plot_elimg.axes[0].set_ylabel('Residuals')
+plot_mr.axes[0].set_title('Residuals vs Fitted')
+plot_mr.axes[0].set_xlabel('Fitted values')
+plot_mr.axes[0].set_ylabel('Residuals')
 
 # annotations
 abs_resid = m_elimg_infl['resid_resp_abs'].sort_values(ascending=False)
 abs_resid_top_3 = abs_resid[:3]
 
 for i in abs_resid_top_3.index:
-    plot_elimg.axes[0].annotate(i, 
+    plot_mr.axes[0].annotate(i, 
                                xy=(m_elimg_infl['GLM_fitted'][i], 
                                    m_elimg_infl['resid_resp_abs'][i]))
 
 ###############QQ-Plot########################
 
 QQ = ProbPlot(m_elimg_infl['resid_stud'])
-plot_lm_2 = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
+plot_mq = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
 
-plot_lm_2.set_figheight(8)
-plot_lm_2.set_figwidth(12)
+plot_mq.set_figheight(8)
+plot_mq.set_figwidth(12)
 
-plot_lm_2.axes[0].set_title('Normal Q-Q')
-plot_lm_2.axes[0].set_xlabel('Theoretical Quantiles')
-plot_lm_2.axes[0].set_ylabel('Standardized Residuals');
+plot_mq.axes[0].set_title('Normal Q-Q')
+plot_mq.axes[0].set_xlabel('Theoretical Quantiles')
+plot_mq.axes[0].set_ylabel('Standardized Residuals');
 
 # annotations
 abs_norm_resid = np.flip(np.argsort(np.abs(m_elimg_infl['resid_stud'])), 0)
 abs_norm_resid_top_3 = abs_norm_resid[:3]
 
 for r, i in enumerate(abs_norm_resid_top_3):
-    plot_lm_2.axes[0].annotate(i, 
+    plot_mq.axes[0].annotate(i, 
                                xy=(np.flip(QQ.theoretical_quantiles, 0)[r],
                                    m_elimg_infl['resid_stud'][i]));
 
@@ -465,26 +471,26 @@ for r, i in enumerate(abs_norm_resid_top_3):
 #############Cook's distance vs. no of observation######
 
 #sort cook's distance value to get the value for the largest distance####
-cook_sort = m_elimg_cook.sort_values(ascending=False)
+m_cook_sort = m_elimg_cook.sort_values(ascending=False)
 #select all Cook's distance values which are greater than 4/n (n=number of datapoints)
-cook_infl = m_elimg_cook.loc[m_elimg_cook > (4/273772)].sort_values(ascending=False)
+m_cook_infl = m_elimg_cook.loc[m_elimg_cook > (4/273772)].sort_values(ascending=False)
 
 #barplot for values with the strongest influence (=largest Cook's distance)
 #because running the function on all values takes a little longer
-plt.bar(cook_infl.index, cook_infl)
+plt.bar(m_cook_infl.index, m_cook_infl)
 plt.ylim(0, 0.01)
 
 #plots for largest 3 cook values, the ones greater than 4/n and all distance values
-plt.scatter(cook_infl.index[0:3], cook_infl[0:3])
-plt.scatter(cook_infl.index, cook_infl)
+plt.scatter(m_cook_infl.index[0:3], m_cook_infl[0:3])
+plt.scatter(m_cook_infl.index, m_cook_infl)
 plt.scatter(m_elimg_cook.index, m_elimg_cook)
 plt.ylim(0, 0.01)
 
 ############Studentized Residuals vs. Leverage w. Cook's distance line#####
 
-plot_lm_4 = plt.figure(4)
-plot_lm_4.set_figheight(8)
-plot_lm_4.set_figwidth(12)
+plot_mc = plt.figure(4)
+plot_mc.set_figheight(8)
+plot_mc.set_figwidth(12)
 
 plt.scatter(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], alpha=0.5)
 sb.regplot(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], 
@@ -494,17 +500,17 @@ sb.regplot(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'],
             line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
 
-plot_lm_4.axes[0].set_xlim(0, 0.004)
-plot_lm_4.axes[0].set_ylim(-3, 21)
-plot_lm_4.axes[0].set_title('Residuals vs Leverage')
-plot_lm_4.axes[0].set_xlabel('Leverage')
-plot_lm_4.axes[0].set_ylabel('Standardized Residuals')
+plot_mc.axes[0].set_xlim(0, 0.004)
+plot_mc.axes[0].set_ylim(-3, 21)
+plot_mc.axes[0].set_title('Residuals vs Leverage')
+plot_mc.axes[0].set_xlabel('Leverage')
+plot_mc.axes[0].set_ylabel('Standardized Residuals')
 
 # annotate the three points with the largest Cooks distance value
 leverage_top_3 = np.flip(np.argsort(m_elimg_infl["Cooks_d"]), 0)[:3]
 
 for i in leverage_top_3:
-    plot_elimg.axes[0].annotate(i, 
+    plot_mc.axes[0].annotate(i, 
                                xy=(m_elimg_infl['hat_matrix'][i], 
                                    m_elimg_infl['resid_stud'][i]))
 
@@ -648,7 +654,7 @@ m_man_av = cow_excr * LoI_melim_man['labor'].sum()
 
 #calculate the new value of man application rate in kg per ha per cell, assuming
 #the distribution remains the same as before the catastrophe
-LoI_melim_man['man_fert'] = (m_man_av * LoI_melim_man['n_mfrac']) / LoI_melim_man['area']
+LoI_melim_man['man_fert'] = (cow_excr * LoI_melim_man['labor']) / LoI_melim_man['area']
 
 
 ########### N total ######################
@@ -725,9 +731,6 @@ LoI_melim = LoI_melim.loc[LoI_melim['n_total'] < dm0_qt.iloc[12,8]] #~195
 
 #select the rows from LoI_melim which contain the independent variables for year 1
 LoI_m_year1 = LoI_melim.iloc[:,[10,13,14,15,17,19,22,25]]
-print(LoI_melim.columns)
-print(LoI_m_year1)
-print(LoI_m_year1.columns)
 #reorder the columns according to the order in dm0_elim
 LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
                        'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
@@ -738,7 +741,7 @@ LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':
 #predict the yield for year 1 using the gamma GLM
 m_yield_y1 = m_fit_elimg.predict(LoI_m_year1)
 #calculate the change rate from actual yield to the predicted yield
-m_y1_change = (m_yield_y1-maize_kgha)/maize_kgha
+m_y1_change = ((m_yield_y1-maize_kgha)/maize_kgha).dropna()
 
 #calculate statistics for yield and change rate
 
@@ -748,7 +751,7 @@ mmax_y1 = m_yield_y1.max() #10002.44 kg/ha
 mmin_y1 = m_yield_y1.min() #691.74 kg/ha
 
 #change rate
-#mmean_y1c_weigh = round(np.average(m_y1_change, weights=maize_yield['growArea']),2)
+mmean_y1c_weigh = round(np.average(m_y1_change, weights=LoI_melim['area']),2) #+0.26 (~+26%)
 mmax_y1c = m_y1_change.max() # +105.997 (~+10600%)
 mmin_y1c = m_y1_change.min() #-0.94897 (~-95%)
 
@@ -756,8 +759,6 @@ mmin_y1c = m_y1_change.min() #-0.94897 (~-95%)
 
 #select the rows from LoI_melim which contain the independent variables for year 2
 LoI_m_year2 = LoI_melim.iloc[:,[13,14,15,16,19,23,24,26]]
-print(LoI_m_year2.columns)
-quit()
 #reorder the columns according to the order in dm0_elim
 LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
                        'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
@@ -768,7 +769,8 @@ LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert'
 #predict the yield for year 2 using the gamma GLM
 m_yield_y2 = m_fit_elimg.predict(LoI_m_year2)
 #calculate the change from actual yield to the predicted yield
-m_y2_change = (m_yield_y2-maize_kgha)/maize_kgha
+m_y2_change = ((m_yield_y2-maize_kgha)/maize_kgha).dropna()
+s = m_y2_change.loc[m_y2_change>0]
 
 #calculate statistics for yield and change rate
 
@@ -778,12 +780,42 @@ mmax_y2 = m_yield_y2.max() #6551.74kg/ha
 mmin_y2 = m_yield_y2.min() #689.79kg/ha
 
 #change rate
-mmean_y2c = m_y2_change.mean() #0.1198 (~+12%)
+mmean_y2c_weigh = round(np.average(m_y2_change, weights=LoI_melim['Y']),2) #+0.02 (~+2%) -0.31?
 mmax_y2c = m_y2_change.max() #70.087 (~+7000%)
 mmin_y2c = m_y2_change.min() #-0.9503 (~-95%)
-
+m_y2_change.median()
 #combine both yields and change rates with the latitude and longitude values
-LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], m_yield_y1,
+LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], maize_yield['growArea'], m_yield_y1,
                        m_y1_change, m_yield_y2, m_y2_change], axis='columns')
+LoI_maize = LoI_maize.rename(columns={0:"m_yield_y1", 1:"m_y1_change", 
+                                      2:"m_yield_y2",3:"m_y2_change"}, errors="raise")
+
+round(m_y1_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
+round(m_y2_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
+
+
+#Year 1 yield
+3832.02/5525.85 #~69.3% of current average yield
+(m_yield_y1 * LoI_melim['area']).sum()
+625446340077.8394/825496849007.0315 #~75.8% of current total yield
+#Year 2 yield
+2792.08/5525.85 #50.5% of current average yield
+(m_yield_y2 * LoI_melim['area']).sum()
+467475696977.07184/825496849007.0315 #~56.6% of current total yield
+
+
+ch = LoI_maize.loc[LoI_maize[3]>0]
+chm = LoI_maize.loc[LoI_maize[3]<=0]
+ch['growArea'].sum()/LoI_maize['growArea'].sum()
+38788651.6
+
 #save the dataframe in a csv
-LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldFiltered.csv")
+LoI_m_year2.to_csv(params.geopandasDataDir + "Test.csv")
+LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldHighRes.csv")
+
+plt.scatter('n_total', 'Y', data=dm0_elim, alpha=0.3)
+
+utilities.create5minASCIIneg(LoI_maize,'m_y1_change',params.asciiDir+'LoIMaizeYieldChange_y1')
+utilities.create5minASCIIneg(LoI_maize,'m_yield_y1',params.asciiDir+'LoIMaizeYield_y1')
+utilities.create5minASCIIneg(LoI_maize,'m_y2_change',params.asciiDir+'LoIMaizeYieldChange_y2')
+utilities.create5minASCIIneg(LoI_maize,'m_yield_y2',params.asciiDir+'LoIMaizeYield_y2')

@@ -186,4 +186,26 @@ def create5minASCII(df,column,fn):
 	flippedarr=np.ravel(np.flipud(np.transpose(arrayWithNoData.reshape((4320,2160)))))
 	file1.write(" ".join(map(str,flippedarr)))
 	file1.close()
+    
+#create a global ascii at 5 minute resolution including negative alues
+def create5minASCIIneg(df,column,fn):
+	file1 = open(fn+".asc","w")#write mode
+	array = np.array(df[column].values).astype('float32')
+	arrayWithNoData=np.where(np.isnan(array), -9, array)
+	# np.savetxt(params.asciiDir)
+	pretext = \
+'''ncols         4320
+nrows         2160
+xllcorner     -180
+yllcorner     -90
+cellsize      0.083333333333333
+NODATA_value  -9
+'''
+	file1.write(pretext)
+	print(len(arrayWithNoData))
+	print(min(arrayWithNoData))
+	print(max(arrayWithNoData))
+	flippedarr=np.ravel(np.flipud(np.transpose(arrayWithNoData.reshape((4320,2160)))))
+	file1.write(" ".join(map(str,flippedarr)))
+	file1.close()
 		
