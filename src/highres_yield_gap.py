@@ -28,7 +28,13 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import r2_score
+from sys import platform
 
+if platform == "linux" or platform == "linux2":
+    #this is to ensure Morgan's computer doesn't crash
+    import resource
+    rsrc = resource.RLIMIT_AS
+    resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 
 
@@ -40,30 +46,46 @@ Import data, extract zeros and explore data statistic values and plots
 '''
 
 #import yield geopandas data for maize
+IRRIGATED_AND_RAINFED = True
+IRRIGATED=True
+CROP = 'maize'
 
-maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldFiltered.csv')
+crop_dict = {'maize':{'gap':'mze','yield':'MAIZ'}}
+if(IRRIGATED):
+    if(IRRIGATED_AND_RAINFED):
+        postfix = ''
+    else:
+        postfix = 'Irr'
+else:
+    postfix = "Rf"
 
+maize_gap=pd.read_csv(params.geopandasDataDir + crop_dict[CROP]['gap']+'YieldGap'+postfix+'Filtered.csv')
+
+maize_yield=pd.read_csv(params.geopandasDataDir + crop_dict[CROP]['yield']+'CropYield'+postfix+'Filtered.csv')
+print(maize_yield)
+print(maize_yield.columns)
+print(maize_yield['index'])
 #select all rows from maize_yield for which the column growArea has a value greater than zero
-maize_nozero=maize_yield.loc[maize_yield['growArea'] > 0]
+maize_nozero=maize_gap.loc[maize_gap['gap'] > 0]
 #compile yield data where area is greater 0 in a new array
-maize_kgha=maize_nozero['yield_kgPerHa']
+maize_oneminusgap=maize_nozero['gap']
 
-maize_kgha_log=np.log(maize_kgha)
+maize_oneminusgap_log=maize_oneminusgap
 
 #sets design aspects for the following plots
 matplotlib.rcParams['figure.figsize'] = (16.0, 12.0)
 matplotlib.style.use('ggplot')
 
 #plot maize yield distribution in a histogram
-plt.hist(maize_kgha, bins=50)
-plt.title('Maize yield ha/kg')
-plt.xlabel('yield kg/ha')
+plt.hist(maize_oneminusgap, bins=50)
+plt.title('points at values for 1 - Maize Gap')
+plt.xlabel('1 - Maize Gap')
 plt.ylabel('density')
 
 
-#plot log transformed values of yield_kgPerHa
-plt.hist(maize_kgha_log, bins=50)
-
+#plot log transformed values of gap
+plt.hist(maize_oneminusgap_log, bins=50)
+plt.show()
 '''
 Fitting of distributions to the data and comparing the fit
 '''
@@ -84,21 +106,25 @@ Fitting of distributions to the data and comparing the fit
 '''
 Load factor data and extract zeros
 '''
-m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticidesFiltered.csv')
-fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerFiltered.csv') #kg/m²
-fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureFiltered.csv') #kg/km²
-irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaFiltered.csv')
-crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaFiltered.csv')
-irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantFiltered.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsFiltered.csv')
-aez=pd.read_csv(params.geopandasDataDir + 'AEZFiltered.csv')
+
+m_pesticides=pd.read_csv(params.geopandasDataDir + 'CornPesticides'+postfix+'Filtered.csv')
+fertilizer=pd.read_csv(params.geopandasDataDir + 'Fertilizer'+postfix+'Filtered.csv') #kg/m²
+fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManure'+postfix+'Filtered.csv') #kg/km²
+crop = pd.read_csv(params.geopandasDataDir + 'FracCropArea'+postfix+'Filtered.csv')
+if(IRRIGATED):
+    irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliant'+postfix+'Filtered.csv')
+    irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationArea'+postfix+'Filtered.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCrops'+postfix+'Filtered.csv')
+aez=pd.read_csv(params.geopandasDataDir + 'AEZ'+postfix+'Filtered.csv')
 
 #fraction of irrigation total is of total cell area so I have to divide it by the
 #fraction of crop area in a cell and set all values >1 to 1
-irr_tot = irr_t['fraction']/crop['fraction']
-irr_tot.loc[irr_tot > 1] = 1
-#dividing by 0 leaves a NaN value, so I have them all back to 0
-irr_tot.loc[irr_tot.isna()] = 0
+if(IRRIGATED):
+    irr_tot = irr_t['fraction']/crop['fraction']
+    irr_tot.loc[irr_tot > 1] = 1
+    #dividing by 0 leaves a NaN value, so I have them all back to 0
+    irr_tot.loc[irr_tot.isna()] = 0
+
 
 #fertilizer is in kg/m² and fertilizer_man is in kg/km² while yield and pesticides are in kg/ha
 #I would like to have all continuous variables in kg/ha
@@ -123,7 +149,7 @@ N_total = fertilizer['n_kgha'] + fertilizer_man['applied_kgha'] #kg/ha
 datam_raw = {"lat": maize_yield.loc[:,'lats'],
         "lon": maize_yield.loc[:,'lons'],
         "area": maize_yield.loc[:,'growArea'],
-        "Y": maize_yield.loc[:,'yield_kgPerHa'],
+        "Y": maize_gap.loc[:,'gap'],
         "n_fertilizer": fertilizer.loc[:,'n_kgha'],
         "p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
@@ -131,20 +157,24 @@ datam_raw = {"lat": maize_yield.loc[:,'lats'],
         "n_total" : N_total,
         "pesticides_H": m_pesticides.loc[:,'total_H'],
         "mechanized": tillage.loc[:,'is_mech'],
-        "irrigation_tot": irr_tot,
-        "irrigation_rel": irr_rel.loc[:,'frac_reliant'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
         }
+if(IRRIGATED):
+    datam_raw['irrigation_tot'] = irr_tot
+    datam_raw['irrigation_rel'] = irr_rel.loc[:,'frac_reliant']
 
 #arrange data_raw in a dataframe
 dmaize_raw = pd.DataFrame(data=datam_raw)
 #select only the rows where the area of the cropland is larger than 0
-dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
+# dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 0]
+
+dm0_raw = dmaize_raw.loc[maize_gap['gap']>0]
 
 dm0_raw['pesticides_H'] = dm0_raw['pesticides_H'].replace(np.nan, -9)
-dm0_raw['irrigation_rel'] = dm0_raw['irrigation_rel'].replace(np.nan, 0)
+if(IRRIGATED):
+    dm0_raw['irrigation_rel'] = dm0_raw['irrigation_rel'].replace(np.nan, 0)
 
 #replace 0s in the moisture, climate and soil classes as well as 7 & 8 in the
 #soil class with NaN values so they can be handled with the .fillna method
@@ -229,7 +259,20 @@ mdum_soil = mdum_soil.rename(columns={1:"S1_very_steep", 2:"S2_hydro_soil", 3:"S
 #merge the two dummy dataframes with the rest of the variables
 dmaize_d_elim = pd.concat([dm0_elim, mdum_mst, mdum_thz, mdum_soil], axis='columns')
 #drop the original mst and thz colums as well as one column of each dummy (this value will be encoded by 0 in all columns)
-dmaize_dum_elim = dmaize_d_elim.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns')
+if(IRRIGATED):
+    dmaize_dum_elim = dmaize_d_elim.drop(['270+days','Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns')
+else:
+    dmaize_dum_elim = dmaize_d_elim.drop(['270+days','Temp_cool+Bor+Arctic'], axis='columns')
+
+# ################### Change Resolution ##################
+# five_minute = 5/60 #degrees
+# step = five_minute*2 # degrees 
+# to_bin = lambda x: np.floor(x / step) * step
+# df["latbin"] = df['lats'].map(to_bin)
+# df["lonbin"] = df['lons'].map(to_bin)
+# groups = df.groupby(("latbin", "lonbin"))
+
+
 
 #select a random sample of 20% from the dataset to set aside for later validation
 #random_state argument ensures that the same sample is returned each time the code is run
@@ -243,10 +286,16 @@ dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index) #RAW
 
 #extract lat, lon, area and yield from the fit dataset to test the correlations among the
 #independent variables
-dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
-                                    'n_fertilizer', 'n_manure', 'n_man_prod',
-                                     'irrigation_rel','thz_class',
-                                    'mst_class', 'soil_class'], axis='columns')
+if(IRRIGATED):
+    dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                         'irrigation_rel','thz_class',
+                                        'mst_class', 'soil_class'], axis='columns')
+else:
+    dmaize_cor_elim = dmaize_fit_elim.drop(['lat', 'lon', 'area', 'Y',
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                        'thz_class',
+                                        'mst_class', 'soil_class'], axis='columns')
 #calculate spearman (rank transformed) correlation coeficcients between the 
 #independent variables and save the values in a dataframe
 sp_m = dmaize_cor_elim.corr(method='spearman')
@@ -255,10 +304,10 @@ sp_m = dmaize_cor_elim.corr(method='spearman')
 
 ############Variance inflation factor##########################
 
-Xm = add_constant(dmaize_cor_elim)
-pd.Series([variance_inflation_factor(Xm.values, i) 
-               for i in range(Xm.shape[1])], 
-              index=Xm.columns)
+# Xm = add_constant(dmaize_cor_elim)
+# pd.Series([variance_inflation_factor(Xm.values, i) 
+#                for i in range(Xm.shape[1])], 
+#               index=Xm.columns)
 
 '''
 const                38.602255
@@ -294,9 +343,15 @@ dtype: float64
 #m_mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized +  C(thz_class) + \
 #              C(mst_class) + C(soil_class) ', data=dmaize_fit_elim)
 #Gamma distribution
-m_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+if(IRRIGATED):
+    m_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
               C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
               family=sm.families.Gamma(link=sm.families.links.log))
+else:
+    m_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + mechanized + \
+              C(thz_class) + C(mst_class) + C(soil_class)', data=dmaize_fit_elim, 
+              family=sm.families.Gamma(link=sm.families.links.log))
+
 #Nullmodel
 m_mod_elim0 = smf.glm(formula='Y ~ 1', data=dmaize_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
 #Fit models
@@ -306,7 +361,9 @@ m_fit_elim0 = m_mod_elim0.fit()
 #print results
 #print(m_fit_elimn.summary())
 #LogLik: -2547000; AIC: 5094000; BIC: 5094000
+print('m_fit_elimg.summary()')
 print(m_fit_elimg.summary())
+print('m_fit_elim0.summary()')
 print(m_fit_elim0.summary())
 
 
@@ -314,6 +371,7 @@ print(m_fit_elim0.summary())
 #calculate pseudo R² for the Gamma distribution
 m_pseudoR_elim = 1-(121800/196880) #0.38135
 #m_pseudoR_elim = 1-(53432/102030) # 0.4763 without the cells above 100 ha
+print('m_pseudoR_elim')
 print(m_pseudoR_elim)
 
 #calculate AIC and BIC for Gamma
@@ -324,26 +382,54 @@ m_bic = m_fit_elimg.bic_llf
 ########Validation against the validation dataset########
 
 #select the independent variables from the val dataset
-print(dmaize_val_elim.columns)
+if(IRRIGATED):
+    independent_columns=['p_fertilizer','n_total','pesticides_H','mechanized','thz_class','mst_class','soil_class','irrigation_tot','irrigation_rel']
+else:
+    independent_columns=['p_fertilizer','n_total','pesticides_H','mechanized','thz_class','mst_class','soil_class']
 
-for i in np.arange(0,15):
-    print(i)
+independent_column_indices = []
+for i in np.arange(0,len(dmaize_val_elim.columns)):
     m_val_elim = dmaize_val_elim.iloc[:,[i]]
-    print(m_val_elim)
     column = dmaize_val_elim.columns[i]
-    print(column)
+    if(column in independent_columns):
+        independent_column_indices.append(i)
 
-print(len(dmaize_val_elim))
-m_val_elim = dmaize_val_elim.iloc[:,[5,8,9,10,11,13,14,15]]
+
+m_val_elim = dmaize_val_elim.iloc[:,independent_column_indices]
 
 #fit the model against the validation data
 #pred_elim = m_fit_elimn.predict(m_val_elim)
 m_pred_elimg = m_fit_elimg.predict(m_val_elim)
 
+#make the prediction always less than 1
+print('m_pred_elimg')
+print('len(m_pred_elimg)')
+print('total number of predictions')
+print(len(m_pred_elimg))
+print('total number of predictions greater than 1')
+print(np.sum(m_pred_elimg>1))
+assert(np.sum(m_pred_elimg<0)==0)
+
+#set >1 values to 1
+m_pred_elimg = np.where(m_pred_elimg>1,1,m_pred_elimg)
+
 #calculate the R² scores
 #r2_score(dmaize_val_elim['Y'], pred_elim) #0.3711
-r2_score(dmaize_val_elim['Y'], m_pred_elimg) #0.3572
+print("r2_score(dmaize_val_elim['Y'], m_pred_elimg)") #0.3572
+print(r2_score(dmaize_val_elim['Y'], m_pred_elimg)) #0.3572
 #.49432 without cells below 100ha
+# print(dmaize_val_elim)
+# print(m_pred_elimg)
+# quit()
+# ################### Change Resolution ##################
+# five_minute = 5/60 #degrees
+# step = five_minute*2 # degrees 
+# to_bin = lambda x: np.floor(x / step) * step
+# df["latbin"] = df['lats'].map(to_bin)
+# df["lonbin"] = df['lons'].map(to_bin)
+# groups = df.groupby(("latbin", "lonbin"))
+
+
 '''
 #plot the predicted against the observed values
 plt.scatter(pred_elim, dmaize_val_elim['Y'])
@@ -371,7 +457,7 @@ sb.lmplot(x='pred_elimg', y='Y', data=an_elim)
 
 
 #select the independent variables from the fit dataset
-m_fit_elim = dmaize_fit_elim.iloc[:,[5,8,9,10,11,13,14,15]]
+m_fit_elim = dmaize_fit_elim.iloc[:,independent_column_indices]
 
 #get the influence of the GLM model
 m_stat_elimg = m_fit_elimg.get_influence()
@@ -407,106 +493,111 @@ m_elimg_infl_sample = m_elimg_infl.sample(frac=0.2, random_state=2705)
 
 #########Studentized residuals vs. fitted values on link scale######
 
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
-plt.scatter('Fitted_link', 'resid_stud', data=m_elimg_infl)
-plot_elimg.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
-plot_elimg.axes[0].set_xlabel('Fitted values on link scale')
-plot_elimg.axes[0].set_ylabel('Studentized Residuals')
+# plot_elimg = plt.figure(4)
+# plot_elimg.set_figheight(8)
+# plot_elimg.set_figwidth(12)
+# plt.scatter('Fitted_link', 'resid_stud', data=m_elimg_infl)
+# plot_elimg.axes[0].set_title('Studentized Residuals vs Fitted on link scale')
+# plot_elimg.axes[0].set_xlabel('Fitted values on link scale')
+# plot_elimg.axes[0].set_ylabel('Studentized Residuals')
+# plt.show()
 
 #########Response residuals vs. fitted values on response scale#######
-plot_elimg = plt.figure(4)
-plot_elimg.set_figheight(8)
-plot_elimg.set_figwidth(12)
+# plot_elimg = plt.figure(4)
+# plot_elimg.set_figheight(8)
+# plot_elimg.set_figwidth(12)
 
 
-plot_elimg.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=m_elimg_infl, 
-                          #lowess=True, 
-                          scatter_kws={'alpha': 0.5}, 
-                          line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
+# plot_elimg.axes[0] = sb.residplot('GLM_fitted', 'Yield', data=m_elimg_infl, 
+#                           #lowess=True, 
+#                           scatter_kws={'alpha': 0.5}, 
+#                           line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
-plot_elimg.axes[0].set_title('Residuals vs Fitted')
-plot_elimg.axes[0].set_xlabel('Fitted values')
-plot_elimg.axes[0].set_ylabel('Residuals')
+# plot_elimg.axes[0].set_title('Residuals vs Fitted')
+# plot_elimg.axes[0].set_xlabel('Fitted values')
+# plot_elimg.axes[0].set_ylabel('Residuals')
 
-# annotations
-abs_resid = m_elimg_infl['resid_resp_abs'].sort_values(ascending=False)
-abs_resid_top_3 = abs_resid[:3]
+# # annotations
+# abs_resid = m_elimg_infl['resid_resp_abs'].sort_values(ascending=False)
+# abs_resid_top_3 = abs_resid[:3]
 
-for i in abs_resid_top_3.index:
-    plot_elimg.axes[0].annotate(i, 
-                               xy=(m_elimg_infl['GLM_fitted'][i], 
-                                   m_elimg_infl['resid_resp_abs'][i]))
+# for i in abs_resid_top_3.index:
+#     plot_elimg.axes[0].annotate(i, 
+#                                xy=(m_elimg_infl['GLM_fitted'][i], 
+#                                    m_elimg_infl['resid_resp_abs'][i]))
 
+# plt.show()
 ###############QQ-Plot########################
 
-QQ = ProbPlot(m_elimg_infl['resid_stud'])
-plot_lm_2 = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
+# plt.figure()
+# QQ = ProbPlot(m_elimg_infl['resid_stud'])
+# plot_lm_2 = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
 
-plot_lm_2.set_figheight(8)
-plot_lm_2.set_figwidth(12)
+# plot_lm_2.set_figheight(8)
+# plot_lm_2.set_figwidth(12)
 
-plot_lm_2.axes[0].set_title('Normal Q-Q')
-plot_lm_2.axes[0].set_xlabel('Theoretical Quantiles')
-plot_lm_2.axes[0].set_ylabel('Standardized Residuals');
+# plot_lm_2.axes[0].set_title('Normal Q-Q')
+# plot_lm_2.axes[0].set_xlabel('Theoretical Quantiles')
+# plot_lm_2.axes[0].set_ylabel('Standardized Residuals');
 
-# annotations
-abs_norm_resid = np.flip(np.argsort(np.abs(m_elimg_infl['resid_stud'])), 0)
-abs_norm_resid_top_3 = abs_norm_resid[:3]
+# # annotations
+# abs_norm_resid = np.flip(np.argsort(np.abs(m_elimg_infl['resid_stud'])), 0)
+# abs_norm_resid_top_3 = abs_norm_resid[:3]
 
-for r, i in enumerate(abs_norm_resid_top_3):
-    plot_lm_2.axes[0].annotate(i, 
-                               xy=(np.flip(QQ.theoretical_quantiles, 0)[r],
-                                   m_elimg_infl['resid_stud'][i]));
+# for r, i in enumerate(abs_norm_resid_top_3):
+#     plot_lm_2.axes[0].annotate(i, 
+#                                xy=(np.flip(QQ.theoretical_quantiles, 0)[r],
+#                                    m_elimg_infl['resid_stud'][i]));
+# plt.show()
 
 ############Cook's distance plot##########
 
 #############Cook's distance vs. no of observation######
+# plt.figure()
+# #sort cook's distance value to get the value for the largest distance####
+# cook_sort = m_elimg_cook.sort_values(ascending=False)
+# #select all Cook's distance values which are greater than 4/n (n=number of datapoints)
+# cook_infl = m_elimg_cook.loc[m_elimg_cook > (4/273772)].sort_values(ascending=False)
 
-#sort cook's distance value to get the value for the largest distance####
-cook_sort = m_elimg_cook.sort_values(ascending=False)
-#select all Cook's distance values which are greater than 4/n (n=number of datapoints)
-cook_infl = m_elimg_cook.loc[m_elimg_cook > (4/273772)].sort_values(ascending=False)
+# #barplot for values with the strongest influence (=largest Cook's distance)
+# #because running the function on all values takes a little longer
+# plt.bar(cook_infl.index, cook_infl)
+# plt.ylim(0, 0.01)
 
-#barplot for values with the strongest influence (=largest Cook's distance)
-#because running the function on all values takes a little longer
-plt.bar(cook_infl.index, cook_infl)
-plt.ylim(0, 0.01)
-
-#plots for largest 3 cook values, the ones greater than 4/n and all distance values
-plt.scatter(cook_infl.index[0:3], cook_infl[0:3])
-plt.scatter(cook_infl.index, cook_infl)
-plt.scatter(m_elimg_cook.index, m_elimg_cook)
-plt.ylim(0, 0.01)
-
+# #plots for largest 3 cook values, the ones greater than 4/n and all distance values
+# plt.scatter(cook_infl.index[0:3], cook_infl[0:3])
+# plt.scatter(cook_infl.index, cook_infl)
+# plt.scatter(m_elimg_cook.index, m_elimg_cook)
+# plt.ylim(0, 0.01)
+# plt.show()
 ############Studentized Residuals vs. Leverage w. Cook's distance line#####
 
-plot_lm_4 = plt.figure(4)
-plot_lm_4.set_figheight(8)
-plot_lm_4.set_figwidth(12)
+# plot_lm_4 = plt.figure(4)
+# plot_lm_4.set_figheight(8)
+# plot_lm_4.set_figwidth(12)
 
-plt.scatter(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], alpha=0.5)
-sb.regplot(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], 
-            scatter=False, 
-            ci=False, 
-            #lowess=True,
-            line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
+# plt.scatter(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], alpha=0.5)
+# sb.regplot(m_elimg_infl['hat_matrix'], m_elimg_infl['resid_stud'], 
+#             scatter=False, 
+#             ci=False, 
+#             #lowess=True,
+#             line_kws={'color': 'red', 'lw': 1, 'alpha': 0.8})
 
 
-plot_lm_4.axes[0].set_xlim(0, 0.004)
-plot_lm_4.axes[0].set_ylim(-3, 21)
-plot_lm_4.axes[0].set_title('Residuals vs Leverage')
-plot_lm_4.axes[0].set_xlabel('Leverage')
-plot_lm_4.axes[0].set_ylabel('Standardized Residuals')
+# plot_lm_4.axes[0].set_xlim(0, 0.004)
+# plot_lm_4.axes[0].set_ylim(-3, 21)
+# plot_lm_4.axes[0].set_title('Residuals vs Leverage')
+# plot_lm_4.axes[0].set_xlabel('Leverage')
+# plot_lm_4.axes[0].set_ylabel('Standardized Residuals')
+# plt.show()
 
 # annotate the three points with the largest Cooks distance value
-leverage_top_3 = np.flip(np.argsort(m_elimg_infl["Cooks_d"]), 0)[:3]
+# leverage_top_3 = np.flip(np.argsort(m_elimg_infl["Cooks_d"]), 0)[:3]
 
-for i in leverage_top_3:
-    plot_elimg.axes[0].annotate(i, 
-                               xy=(m_elimg_infl['hat_matrix'][i], 
-                                   m_elimg_infl['resid_stud'][i]))
+# for i in leverage_top_3:
+#     plot_elimg.axes[0].annotate(i, 
+#                                xy=(m_elimg_infl['hat_matrix'][i], 
+#                                    m_elimg_infl['resid_stud'][i]))
 
 # shenanigans for cook's distance contours
 def graph(formula, x_range, label=None):
@@ -516,12 +607,13 @@ def graph(formula, x_range, label=None):
 
 p = len(m_fit_elimg.params) # number of model parameters
 
-graph(lambda x: np.sqrt((0.5 * p * (1 - x)) / x), 
-      np.linspace(0.001, 0.200, 50), 
-      'Cook\'s distance') # 0.5 line
-graph(lambda x: np.sqrt((1 * p * (1 - x)) / x), 
-      np.linspace(0.001, 0.200, 50)) # 1 line
-plt.legend(loc='upper right');
+# graph(lambda x: np.sqrt((0.5 * p * (1 - x)) / x), 
+#       np.linspace(0.001, 0.200, 50), 
+#       'Cook\'s distance') # 0.5 line
+# graph(lambda x: np.sqrt((1 * p * (1 - x)) / x), 
+#       np.linspace(0.001, 0.200, 50)) # 1 line
+# plt.legend(loc='upper right');
+# plt.show()
 
     
 
@@ -698,7 +790,8 @@ LoI_melimp['pest_y2'] = 0
 #calculate fraction of cropland area actually irrigated in a cell in LoI by multiplying
 #'irrigation_tot' (fraction of cropland irrigated in cell) with 1-'irrigation_rel'
 #(fraction of irrigated cropland reliant on electricity)
-LoI_melim['irr_LoI'] = LoI_melim['irrigation_tot'] * (1- LoI_melim['irrigation_rel'])
+if(IRRIGATED):
+    LoI_melim['irr_LoI'] = LoI_melim['irrigation_tot'] * (1- LoI_melim['irrigation_rel'])
 
 ###########Combine the different dataframes and drop rows with missing values#########
 
@@ -724,21 +817,41 @@ LoI_melim = LoI_melim.loc[LoI_melim['n_total'] < dm0_qt.iloc[12,8]] #~195
 ################## Year 1 ##################
 
 #select the rows from LoI_melim which contain the independent variables for year 1
-LoI_m_year1 = LoI_melim.iloc[:,[10,13,14,15,17,19,22,25]]
-print(LoI_melim.columns)
-print(LoI_m_year1)
-print(LoI_m_year1.columns)
+
+# independent_columns=['thz_class','mst_class','soil_class','120-180days','225-270days','Sub-trop_warm','Temp_mod']
+independent_columns = ['mechanized', 'thz_class', 'mst_class', 'soil_class',
+    'N_toty1','irr_LoI', 'p_fert_y1', 'pest_y1']
+
+independent_column_indices = []
+for i in np.arange(0,len(LoI_melim.columns)):
+    m_val_elim = LoI_melim.iloc[:,[i]]
+    column = LoI_melim.columns[i]
+    if(column in independent_columns):
+        independent_column_indices.append(i)
+
+
+LoI_m_year1 = LoI_melim.iloc[:,independent_column_indices]
+
 #reorder the columns according to the order in dm0_elim
-LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
-                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
-#rename the columns according to the names used in the model formular
-LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
-                                      'pest_y1':"pesticides_H",
-                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+if(IRRIGATED):
+    LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
+                           'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
+                                          'pest_y1':"pesticides_H",
+                                          'irr_LoI':"irrigation_tot"}, errors="raise")
+else:
+    LoI_m_year1 = LoI_m_year1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized', 
+                       'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year1 = LoI_m_year1.rename(columns={'p_fert_y1':"p_fertilizer", 'N_toty1':"n_total", 
+                                          'pest_y1':"pesticides_H"}, errors="raise")
 #predict the yield for year 1 using the gamma GLM
 m_yield_y1 = m_fit_elimg.predict(LoI_m_year1)
+
+
 #calculate the change rate from actual yield to the predicted yield
-m_y1_change = (m_yield_y1-maize_kgha)/maize_kgha
+m_y1_change = (m_yield_y1-maize_oneminusgap)/maize_oneminusgap
 
 #calculate statistics for yield and change rate
 
@@ -746,29 +859,78 @@ m_y1_change = (m_yield_y1-maize_kgha)/maize_kgha
 mmean_y1_weigh = round(np.average(m_yield_y1, weights=LoI_melim['area']),2) #3832.02kg/ha
 mmax_y1 = m_yield_y1.max() #10002.44 kg/ha
 mmin_y1 = m_yield_y1.min() #691.74 kg/ha
+print('mmax_y1')
+print(mmax_y1)
+print('mmin_y1')
+print(mmin_y1)
+print('year 1 yield')
+print(mmean_y1_weigh)
 
 #change rate
 #mmean_y1c_weigh = round(np.average(m_y1_change, weights=maize_yield['growArea']),2)
 mmax_y1c = m_y1_change.max() # +105.997 (~+10600%)
+print('mmax_y1c')
+print(mmax_y1c)
 mmin_y1c = m_y1_change.min() #-0.94897 (~-95%)
+print('mmin_y1c')
+print(mmin_y1c)
 
 ################## Year 2 ##################
 
 #select the rows from LoI_melim which contain the independent variables for year 2
-LoI_m_year2 = LoI_melim.iloc[:,[13,14,15,16,19,23,24,26]]
-print(LoI_m_year2.columns)
-quit()
-#reorder the columns according to the order in dm0_elim
-LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
-                       'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
-#rename the columns according to the names used in the model formular
-LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
-                                      'pest_y2':"pesticides_H",'mechanized_y2':"mechanized",
-                                      'irr_LoI':"irrigation_tot"}, errors="raise")
+# independent_columns=['thz_class','mst_class','soil_class','LGP<120days','225-270days','Sub-trop_mod_cool','Sub-trop_cool','S1_very_steep']
+# independent_columns=['thz_class', 'mst_class', 'soil_class', 'mechanized_y2', 'irr_LoI',
+#        'p_fert_y2', 'man_fert', 'pest_y2']
+# independent_columns = ['mechanized', 'thz_class', 'mst_class', 'soil_class',
+#    'N_toty1','irr_LoI', 'p_fert_y1', 'pest_y1']
+independent_columns=['thz_class', 'mst_class', 'soil_class', 'mechanized_y2', 'irr_LoI',
+      'p_fert_y2', 'man_fert', 'pest_y2']
+
+
+
+independent_column_indices = []
+for i in np.arange(0,len(LoI_melim.columns)):
+    m_val_elim = LoI_melim.iloc[:,[i]]
+    column = LoI_melim.columns[i]
+    if(column in independent_columns):
+        independent_column_indices.append(i)
+
+LoI_m_year2 = LoI_melim.iloc[:,independent_column_indices]#reorder the columns according to the order in dm0_elim
+if(IRRIGATED):
+    LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 
+                           'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
+                                          'pest_y2':"pesticides_H",'mechanized_y2':"mechanized",
+                                          'irr_LoI':"irrigation_tot"}, errors="raise")
+else:
+    LoI_m_year2 = LoI_m_year2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2', 'thz_class', 'mst_class', 'soil_class']]
+    #rename the columns according to the names used in the model formular
+    LoI_m_year2 = LoI_m_year2.rename(columns={'p_fert_y2':"p_fertilizer", 'man_fert':"n_total", 
+                                          'pest_y2':"pesticides_H",'mechanized_y2':"mechanized"}, errors="raise")    
+
 #predict the yield for year 2 using the gamma GLM
+print(LoI_m_year2.index.values)
 m_yield_y2 = m_fit_elimg.predict(LoI_m_year2)
+
+#set >1 values to 1
+# maize_oneminusgap_filtered = maize_oneminusgap[LoI_m_year2.index.values]
+# m_pred_elimg = np.where(m_pred_elimg>1,1,m_pred_elimg)
 #calculate the change from actual yield to the predicted yield
-m_y2_change = (m_yield_y2-maize_kgha)/maize_kgha
+# m_y2_change = np.divide(np.subtract(m_yield_y2,maize_oneminusgap_filtered),maize_oneminusgap_filtered)
+m_y2_change = np.divide(np.subtract(m_yield_y2,maize_oneminusgap),maize_oneminusgap)
+
+print('number of times yield was predicted to increase')
+print(np.sum(m_y2_change>0))
+print('number of predictions')
+print(len(m_y2_change))
+
+#no reason to think improvement in yield would occur
+# print(len(m_yield_y2))
+# print(len(maize_oneminusgap))
+# print(len(m_y2_change))
+# m_yield_y2 = np.where(m_y2_change>0,maize_oneminusgap_filtered,m_yield_y2)
+
 
 #calculate statistics for yield and change rate
 
@@ -783,7 +945,44 @@ mmax_y2c = m_y2_change.max() #70.087 (~+7000%)
 mmin_y2c = m_y2_change.min() #-0.9503 (~-95%)
 
 #combine both yields and change rates with the latitude and longitude values
-LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], m_yield_y1,
-                       m_y1_change, m_yield_y2, m_y2_change], axis='columns')
+data = {\
+    'index':maize_yield['index'],\
+    'lats':maize_yield['lats'],\
+    'lons':maize_yield['lons'],\
+    'm_yield_y1': m_yield_y1,\
+    'm_yield_y2':m_yield_y2,\
+    'm_y1_change':m_y1_change+10,\
+    'm_y2_change':m_y2_change+10\
+}
+LoI_maize = pd.DataFrame(data=data)
+# LoI_maize = pd.concat([maize_yield['lats'], maize_yield['lons'], m_yield_y1,
+                       # m_y1_change, m_yield_y2, m_y2_change], axis='columns')
+
 #save the dataframe in a csv
-LoI_maize.to_csv(params.geopandasDataDir + "LoIMaizeYieldFiltered.csv")
+LoI_maize.to_csv(params.geopandasDataDir + "LoI"+CROP+"Gap"+postfix+"Filtered.csv")
+
+print('saving as high res')
+#replace all the indices
+print(LoI_maize['index'])
+print(LoI_maize['m_yield_y2'])
+raw_data=pd.read_csv(params.geopandasDataDir + crop_dict[CROP]['gap']+'YieldGap'+postfix+'HighRes.csv')
+raw_data['m_yield_y2'] = -9
+raw_data['m_y2_change'] = -9
+print("LoI_maize['index'][0]")
+print("raw_data.iloc[LoI_maize['index'][0]].index")
+
+print(LoI_maize['index'])
+print(raw_data.iloc[LoI_maize['index'][0]])
+# raw_data.iloc[LoI_maize['index'],raw_data.columns.get_loc('m_yield_y2')] = LoI_maize['m_yield_y2'].values
+raw_data.iloc[LoI_maize['index'],raw_data.columns.get_loc('m_y2_change')] = LoI_maize['m_y2_change'].values
+print("raw_data['m_y2_change'].min()")
+print("raw_data['m_y2_change'].max()")
+
+print(raw_data['m_y2_change'].min())
+print(raw_data['m_y2_change'].max())
+
+print(raw_data)
+# print(raw_data['m_yield_y2'])
+print(raw_data['m_y2_change'])
+raw_data.to_csv(params.geopandasDataDir + crop_dict[CROP]['gap']+'LOIYieldGap'+postfix+'HighRes.csv')
+print('saved')
