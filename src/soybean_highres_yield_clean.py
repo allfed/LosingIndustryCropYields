@@ -182,16 +182,39 @@ ds0_elim.loc[ds0_elim['n_total'] < 0, 'n_total'] = ds0_elim['n_fertilizer'] + ds
 
 #Handle outliers by eliminating all points above the 99.9th percentile
 #I delete the points because the aim of this model is to predict well in the lower yields
-ds0_qt = ds0_elim.quantile([.1, .25, .5, .75, .8, .95, .999,.9999])
+ds0_qt = ds0_elim.quantile([ .25, .5, .75, .85, .95, .99, .999])
 ds0_qt.reset_index(inplace=True, drop=True)
+
+#Calculate number and properties of the outliers
+Y_out = ds0_elim.loc[ds0_elim['Y'] > ds0_qt.iloc[6,3]] #~12500
+nf_out = ds0_elim.loc[ds0_elim['n_fertilizer'] > ds0_qt.iloc[6,4]]#~180
+pf_out = ds0_elim.loc[ds0_elim['p_fertilizer'] > ds0_qt.iloc[6,5]] #~34
+nm_out = ds0_elim.loc[ds0_elim['n_manure'] > ds0_qt.iloc[5,6]] #~11
+#dm0_elim = dm0_elim.loc[dm0_elim['n_man_prod'] < dm0_qt.iloc[6,7]] #~44
+nt_out = ds0_elim.loc[ds0_elim['n_total'] > ds0_qt.iloc[6,8]] #~195
+P_out = ds0_elim.loc[ds0_elim['pesticides_H'] > ds0_qt.iloc[6,9]]#~11
+out = pd.concat([Y_out['Y'], nf_out['n_fertilizer'], pf_out['p_fertilizer'],
+                 nm_out['n_manure'], nt_out['n_total'], P_out['pesticides_H']], axis=1)
+out.max()
+out.min()
+out.mean()
+
+
 ds0_elim = ds0_elim.loc[ds0_elim['Y'] < ds0_qt.iloc[6,3]]
 ds0_elim = ds0_elim.loc[ds0_elim['n_fertilizer'] < ds0_qt.iloc[6,4]]
 ds0_elim = ds0_elim.loc[ds0_elim['p_fertilizer'] < ds0_qt.iloc[6,5]]
-ds0_elim = ds0_elim.loc[ds0_elim['n_manure'] < ds0_qt.iloc[6,6]]
+ds0_elim = ds0_elim.loc[ds0_elim['n_manure'] < ds0_qt.iloc[5,6]]
 ds0_elim = ds0_elim.loc[ds0_elim['n_man_prod'] < ds0_qt.iloc[6,7]]
 ds0_elim = ds0_elim.loc[ds0_elim['n_total'] < ds0_qt.iloc[6,8]]
 ds0_elim = ds0_elim.loc[ds0_elim['pesticides_H'] < ds0_qt.iloc[6,9]]
 
+ds0_elim.mean()
+
+'''
+test = ds0_elim.loc[ds0_elim['Y'] < 1000]
+ax = sb.boxplot(x=ds0_elim["Y"])
+ax = sb.boxplot(x=test['Y'])
+'''
 #drop all rows with an area below 100 ha
 #ds0_elim=ds0_elim.loc[ds0_elim['area'] > 100]
 
@@ -300,12 +323,12 @@ s_mod_elimn = smf.ols(formula=' Y ~ n_total + p_fertilizer + pesticides_H + irri
 s_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
               C(thz_class) + C(mst_class) + C(soil_class)', data=dsoyb_fit_elim, 
               family=sm.families.Gamma(link=sm.families.links.log))
-s_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
-              C(thz_class) + C(mst_class) + C(soil_class)', data=dsoyb_fit_elim, 
-              family=sm.families.Gaussian(link=sm.families.links.inverse_squared))
+#s_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + pesticides_H + irrigation_tot + mechanized + \
+#              C(thz_class) + C(mst_class) + C(soil_class)', data=dsoyb_fit_elim, 
+#              family=sm.families.Gaussian(link=sm.families.links.inverse_squared))
 #Nullmodel
 s_mod_elim0 = smf.glm(formula='Y ~ 1', data=dsoyb_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
-s_mod_elim0 = smf.glm(formula='Y ~ 1', data=dsoyb_fit_elim, family=sm.families.InverseGaussian(link=sm.families.links.inverse_squared))
+#s_mod_elim0 = smf.glm(formula='Y ~ 1', data=dsoyb_fit_elim, family=sm.families.InverseGaussian(link=sm.families.links.inverse_squared))
 #Fit models
 s_fit_elimn = s_mod_elimn.fit()
 s_fit_elimg = s_mod_elimg.fit()
@@ -316,14 +339,20 @@ print(s_fit_elimn.summary()) #0.375
 print(s_fit_elimg.summary())
 print(s_fit_elim0.summary())
 
+np.exp(s_fit_elimg.params)
+np.exp(s_fit_elimg.conf_int())
 np.exp(-0.0267)
+
+s_fit_elimg.plot_added_variable('n_total')
+s_fit_elimg.plot_added_variable('C(thz_class)[T.2]')
+s_fit_elimg.pvalues
 
 ###########Fit statistics#############
 #calculate pseudo R² for the Gamma distribution
 s_pseudoR_elim = 1-(9364.4/14135) #0.2673 0.3375
 print(s_pseudoR_elim)
-d2_tweedie_score(dsoyb_fit_elim['Y'], s_fit_elimg.fittedvalues, power=2)
-np.sqrt(mean_tweedie_deviance(dsoyb_fit_elim['Y'], s_fit_elimg.fittedvalues, power=2))
+d2_tweedie_score(dsoyb_fit_elim['Y'], s_fit_elimg.fittedvalues, power=2) #0.3449
+np.sqrt(mean_tweedie_deviance(dsoyb_fit_elim['Y'], s_fit_elimg.fittedvalues, power=2)) #0.3828
 
 d2_tweedie_score(dsoyb_fit_elim['Y'], s_fit_elimg.fittedvalues, power=2)
 np.sqrt(mean_tweedie_deviance(dsoyb_fit_elim['Y'], s_fit_elimn.fittedvalues, power=0))
@@ -345,7 +374,8 @@ s_pred_elimg = s_fit_elimg.predict(s_val_elim)
 #calculate the R² scores
 r2_score(dsoyb_val_elim['Y'], s_pred_elim) #0.28605
 r2_score(dsoyb_val_elim['Y'], s_pred_elimg) #0.3773
-d2_tweedie_score(dsoyb_val_elim['Y'], s_pred_elimg, power=2)
+d2_tweedie_score(dsoyb_val_elim['Y'], s_pred_elimg, power=2) #0.3431
+np.sqrt(mean_tweedie_deviance(dsoyb_val_elim['Y'], s_pred_elimg, power=2)) #0.3863
 #plot the predicted against the observed values
 plt.scatter(s_pred_elim, dsoyb_val_elim['Y'])
 plt.scatter(s_pred_elimg, dsoyb_val_elim['Y'])
@@ -444,7 +474,7 @@ for i in abs_resid_top_3.index:
 
 ###############QQ-Plot########################
 
-QQ = ProbPlot(s_elimg_infl['resid_stud'])
+QQ = ProbPlot(s_elimg_infl['resid_stud'], dist=stats.gamma, fit=True)
 plot_sq = QQ.qqplot(line='45', alpha=0.5, color='#4C72B0', lw=1)
 
 plot_sq.set_figheight(8)
@@ -469,8 +499,13 @@ for r, i in enumerate(abs_norm_resid_top_3):
 
 #sort cook's distance value to get the value for the largest distance####
 s_cook_sort = s_elimg_cook.sort_values(ascending=False)
+s_cook_sort.mean() #0.0000325
 #select all Cook's distance values which are greater than 4/n (n=number of datapoints)
-s_cook_infl = s_elimg_cook.loc[s_elimg_cook > (4/273772)].sort_values(ascending=False)
+s_cook_infl = s_elimg_cook.loc[s_elimg_cook > (4/(62237-21))].sort_values(ascending=False)
+#3396 remaining outliers, the first 10 are especially high
+s_cook_infl.mean()
+#0.000459 only the high influences
+#0.00000789 without the high influences
 
 #barplot for values with the strongest influence (=largest Cook's distance)
 #because running the function on all values takes a little longer
@@ -482,6 +517,8 @@ plt.scatter(s_cook_infl.index[0:3], s_cook_infl[0:3])
 plt.scatter(s_cook_infl.index, s_cook_infl)
 plt.scatter(s_elimg_cook.index, s_elimg_cook)
 plt.ylim(0, 0.01)
+
+ax = sb.boxplot(x=s_elimg_infl["Cooks_d"])
 
 ############Studentized Residuals vs. Leverage w. Cook's distance line#####
 
@@ -621,16 +658,16 @@ LoI_selim_pn['p_fert_y2'] = 0
 ############# N Manure ###################
 
 #drop the rows containing nonsense values (99th percentile) in the manure column
-LoI_selim_man = LoI_selim.loc[LoI_selim['n_manure'] < ds0_qt.iloc[6,6]] #~11
+LoI_selim_man = LoI_selim.loc[LoI_selim['n_manure'] < ds0_qt.iloc[5,6]] #~11
 
 #calculate kg N applied per cell: 1,018,425,976.75 kg total
-LoI_selim_man['man_kg'] = LoI_selim_man['n_manure']*LoI_selim_man['area']
+#LoI_selim_man['man_kg'] = LoI_selim_man['n_manure']*LoI_selim_man['area']
 #calculate the fraction of the total N applied to soyb fields for each cell
-LoI_selim_man['n_mfrac'] = LoI_selim_man['man_kg']/(LoI_selim_man['man_kg'].sum())
+#LoI_selim_man['n_mfrac'] = LoI_selim_man['man_kg']/(LoI_selim_man['man_kg'].sum())
 
 #calculate the fraction of total N applied to soyb fields of the total N applied to cropland
 #divide total of soyb N by 1000000 to get from kg to thousand t
-s_nman_frac = (LoI_selim_man['man_kg'].sum())/1000000/24000
+#s_nman_frac = (LoI_selim_man['man_kg'].sum())/1000000/24000
 
 #calculate animal labor demand by dividing the area in a cell by the area a cow
 #can be assumed to work
@@ -644,14 +681,13 @@ LoI_selim_man['labor'] = LoI_selim_man['area']/5 #current value (7.4) is taken f
 cow_excr = 131000000000*0.437/1439413930
 
 #calculate available manure based on cow labor demand: 1,278,868,812.065 kg
-s_man_av = cow_excr * LoI_selim_man['labor'].sum()
+#s_man_av = cow_excr * LoI_selim_man['labor'].sum()
 #more manure avialable then currently applied, but that is good as N from mineral
 #fertilizer will be missing
 
-#calculate the new value of man application rate in kg per ha per cell, assuming
-#the distribution remains the same as before the catastrophe
-LoI_selim_man['man_fert'] = (s_man_av * LoI_selim_man['n_mfrac']) / LoI_selim_man['area']
-
+#calculate the new value of man application rate in kg per ha per cell, according
+#to the available cows in each cell due to labor demand
+LoI_selim_man['man_fert'] = (cow_excr * LoI_selim_man['labor']) / LoI_selim_man['area']
 
 ########### N total ######################
 
@@ -717,7 +753,7 @@ LoI_selim = LoI_selim.dropna()
 #ds0_qt = ds0_elim.quantile([.1, .25, .5, .75, .8,.85, .87, .9, .95,.975, .99,.995, .999,.9999])
 #ds0_qt.reset_index(inplace=True, drop=True)
 LoI_selim = LoI_selim.loc[LoI_selim['Y'] < ds0_qt.iloc[6,3]] #~12500
-#ds0_elim = ds0_elim.loc[ds0_elim['n_man_prod'] < ds0_qt.iloc[12,7]] #~44
+#ds0_elim = ds0_elim.loc[ds0_elim['n_man_prod'] < ds0_qt.iloc[6,7]] #~44
 LoI_selim = LoI_selim.loc[LoI_selim['n_total'] < ds0_qt.iloc[6,8]] #~195
 
 
@@ -739,17 +775,39 @@ s_yield_y1 = s_fit_elimg.predict(LoI_s_year1)
 #calculate the change rate from actual yield to the predicted yield
 s_y1_change = ((s_yield_y1-soyb_kgha)/soyb_kgha).dropna()
 
+#create a new variable with the yields for positive change rates set to orginial yields
+s01 = s_y1_change.loc[s_y1_change > 0]
+s_y1_0 = LoI_selim['Y']
+s_y1_0 = s_y1_0[s01.index]
+s011 = s_y1_change.loc[s_y1_change <= 0]
+s_y1_1 = s_yield_y1[s011.index]
+s_y1_y0 = s_y1_0.append(s_y1_1)
+
+#calculate the change rate to see if it worked
+s_t1_change = ((s_y1_y0-soyb_kgha)/soyb_kgha).dropna()
+test = s_t1_change.loc[s_t1_change>0]
+
+s1 = s_y1_change.loc[s_y1_change>0] #34057 cells
+ax = sb.boxplot(x=s1)
+
 #calculate statistics for yield and change rate
 
 #yield
-smean_y1_weigh = round(np.average(s_yield_y1, weights=LoI_selim['area']),2) #2245.54kg/ha
-smax_y1 = s_yield_y1.max() #3629.95 kg/ha
-smin_y1 = s_yield_y1.min() #663.53 kg/ha
+smean_y1_weigh = round(np.average(s_yield_y1, weights=LoI_selim['area']),2) #2257.13kg/ha
+smean_y1_0 = round(np.average(s_y1_y0, weights=LoI_selim['area']),2) #1923.81kg/ha
+smax_y1 = s_yield_y1.max() #3508.91 kg/ha
+smin_y1 = s_yield_y1.min() #675.42 kg/ha
+smax_y10 = s_y1_y0.max()  # 3250.71.1kg/ha
+smin_y10 = s_y1_y0.min()  # 54.89kg/ha
+
+#calculate weights for the mean change rate
+sw=LoI_selim['Y']*ds0_elim['area']
+sw = sw.fillna(method='ffill')
 
 #change rate
-smean_y1c_weigh = round(np.average(s_y1_change, weights=LoI_selim['area']),2) #+0.02 (~+2%)
-smax_y1c = s_y1_change.max() # +34.83 (~+3480%)
-smin_y1c = s_y1_change.min() #-0.8759 (~-88%)
+smean_y1c_weigh = round(np.average(s_y1_change, weights=sw),2) #-0.04 (~-4%) -0.1 (~10%)
+smax_y1c = s_y1_change.max() # +27.78 (~+2780%)
+smin_y1c = s_y1_change.min() #-0.8256 (~-83%)
 
 ################## Year 2 ##################
 
@@ -767,21 +825,46 @@ s_yield_y2 = s_fit_elimg.predict(LoI_s_year2)
 #calculate the change from actual yield to the predicted yield
 s_y2_change = ((s_yield_y2-soyb_kgha)/soyb_kgha).dropna()
 
+s_c0 = pd.concat([s_y1_change, s_y2_change], axis=1)
+s_c0 = s_c0.rename(columns={0:"s_y1_c0", 1:"s_y2_c0"}, errors="raise")
+s_c0.loc[s_c0['s_y1_c0'] > 0, 's_y1_c0'] = 0
+s_c0.loc[s_c0['s_y2_c0'] > 0, 's_y2_c0'] = 0
+
+s2 = s_y2_change.loc[s_y2_change>0] #30967 cells
+s2 = s2.loc[s2<1] #23401 cells
+ax = sb.boxplot(x=s2)
+
+#create a new variable with the yields for positive change rates set to orginial yields
+s02 = s_y2_change.loc[s_y2_change > 0]
+s_y2_0 = LoI_selim['Y']
+s_y2_0 = s_y2_0[s02.index]
+s022 = s_y2_change.loc[s_y2_change <= 0]
+s_y2_1 = s_yield_y2[s022.index]
+s_y2_y0 = s_y2_0.append(s_y2_1)
+
 #calculate statistics for yield and change rate
 
 #yield
-smean_y2_weigh = round(np.average(s_yield_y2, weights=LoI_selim['area']),2) #1593.99kg/ha
-smax_y2 = s_yield_y2.max() #2470.29kg/ha
-smin_y2 = s_yield_y2.min() #689.79kg/ha
-
+smean_y2_weigh = round(np.average(s_yield_y2, weights=LoI_selim['area']),2) #1600.52 kg/ha
+smean_y2_0 = round(np.average(s_y2_y0, weights=LoI_selim['area']),2) #1536.79 kg/ha
+smax_y2 = s_yield_y2.max() #2442.53kg/ha
+smin_y2 = s_yield_y2.min() #675.35kg/ha
+smax_y20 = s_y2_y0.max()  # 2442.53.1kg/ha
+smin_y20 = s_y2_y0.min()  # 54.89kg/ha
 #change rate
-smean_y2c = round(np.average(s_y2_change, weights=LoI_selim['area']),2) #-0.25 (~-25%)
-smax_y2c = s_y2_change.max() #27.52 (~+2750%)
-smin_y2c = s_y2_change.min() #-0.8758 (~-88%)
+smean_y2c_weigh = round(np.average(s_y2_change, weights=sw),2) #-0.3 (~-30%) -0.36 (~36%)
+smax_y2c = s_y2_change.max() #27.77 (~+2780%)
+smin_y2c = s_y2_change.min() #-0.8271 (~-83%)
+#change rate with values above 0 set to 0
+smean_y2c0_weigh = round(np.average(s_c0['s_y2_c0'], weights=sw),2) #-0.38
+smean_y1c0_weigh = round(np.average(s_c0['s_y1_c0'], weights=sw),2) #-0.17
+smean_y1c0_test = round(np.average(s_t1_change, weights=sw),2) #-0.17
+tt = s_c0['s_y1_c0'].loc[s_c0['s_y1_c0']==0]
+
 
 #combine both yields and change rates with the latitude and longitude values
 LoI_soyb = pd.concat([soyb_yield['lats'], soyb_yield['lons'], s_yield_y1,
-                       s_y1_change, s_yield_y2, s_y2_change], axis='columns')
+                       s_y1_change, s_yield_y2, s_y2_change, s_c0], axis='columns')
 LoI_soyb = LoI_soyb.rename(columns={0:"s_yield_y1", 1:"s_y1_change", 
                                       2:"s_yield_y2",3:"s_y2_change"}, errors="raise")
 #save the dataframe in a csv
@@ -791,7 +874,7 @@ round(s_y1_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99])
 round(s_y2_change.quantile([.01,.05,.1,.2,.25,.3,.4,.5,.6,.7,.75,.8,.9,.95,.99]),2)
 
 
-round(np.average(ds0_elim['Y'], weights=ds0_elim['area']),2)
+
 #Year 1 yield
 2245.54/2509.49 #~89.5% of current average yield
 (s_yield_y1 * LoI_selim['area']).sum()
@@ -801,7 +884,44 @@ round(np.average(ds0_elim['Y'], weights=ds0_elim['area']),2)
 (s_yield_y2 * LoI_selim['area']).sum()
 146528694553.64767/250114718599.569 #~58.6% of current total yield
 
+#Year 1 yield
+ds0_mean = round(np.average(ds0_elim['Y'], weights=ds0_elim['area']),2)
+smean_y1_weigh/ds0_mean #~90.03% of current average yield
+ds0_prod = (ds0_elim['Y'] * ds0_elim['area']).sum()
+s_y1_prod = (s_yield_y1 * LoI_selim['area']).sum()
+s_y10_prod = (s_y1_y0 * LoI_selim['area']).sum()
+s_y1_prod/ds0_prod
+s_y10_prod
+464651900282.09436/622388527236.037 #~66.1% of current total yield
+#Year 2 yield
+smean_y2_weigh/ds0_mean #63.8% of current average yield
+s_y2_prod = (s_yield_y2 * LoI_selim['area']).sum()
+s_y20_prod = (s_y2_y0 * LoI_selim['area']).sum()
+s_y2_prod/ds0_prod
+s_y20_prod
+
+ds0_mean*(1+smean_y1c0_weigh)
+
+
+#calculate max and min for current and fitted yield
+#current
+ds0_max = ds0_elim['Y'].max()
+ds0_min = ds0_elim['Y'].min()
+#fitted
+s_fit_max =s_fit_elimg.fittedvalues.max()
+s_fit_min = s_fit_elimg.fittedvalues.min()
+
+print(ds0_mean, smean_y1_weigh, smean_y2_weigh,
+      ds0_prod, s_y1_prod, s_y2_prod,
+      ds0_max, smax_y1, smax_y2, s_fit_max,
+      ds0_min, smin_y1, smin_y2, s_fit_min,
+      smean_y1c_weigh, smean_y2c_weigh,
+      smean_y1c0_weigh, smean_y2c0_weigh)
+
+
 utilities.create5minASCIIneg(LoI_soyb,'s_y1_change',params.asciiDir+'LoISoybYieldChange_y1')
 utilities.create5minASCIIneg(LoI_soyb,'s_yield_y1',params.asciiDir+'LoISoybYield_y1')
 utilities.create5minASCIIneg(LoI_soyb,'s_y2_change',params.asciiDir+'LoISoybYieldChange_y2')
 utilities.create5minASCIIneg(LoI_soyb,'s_yield_y2',params.asciiDir+'LoISoybYield_y2')
+utilities.create5minASCIIneg(LoI_soyb,'s_y1_c0',params.asciiDir+'LoISoybYieldChange_0y1')
+utilities.create5minASCIIneg(LoI_soyb,'s_y2_c0',params.asciiDir+'LoISoybYieldChange_0y2')

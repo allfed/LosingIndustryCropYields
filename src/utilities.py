@@ -146,7 +146,8 @@ def createASCII(df,column,fn):
 	ncols = len(set(df['lons']))
 	nrows = len(set(df['lats']))
 	array = np.array(df[column]).astype('float32')
-	arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
+	arrayWithNoData=np.where(np.isnan(array), -9, array)
+    #arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
 	# np.savetxt(params.asciiDir)
 	pretext = \
 '''ncols         %s

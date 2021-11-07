@@ -29,6 +29,7 @@ from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import r2_score
+from sklearn.metrics import d2_tweedie_score
 from sys import platform
 
 if platform == "linux" or platform == "linux2":
@@ -69,7 +70,7 @@ Import data, extract zeros and explore data statistic values and plots
 #import yield geopandas data for crop
 IRRIGATED_AND_RAINFED = True
 IRRIGATED=True
-CROP = 'maize'
+CROP = 'wheat'
 SAVE_DOWNSAMPLES = True
 crop_dict = {'maize':{'pesticides':'Corn','yield':'MAIZ'},\
     'wheat':{'pesticides':'Wheat','yield':'WHEA'},\
@@ -423,6 +424,8 @@ pred_elimg = fit_elimg.predict(val_elim)
 # ################### Change Resolution ##################
 print("r2_score(dcrop_val_elim['Y'], pred_elimg)") #0.3572
 print(r2_score(dcrop_val_elim['Y'], pred_elimg)) #0.3572
+print("roh2_score(dcrop_val_elim['Y'], pred_elimg)")
+print(d2_tweedie_score(dcrop_val_elim['Y'], pred_elimg, power=2))
 
 five_minute = 5/60
 
@@ -462,20 +465,21 @@ r2_scores = []
 five_minute = 5/60 #degrees
 for scale in np.arange(1,250,5):
     lowres = downsample(dcrop_val_elim,pred_elimg,scale)
-    r2_scores.append(r2_score(lowres['mean'],lowres['mean_pred']))
+    r2_scores.append(d2_tweedie_score(lowres['mean'], lowres['mean_pred'], power=2))
+                     #(r2_score(lowres['mean'],lowres['mean_pred']))
 
 plt.figure()
 x = np.linspace(5/60,len(r2_scores)*5/60,len(r2_scores))
 plt.scatter(x,r2_scores)
 
 #pesticides crop names are capital letter first, so I chose that option
-plt.title(crop_dict[CROP]['pesticides'] + ' Variable Resolution Validation R^2')
+plt.title(crop_dict[CROP]['pesticides'] + ' Variable Resolution Validation roh^2')
 
 
 # x = np.linspace(1,len(r2_scores),int(len(r2_scores)/5))
 # plt.xticks(x, np.linspace(5/60,len(r2_scores)*5/60,int(len(r2_scores)/5)))
 plt.xlabel('resolution, degrees')
-plt.ylabel('R^2 between predicted and validation data')
+plt.ylabel('roh^2 between predicted and validation data')
 # plt.show()
 # print("r2_score(lowres['mean'], lowres['mean_pred'])") #0.3572
 # print(r2_score(lowres['mean'],lowres['mean_pred'])) #0.3572
@@ -948,6 +952,11 @@ yield_y2 = fit_elimg.predict(LoI_year2)
 #calculate the change from actual yield to the predicted yield
 y2_change = (yield_y2-crop_kgha)/crop_kgha
 
+c_c0 = pd.concat([y1_change, y2_change], axis=1)
+c_c0 = c_c0.rename(columns={0: "y1_change0", 1: "y2_change0"}, errors="raise")
+c_c0.loc[c_c0['y1_change0'] > 0, 'y1_change0'] = 0
+c_c0.loc[c_c0['y2_change0'] > 0, 'y2_change0'] = 0
+
 #calculate statistics for yield and change rate
 
 #yield
@@ -971,7 +980,9 @@ data = {\
     'yield_y1': yield_y1,\
     'yield_y2':yield_y2,\
     'y1_change':y1_change,\
-    'y2_change':y2_change\
+    'y2_change':y2_change,\
+    'y1_change0':c_c0['y1_change0'],\
+    'y2_change0':c_c0['y2_change0']\
 }
 LoI = pd.DataFrame(data=data)
 
@@ -1068,10 +1079,12 @@ if(SAVE_DOWNSAMPLES):
         'yield_y1',\
         'yield_y2',\
         'y1_change',\
-        'y2_change']
+        'y2_change',\
+        'y1_change0',\
+        'y2_change0']
     for dc in downsample_columns:
         high_res[dc] = np.nan
-        high_res.iloc[LoI['index'],high_res.columns.get_loc(dc)] = LoI['y2_change'].values
+        high_res.iloc[LoI['index'],high_res.columns.get_loc(dc)] = LoI[dc].values
 
         # nan_array = create_nan_array(step)
         # lowres = downsample_prediction(raw_data,step)
@@ -1094,7 +1107,9 @@ else:
         'yield_y1',\
         'yield_y2',\
         'y1_change',\
-        'y2_change']
+        'y2_change',\
+        'y1_change0',\
+        'y2_change0']
     for dc in downsample_columns:
         raw_data[dc] = np.nan
         raw_data.iloc[LoI['index'],raw_data.columns.get_loc(dc)] = LoI[dc].values
