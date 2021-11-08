@@ -30,7 +30,6 @@ import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
-from sklearn.metrics import r2_score
 from sklearn.metrics import d2_tweedie_score
 from sklearn.metrics import mean_tweedie_deviance
 
@@ -47,7 +46,7 @@ params.importAll()
 Import yield data, extract zeros and plot the data
 '''
 
-#import yield geopandas data for maize
+#import yield data for maize
 
 maize_yield=pd.read_csv(params.geopandasDataDir + 'MAIZCropYieldHighRes.csv')
 
@@ -104,7 +103,7 @@ aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 #fraction of crop area in a cell and set all values >1 to 1
 irr_tot = irr_t['fraction']/crop['fraction']
 irr_tot.loc[irr_tot > 1] = 1
-#dividing by 0 leaves a NaN value, so they are all set back to 0
+#dividing by 0 leaves a NaN value, have to be set back to 0
 irr_tot.loc[irr_tot.isna()] = 0
 
 #fertilizer is in kg/m² and fertilizer_man is in kg/km² while yield and pesticides are in kg/ha
@@ -125,9 +124,9 @@ fertilizer_man = pd.concat([fertilizer_man, man_new], axis='columns') #kg/ha
 N_total = fertilizer['n_kgha'] + fertilizer_man['applied_kgha'] #kg/ha
 
 '''
-Loading variables into a combined dataframe and prepare the input
-data for analysis by filling/eliminating missing data points, delete
-outliers and combine levels of categorical factors
+Loading variables into a combined dataframe and preparing the input
+data for analysis by filling/eliminating missing data points, deleting
+outliers and combining levels of categorical factors
 '''
 
 datam_raw = {"lat": maize_yield.loc[:,'lats'],
@@ -239,7 +238,7 @@ Split the data into a validation and a calibration dataset
 #random_state argument ensures that the same sample is returned each time the code is run
 dmaize_val_elim = dmaize_dum_elim.sample(frac=0.2, random_state=2705) #RAW
 #drop the validation sample rows from the dataframe, leaving 80% of the data for calibrating the model
-dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index) #RAW
+dmaize_fit_elim = dmaize_dum_elim.drop(dmaize_val_elim.index)
 
 '''
 Check for multicollinearity by calculating the two-way correlations and the VIF

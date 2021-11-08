@@ -29,7 +29,6 @@ import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
-from sklearn.metrics import r2_score
 from sklearn.metrics import d2_tweedie_score
 from sklearn.metrics import mean_tweedie_deviance
 
@@ -37,7 +36,7 @@ params.importAll()
 
 
 ######################################################################
-############# Data impprt and Pre-Analysis Processing#################
+############# Data import and Pre-Analysis Processing#################
 ######################################################################
 
 
@@ -45,7 +44,7 @@ params.importAll()
 Import yield data, extract zeros and plot the data
 '''
 
-#import yield geopandas data for rice
+#import yield data for rice
 
 rice_yield=pd.read_csv(params.geopandasDataDir + 'RICECropYieldHighRes.csv')
 
@@ -99,15 +98,15 @@ irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
 tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 
-#fraction of irrigation total is of total cell area so I have to divide it by the
+#fraction of irrigation total is of total cell area so it has to be divided by the
 #fraction of crop area in a cell and set all values >1 to 1
 irr_tot = irr_t['fraction']/crop['fraction']
 irr_tot.loc[irr_tot > 1] = 1
-#dividing by 0 leaves a NaN value, so I have them all back to 0
+#dividing by 0 leaves a NaN value, have to be set back to 0
 irr_tot.loc[irr_tot.isna()] = 0
 
 #fertilizer is in kg/m² and fertilizer_man is in kg/km² while yield and pesticides are in kg/ha
-#I would like to have all continuous variables in kg/ha
+#all continuous variables are transformed to kg/ha
 n_new = fertilizer['n'] * 10000
 p_new = fertilizer['p'] * 10000
 fert_new = pd.concat([n_new, p_new], axis='columns')
@@ -123,28 +122,29 @@ fertilizer_man = pd.concat([fertilizer_man, man_new], axis='columns') #kg/ha
 #compile a combined factor for N including both N from fertilizer and manure
 N_total = fertilizer['n_kgha'] + fertilizer_man['applied_kgha'] #kg/ha
 
+
 '''
-Loading variables into a combined dataframe and prepare the input
-data for analysis by filling/eliminating missing data points, delete
-outliers and combine levels of categorical factors
+Loading variables into a combined dataframe and preparing the input
+data for analysis by filling/eliminating missing data points, deleting
+outliers and combining levels of categorical factors
 '''
 
 datar_raw = {"lat": rice_yield.loc[:,'lats'],
               "lon": rice_yield.loc[:,'lons'],
               "area": rice_yield.loc[:,'growArea'],
-        "Y": rice_yield.loc[:,'yield_kgPerHa'],
+              "Y": rice_yield.loc[:,'yield_kgPerHa'],
               "n_fertilizer": fertilizer.loc[:,'n_kgha'],
               "p_fertilizer": fertilizer.loc[:,'p_kgha'],
-        "n_manure": fertilizer_man.loc[:,'applied_kgha'],
-        "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
-        "n_total" : N_total,
-        "pesticides_H": r_pesticides.loc[:,'total_H'],
-        "mechanized": tillage.loc[:,'is_mech'],
-        "irrigation_tot": irr_tot,
-        "irrigation_rel": irr_rel.loc[:,'frac_reliant'],
-        "thz_class" : aez.loc[:,'thz'],
-        "mst_class" : aez.loc[:,'mst'],
-        "soil_class": aez.loc[:,'soil']
+              "n_manure": fertilizer_man.loc[:,'applied_kgha'],
+              "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
+              "n_total" : N_total,
+              "pesticides_H": r_pesticides.loc[:,'total_H'],
+              "mechanized": tillage.loc[:,'is_mech'],
+              "irrigation_tot": irr_tot,
+              "irrigation_rel": irr_rel.loc[:,'frac_reliant'],
+              "thz_class" : aez.loc[:,'thz'],
+              "mst_class" : aez.loc[:,'mst'],
+              "soil_class": aez.loc[:,'soil']
               }
 
 #arrange data_raw in a dataframe
@@ -177,7 +177,7 @@ dr0_elim = dr0_elim.loc[dr0_elim['mechanized'] > -9]
 
 #replace remaining no data values in the fertilizer datasets with NaN and then fill them
 #because there are only few left
-dr0_elim.loc[dr0_elim['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan #only 2304 left, so ffill 
+dr0_elim.loc[dr0_elim['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan
 dr0_elim.loc[dr0_elim['p_fertilizer'] < 0, 'p_fertilizer'] = np.nan
 dr0_elim = dr0_elim.fillna(method='ffill')
 #replace no data values in n_total with the sum of the newly filled n_fertilizer and the
@@ -202,7 +202,7 @@ r_out.max()
 r_out.min()
 r_out.mean()
 
-#Eliminating all points above the 99.9th percentile
+#Eliminate all points above the 99.9th percentile
 dr0_elim = dr0_elim.loc[dr0_elim['Y'] < dr0_qt.iloc[6,3]]
 dr0_elim = dr0_elim.loc[dr0_elim['n_fertilizer'] < dr0_qt.iloc[6,4]]
 dr0_elim = dr0_elim.loc[dr0_elim['p_fertilizer'] < dr0_qt.iloc[6,5]]
@@ -213,8 +213,6 @@ dr0_elim = dr0_elim.loc[dr0_elim['pesticides_H'] < dr0_qt.iloc[6,9]]
 '''
 Dummy-code the categorical variables to be able to assess multicollinearity
 '''
-
-#############################Get Dummies#####################
 
 #mst, thz and soil are categorical variables which need to be converted into dummy variables for calculating VIF
 #####Get dummies##########
@@ -240,8 +238,8 @@ Split the data into a validation and a calibration dataset
 #select a random sample of 20% from the dataset to set aside for later validation
 #randor_state argument ensures that the same sample is returned each time the code is run
 drice_val_elim = drice_dur_elim.sample(frac=0.2, random_state=2705) #RAW
-#drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
-drice_fit_elim = drice_dur_elim.drop(drice_val_elim.index) #RAW
+#drop the validation sample rows from the dataframe, leaving 80% of the data for calibrating the model
+drice_fit_elim = drice_dur_elim.drop(drice_val_elim.index)
 
 '''
 Check for multicollinearity by calculating the two-way correlations and the VIF
@@ -289,7 +287,6 @@ pd.Series([variance_inflation_factor(Xr.values, i)
 #S3_no-slight_lim      1.865182
 #S4_moderate_lim       2.469434
 #S5_severe_lim         1.536933
-#dtype: float64
 
 
 #######################################################################
@@ -329,6 +326,7 @@ r_aic = r_fit_elimg.aic
 r_bic = r_fit_elimg.bic_llf
 #LogLik: -670710; AIC: 1341464; BIC: 1341658
 
+
 '''
 Validate the model against the validation dataset
 '''
@@ -353,7 +351,6 @@ r_fit_elim = drice_fit_elim.iloc[:,[5,8,9,10,11,13,14,15]]
 
 #get the influence of the GLM model
 r_stat_elimg = r_fit_elimg.get_influence()
-#print(r_stat_elimg.summary_table()), there seems to be too much data
 
 #store cook's distance in a variable
 r_elimg_cook = pd.Series(r_stat_elimg.cooks_distance[0]).transpose()
@@ -374,7 +371,6 @@ r_data_infl = { 'Yield': drice_fit_elim['Y'],
                'hat_matrix':r_stat_elimg.hat_matrix_diag}
 r_elimg_infl = pd.DataFrame(data=r_data_infl).reset_index()
 r_elimg_infl = pd.concat([r_elimg_infl, r_elimg_cook], axis='columns')
-
 
 #take a sample of the influence dataframe to plot the lowess line
 r_elimg_infl_sample = r_elimg_infl.sample(frac=0.1, random_state=2705)
@@ -592,7 +588,7 @@ LoI_relim_man = LoI_relim.loc[LoI_relim['n_manure'] < dr0_qt.iloc[5,6]]
 LoI_relim_man['labor'] = LoI_relim_man['area']/5 #current value (7.4) is taken from Cole et al. (2016)
 #due to information from a farmer, the value is set at 5
 
-#calculate mean excretion rate of each cow in one phase: cattle supplied ~ 43.7% of 131000 thousand t
+#calculate mean excretion rate of each cow in one year: cattle supplied ~ 43.7% of 131000 thousand t
 #manure production in 2014, there were ~ 1.439.413.930(FAOSTAT) 
 #heads of cattle in 2014
 cow_excr = 131000000000*0.437/1439413930
@@ -615,7 +611,7 @@ LoI_relim['N_toty1'] = LoI_relim_pn['n_fert_y1'] + LoI_relim_man['man_fert']
 
 #drop the cells containing NaN values and outliers
 LoI_relimp = LoI_relim.loc[LoI_relim['pesticides_H'].notna()]
-LoI_relimp = LoI_relimp.loc[LoI_relimp['pesticides_H'] < dr0_qt.iloc[6,9]]#~11
+LoI_relimp = LoI_relimp.loc[LoI_relimp['pesticides_H'] < dr0_qt.iloc[6,9]]
 
 #in phase 1, there will probably be a slight surplus of Pesticides (production>application)
 
@@ -639,7 +635,7 @@ r_pestot_new = r_pest_frac * (4190985 * frac_pest) * 1000
 #the distribution remains the same as before the catastrophe
 LoI_relimp['pest_y1'] = (r_pestot_new * LoI_relimp['pest_frac']) / LoI_relimp['area']
 
-#in phase 2 no industrially produced fertilizer will be available anymore: set to 0
+#in phase 2 no industrially produced pesticides will be available anymore: set to 0
 LoI_relimp['pest_y2'] = 0
 
 ### Irrigation ###
@@ -686,7 +682,7 @@ r_yield_y1 = r_fit_elimg.predict(LoI_r_phase1)
 #calculate the change rate from actual yield to the predicted yield
 r_y1_change = ((r_yield_y1-rice_kgha)/rice_kgha).dropna()
 #calculate the number of cells with a postivie change rate
-s1 = r_y1_change.loc[r_y1_change>0] #34057 cells
+s1 = r_y1_change.loc[r_y1_change>0]
 
 #create a new variable with the yields for positive change rates set to orginial yields
 r01 = r_y1_change.loc[r_y1_change > 0]
@@ -699,7 +695,7 @@ r_y1_y0 = r_y1_0.append(r_y1_1)
 #calculate statistics for yield and change rate
 
 #calculate weights for mean change rate calculation dependent on current yield
-#and current maize area in a cell
+#and current rice area in a cell
 rw=LoI_relim['Y']*dr0_elim['area']
 rw = rw.fillna(method='ffill')
 
@@ -713,7 +709,7 @@ rmax_y10 = r_y1_y0.max()  # 7506.11kg/ha
 rmin_y10 = r_y1_y0.min()  # 111.2kg/ha
 
 #change rate
-rmean_y1c_weigh = round(np.average(r_y1_change, weights=rw),2) #-0.24 (~24%) -0.28 (~-28%)
+rmean_y1c_weigh = round(np.average(r_y1_change, weights=rw),2) #-0.28 (~-28%)
 rmax_y1c = r_y1_change.max() # +24.92 (~+2500%)
 rmin_y1c = r_y1_change.min() #-0.8567 (~-86%)
 
@@ -742,7 +738,6 @@ r_c0 = r_c0.rename(columns={0:"r_y1_c0", 1:"r_y2_c0"}, errors="raise")
 r_c0.loc[r_c0['r_y1_c0'] > 0, 'r_y1_c0'] = 0
 r_c0.loc[r_c0['r_y2_c0'] > 0, 'r_y2_c0'] = 0
 
-
 #create a new variable with the yields for positive change rates set to orginial yields
 r02 = r_y2_change.loc[r_y2_change > 0]
 r_y2_0 = LoI_relim['Y']
@@ -764,12 +759,11 @@ rmin_y20 = r_y2_y0.min()  # 111.2kg/ha
 
 #calculate weighted mean, min and max of predicted change rate (1) including postive change rates
 rmean_y2c_weigh = round(np.average(r_y2_change, weights=rw),2) #-0.29 (~-29%)
-rmean_y2c_weigh = np.average(r_y2_change, weights=rw)
 rmax_y2c = r_y2_change.max() #+25.03 (~+2500%)
 rmin_y2c = r_y2_change.min() #-0.8569 (~-86%)
 #(2) excluding postive change rates
-rmean_y2c0_weigh = round(np.average(r_c0['r_y2_c0'], weights=rw),2) #-0.36 -0.37
-rmean_y1c0_weigh = round(np.average(r_c0['r_y1_c0'], weights=rw),2) #-0.32 -0.33
+rmean_y2c0_weigh = round(np.average(r_c0['r_y2_c0'], weights=rw),2) #-0.37
+rmean_y1c0_weigh = round(np.average(r_c0['r_y1_c0'], weights=rw),2) #-0.33
 
 '''
 Statistics to compare current SPAM2010 yield with (1) current fitted values,
@@ -826,6 +820,7 @@ print(dr0_mean, r_fit_mean, rmean_y1_weigh, rmean_y2_weigh,
       r_y1_per, r_y2_per, r_y10_per, r_y20_per,
       rmean_y1c_weigh, rmean_y2c_weigh, rmean_y1c0_weigh, rmean_y2c0_weigh)
 
+
 '''
 save the predicted yields and the yield change rates for each phase
 '''
@@ -837,7 +832,6 @@ LoI_rice = LoI_rice.rename(columns={0:"r_yield_y1", 1:"r_y1_change",
                                       2:"r_yield_y2",3:"r_y2_change"}, errors="raise")
 #save the dataframe in a csv
 LoI_rice.to_csv(params.geopandasDataDir + "LoIRiceYieldHighRes.csv")
-
 
 #save the yield for phase 1 and 2 and the change rate for phase 1 and 2 with and without positive rates
 #as ASCII files
