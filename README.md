@@ -1,7 +1,7 @@
 🌾📈 `LosingIndustryCropYields`
 ==============================
 
-Code and notebooks for calculating crop metrics (e.g. yield) in a loss of 
+Code and notebooks for calculating crop yield in a loss of 
 industry scenario. Used in ALLFED research projects.
 
 Code can be run either in the interactive Colab environment (in which case
@@ -71,25 +71,66 @@ slowly at full resolution.
 
 #### Python Files 
 
-src/import_irrigation_data.py - Determine irrigated area reliant on electricity 
-for ground and surface water, save a geopandas pkl and print summary statistics.
-Minimum 5 arcminute resolution. Uses aquastat and gmiav5.
+##### statistical analysis of the relationship between crop yield and its influencing factors, predicting
+##### crop yields in a loss of industry scenario
 
-src/import_spam_yield.py - Imports crop yields and areas for each crop from 
-SPAM, and saves to geopandas (.pkl). Minimum 5 arcminute resolution.
+src/maize_highres_yield_clean.py
+src/rice_highres_yield_clean.py
+src/soybean_highres_yield_clean.py
+src/wheat_highres_yield_clean.py - loads yield, fertilizer, manure, pesticides, irrigation,
+mechanisation and AEZ data. The data are preprocessed by eliminating missing data points
+and outliers, combining categories with few observations and by checking for multicollinearity.
+A generalized linear model (GLM) with gamma distribution is applied to the data to examine the
+relationship between yield and the influencing factors (n_total, p_fertilizer, pesticides,
+irrigation, mechanized, temperature regime, moisture regime and soil/terrain related categories).
+The GLM is used to predict yields in a loss of industry scenario and the results saved as ASCII files.
 
-src/import_pesticide_application.py - Imports fermanv1 pesticide data and saves 
-as (.pkl) format. Additionally sums up the pesticide application of each type.
-Minimum 5 arcminute resolution.
+src/maize_highres_yield_optimized.py - as above but this file tests different resolutions.
 
-src/import_livestock_data.py - Imports livestock head counts and saves as 
-(.pkl) format. Minimum 5 arcminute resolution.
+##### importing spatial raster datasets
+
+src/import_aez.py - Imports a raster (geotiff) of agroecological zones (AEZ) from the FAO at
+5 arcmin resolution and saves it as a text file (.csv).
+
+src/import_fertilizer.py - Imports application rates of nitrogen and phosphorus in artificial fertilizer,
+upsamples it from half-degree to 5 arcmin resolution and saves the result as a text file (.csv).
+
+src/import_irrigation_reliant.py - Determine irrigated area reliant on electricity 
+for ground and surface water, save a text file (csv) and print summary statistics.
+25 arcminute resolution. Uses aquastat and gmiav5.
+
+src/upsample_irrigation.py - Upsamples the irrigation reliant csv to a 5 arcmin resolution.
+
+src/import_irrigation_total.py - Imports a raster of crop irrigation area from gmiav5 at
+5 arcmin resolution and saves it as a text file (.csv).
+
+src/import_manure_fertilizer.py - Imports a raster (geotiff) of manure nitrogen application
+rate at 5 arcmin resolution and saves it as a text file (.csv).
+
+src/import_pesticide_application_bycrop.py - Imports fermanv1 pesticide data and saves 
+as text (.csv) format. Additionally sums up the pesticide application of each type.
+
+src/import_spam_yield_data.py - Imports crop yields and areas for each crop from 
+SPAM, and saves to text file (.csv).
+
+src/import_tillage.py - Imports a netcdf defined set of arrays of six classes of tillage,
+reclassifying them into two new classes: 0 = Not mechanized, 1 = mechanized and saving the
+result as a csv file.
+
+##### utilities
 
 src/params.py - Imports parameter values from the Params.ods file, including 
 data directory locations, latitude and longitude grid resolution, etc.
 Minimum 5 arcminute resolution.
 
 src/plotter.py - Utility class to plot maps and countries.
+
+src/stat_ut.py - Utility class containing useful functions involving statistical operations
+
+src/utilities.py - Utility class containing useful functions that don't involve plotting.
+
+src/create_asciis.py - Creates ASCII files from csv input files in order to visualize the
+data resulting from the predictive analysis in QGIS.
 
 #### misc
 
@@ -119,4 +160,4 @@ Project Organization
 --------
 
 
-Contact: reach me at morgan@allfed.info.
+Contact: reach us at morgan@allfed.info and jessica@allfed.info.
