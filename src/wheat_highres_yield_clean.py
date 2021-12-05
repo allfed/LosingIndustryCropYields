@@ -494,7 +494,7 @@ plot_wc.axes[0].set_ylabel('Standardized Residuals')
 #annotate the three points with the largest Cooks distance value
 leverage_top_3 = np.flip(np.argsort(w_elimg_infl_sample["Cooks_d"]), 0)[:3]
 
-for i in leverage_top_3:
+for i in leverage_top_3.index:
     plot_wc.axes[0].annotate(i,
                              xy=(w_elimg_infl_sample['hat_matrix'][i],
                                  w_elimg_infl_sample['resid_stud'][i]))
@@ -673,7 +673,7 @@ Prediction of LoI yields and yield change rates in phase 1 and 2
 ### Phase 1 ###
 
 #select the rows from LoI_relim which contain the independent variables for phase 1
-LoI_w_phase1 = LoI_welim.iloc[:, [10, 13, 14, 15, 17, 19, 22, 25]]
+LoI_w_phase1 = LoI_welim.iloc[:, [10, 13, 14, 15, 17, 18, 21, 24]]
 #reorder the columns according to the order in dw0_elim
 LoI_w_phase1 = LoI_w_phase1[['p_fert_y1', 'N_toty1', 'pest_y1', 'mechanized',
                            'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
@@ -721,7 +721,7 @@ wmin_y1c = w_y1_change.min()  # -0.9330 (~-93%)
 ### Phase 2 ###
 
 #select the rows from LoI_welim which contain the independent variables for phase 2
-LoI_w_phase2 = LoI_welim.iloc[:, [13, 14, 15, 16, 19, 23, 24, 26]]
+LoI_w_phase2 = LoI_welim.iloc[:, [13, 14, 15, 16, 18, 22, 23, 25]]
 #reorder the columns according to the order in dw0_elim
 LoI_w_phase2 = LoI_w_phase2[['p_fert_y2', 'man_fert', 'pest_y2', 'mechanized_y2',
                            'irr_LoI', 'thz_class', 'mst_class', 'soil_class']]
