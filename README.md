@@ -20,9 +20,12 @@ https://colab.research.google.com/notebooks/basic_features_overview.ipynb
 
 See "what each file does" section below for an introduction to each notebook.
 
-## Dependencies: Setup using in local dev environment (for advanced users)
+## Dependencies: Setup in local dev environment (for advanced users)
 
-Dependency management is done with Poetry.
+Create a clone of the repository on your device.
+
+### Dependency management with Poetry
+
 See https://python-poetry.org/docs/ for installation instructions.
 
 Once it's installed, in the root folder of the repo, run:
@@ -44,6 +47,36 @@ exit
 ```
 
 The pyproject.toml file lists all the dependencies if you're curious. 
+
+### Dependency management with Anaconda
+
+See https://docs.anaconda.com/anaconda/install/index.html for installation instructions.
+
+Once the program is installed on your device, set up a separate environment for the project
+(do not use the base environment). This step and the following can be done in two ways:
+- using the GUI or
+- using the Anaconda Prompt.
+For people new to coding the GUI is more intuitive.
+
+#### GUI
+1. Open the Anaconda Navigator.
+2. Select the tap "Environments".
+3. Click "Import" and select the "LoIYield.yml" file from the repository and name the new
+    environment. All dependencies will be installed automatically.
+
+#### Anaconda Prompt
+1. Open Anaconda Prompt.
+2. Type in the following line:
+```bash
+conda env create -f LoIYield.yml
+```
+The dependencies will be installed automatically and the environment will be name LoIYield.
+
+For both versions: Code from this project will only run smoothly when opened in the new
+environment and when the working directory is set to the path location of the repository on
+your machine.
+
+### Input data management
 
 To get data for import or analysis, download from google drive:
 
