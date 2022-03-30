@@ -43,11 +43,11 @@ import rasterio
 import utilities
 #import resource
 from sys import platform
-if platform == "linux" or platform == "linux2":
-	#this is to ensure Morgan's computer doesn't crash
-	import resource
-	rsrc = resource.RLIMIT_AS
-	resource.setrlimit(rsrc, (5e9, 5e9))#no more than 3 gb
+#if platform == "linux" or platform == "linux2":
+#	#this is to ensure Morgan's computer doesn't crash
+#	import resource
+#	rsrc = resource.RLIMIT_AS
+#	resource.setrlimit(rsrc, (5e9, 5e9))#no more than 3 gb
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()

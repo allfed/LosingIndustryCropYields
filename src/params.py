@@ -79,10 +79,7 @@ def importAll():
 
 def importDirectories():
 	from sys import platform
-	if platform == "linux" or platform == "linux2":
-		from pyexcel_ods import get_data
-	else:
-		from pyexcel_ods3 import get_data
+	from pyexcel_ods3 import get_data
 
 	global spamCropYieldDataLoc
 	global cropAreaDataLoc
@@ -146,10 +143,7 @@ def importDirectories():
 
 
 def importModelParams():
-	if platform == "linux" or platform == "linux2":
-		from pyexcel_ods import get_data
-	else:
-		from pyexcel_ods3 import get_data
+	from pyexcel_ods3 import get_data
 
 
 	global latdiff
@@ -228,10 +222,7 @@ def importModelParams():
 
 def importYieldTemp():
 
-	if platform == "linux" or platform == "linux2":
-		from pyexcel_ods import get_data
-	else:
-		from pyexcel_ods3 import get_data
+	from pyexcel_ods3 import get_data
 
 	global Tbase
 	global Tfp
@@ -266,11 +257,7 @@ def importYieldTemp():
 
 
 def importYieldRain():
-	if platform == "linux" or platform == "linux2":
-		from pyexcel_ods import get_data
-	else:
-		from pyexcel_ods3 import get_data
-
+	from pyexcel_ods3 import get_data
 	global RpeakCoeff	
 	global RlowCoeff	
 	global RhighCoeff	
@@ -313,10 +300,7 @@ def importYieldRain():
 
 
 def importGrowingSeason():
-	if platform == "linux" or platform == "linux2":
-		from pyexcel_ods import get_data
-	else:
-		from pyexcel_ods3 import get_data
+	from pyexcel_ods3 import get_data
 
 	global growDuration
 	global idealGrowth
@@ -343,10 +327,7 @@ def importGrowingSeason():
 
 
 def importNutrition():
-	if platform == "linux" or platform == "linux2":
-		from pyexcel_ods import get_data
-	else:
-		from pyexcel_ods3 import get_data
+	from pyexcel_ods3 import get_data
 
 	global kCalperkg
 	global fracProtein
