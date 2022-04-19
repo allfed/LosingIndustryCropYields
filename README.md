@@ -61,14 +61,14 @@ For people new to coding the GUI is more intuitive.
 #### GUI
 1. Open the Anaconda Navigator.
 2. Select the tap "Environments".
-3. Click "Import" and select the "LoIYield.yml" file from the repository and name the new
+3. Click "Import" and select the "loi.yml" file from the repository and name the new
     environment. All dependencies will be installed automatically.
 
 #### Anaconda Prompt
 1. Open Anaconda Prompt.
 2. Type in the following line:
 ```bash
-conda env create -f LoIYield.yml
+conda env create -f loi.yml
 ```
 The dependencies will be installed automatically and the environment will be name LoIYield.
 
