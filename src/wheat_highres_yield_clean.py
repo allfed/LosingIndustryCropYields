@@ -91,7 +91,7 @@ fertilizer_man = pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.
 irr_t = pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
 crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
 irr_rel = pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage = pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+tillage = pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
 aez = pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 
 #fraction of irrigation total is of total cell area so it has to be divided by the
@@ -241,6 +241,11 @@ dwheat_val_elim = dwheat_duw_elim.sample(frac=0.2, random_state=2705)  # RAW
 # drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
 dwheat_fit_elim = dwheat_duw_elim.drop(dwheat_val_elim.index)
 
+#select the independent variables from the validation dataset
+w_val_elim = dwheat_val_elim.iloc[:, [5, 8, 9, 10, 11, 13, 14, 15]]
+
+w_val_elim.to_csv('w_val_elim.csv')
+
 
 '''
 Check for multicollinearity by calculating the two-way correlations and the VIF
@@ -299,11 +304,13 @@ Calibrate the Regression model and calculate fit statistics
 '''
 
 link = sm.families.links.log
+dwheat_fit_elim.to_csv('dwheat_fit_elim.csv')
 
 #determine model with a gamma distribution
 w_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + irrigation_tot + mechanized + pesticides_H +  C(thz_class) + \
               C(mst_class) + C(soil_class)', data=dwheat_fit_elim,
                       family=sm.families.Gamma(link=sm.families.links.log))
+
 # Nullmodel
 w_mod_elim0 = smf.glm(formula='Y ~ 1', data=dwheat_fit_elim, family=sm.families.Gamma(link=sm.families.links.log))
 
@@ -334,8 +341,6 @@ w_bic = w_fit_elimg.bic_llf
 Validate the model against the validation dataset
 '''
 
-#select the independent variables from the validation dataset
-w_val_elim = dwheat_val_elim.iloc[:, [5, 8, 9, 10, 11, 13, 14, 15]]
 
 #let the model predict yield values for the validation data
 w_pred_elimg = w_fit_elimg.predict(w_val_elim)

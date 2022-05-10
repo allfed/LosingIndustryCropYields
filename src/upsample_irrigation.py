@@ -12,7 +12,7 @@ import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
-	sys.path.append(module_path)
+    sys.path.append(module_path)
 
 from src import params  # get file location and varname parameters for data import
 from src.plotter import Plotter
@@ -30,14 +30,6 @@ import utilities
 # import os, psutil
 # from pympler import summary
 # from pympler import muppy
-
-#import resource
-from sys import platform
-if platform == "linux" or platform == "linux2":
-	#this is to ensure Morgan's computer doesn't crash
-	import resource
-	rsrc = resource.RLIMIT_AS
-	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 # process = psutil.Process(os.getpid())
 # print("mem1: "+str(process.memory_info().rss/1e6))  # in megabytes 
@@ -68,9 +60,9 @@ print(start_lon_index)
 print(start_lat_index)
 # we ignore the last latitude cell
 lats = np.linspace(-90, 90 - five_minute, \
-				   np.floor(180 / five_minute).astype('int'))
+                   np.floor(180 / five_minute).astype('int'))
 lons = np.linspace(-180, 180 - five_minute, \
-				   np.floor(360 / five_minute).astype('int'))
+                   np.floor(360 / five_minute).astype('int'))
 
 print(nbins*len(lats))
 print(nbins*len(lons))
@@ -80,7 +72,7 @@ frac_result=np.full((nbins*len(lats),nbins*len(lons)),np.nan)
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
-		"lons": pd.Series(lons2d.ravel())}
+        "lons": pd.Series(lons2d.ravel())}
 df = pd.DataFrame(data=data)
 
 sizeArray=[len(lats),len(lons)]
