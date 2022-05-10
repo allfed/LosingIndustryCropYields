@@ -14,7 +14,7 @@ https://essd.copernicus.org/articles/12/3545/2020/essd-12-3545-2020.pdf
 "We prepare datafor the model based on the 2009–2011 average of the cropproduction  statistics"
 
 Output of Import: all units are per cell in hectares
-	'area' column: total irrigated area 
+    'area' column: total irrigated area 
 
 Morgan Rivers
 morgan@allfed.info
@@ -24,7 +24,7 @@ import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
-	sys.path.append(module_path)
+    sys.path.append(module_path)
 
 from src import params  # get file location and varname parameters for data import
 from src.plotter import Plotter
@@ -37,11 +37,6 @@ import rasterio
 import utilities
 #import resource
 from sys import platform
-if platform == "linux" or platform == "linux2":
-	#this is to ensure Morgan's computer doesn't crash
-	import resource
-	rsrc = resource.RLIMIT_AS
-	resource.setrlimit(rsrc, (5e9, 5e9))#no more than 3 gb
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -57,9 +52,9 @@ aiArr=fracActuallyIrrigatedData.read(1) #fracEquippedData was used twice
 fArr = np.multiply(eArr,aiArr)/100/100
 # we ignore the last latitude cell
 lats = np.linspace(-90, 90 - five_minute, \
-			   np.floor(180 / five_minute).astype('int'))
+               np.floor(180 / five_minute).astype('int'))
 lons = np.linspace(-180, 180 - five_minute, \
-			   np.floor(360 / five_minute).astype('int'))
+               np.floor(360 / five_minute).astype('int'))
 
 latbins=np.floor(len(fArr)/len(lats)).astype('int')
 lonbins=np.floor(len(fArr[0])/len(lons)).astype('int')
@@ -75,9 +70,9 @@ fArrResized=fArr[0:latbins*len(lats),0:lonbins*len(lons)]
 
 lats2d, lons2d = np.meshgrid(lats, lons)
 data = {"lats": pd.Series(lats2d.ravel()),
-		"lons": pd.Series(lons2d.ravel()),
-		"fraction": pd.Series(np.fliplr(np.transpose(fArrResized)).ravel())
-		}
+        "lons": pd.Series(lons2d.ravel()),
+        "fraction": pd.Series(np.fliplr(np.transpose(fArrResized)).ravel())
+        }
 
 df = pd.DataFrame(data=data)
 

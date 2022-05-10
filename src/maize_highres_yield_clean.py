@@ -14,7 +14,7 @@ import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
-	sys.path.append(module_path)
+    sys.path.append(module_path)
 
 from src import params
 from src import utilities
@@ -96,7 +96,7 @@ fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.cs
 irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
 crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
 irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
 aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 
 #fraction of irrigation total is of total cell area so it has to be divided by the
@@ -130,11 +130,11 @@ outliers and combining levels of categorical factors
 '''
 
 datam_raw = {"lat": maize_yield.loc[:,'lats'],
-		"lon": maize_yield.loc[:,'lons'],
-		"area": maize_yield.loc[:,'growArea'],
+        "lon": maize_yield.loc[:,'lons'],
+        "area": maize_yield.loc[:,'growArea'],
         "Y": maize_yield.loc[:,'yield_kgPerHa'],
-		"n_fertilizer": fertilizer.loc[:,'n_kgha'],
-		"p_fertilizer": fertilizer.loc[:,'p_kgha'],
+        "n_fertilizer": fertilizer.loc[:,'n_kgha'],
+        "p_fertilizer": fertilizer.loc[:,'p_kgha'],
         "n_manure": fertilizer_man.loc[:,'applied_kgha'],
         "n_man_prod" : fertilizer_man.loc[:,'produced_kgha'],
         "n_total" : N_total,
@@ -145,7 +145,7 @@ datam_raw = {"lat": maize_yield.loc[:,'lats'],
         "thz_class" : aez.loc[:,'thz'],
         "mst_class" : aez.loc[:,'mst'],
         "soil_class": aez.loc[:,'soil']
-		}
+        }
 
 #arrange data in a dataframe
 dmaize_raw = pd.DataFrame(data=datam_raw)

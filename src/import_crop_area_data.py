@@ -16,7 +16,7 @@ import os
 import sys
 module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
-	sys.path.append(module_path)
+    sys.path.append(module_path)
 
 from src import utilities
 from src import params  # get file location and varname parameters for data import
@@ -26,14 +26,6 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio
-
-#import resource
-from sys import platform
-if platform == "linux" or platform == "linux2":
-	#this is to ensure Morgan's computer doesn't crash
-	import resource
-	rsrc = resource.RLIMIT_AS
-	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -53,9 +45,9 @@ print('done reading')
 five_minute = 5/60
 # we ignore the last latitude cell
 lats = np.linspace(-90, 90 - five_minute, \
-				   np.floor(180 / five_minute).astype('int'))
+                   np.floor(180 / five_minute).astype('int'))
 lons = np.linspace(-180, 180 - five_minute, \
-				   np.floor(360 / five_minute).astype('int'))
+                   np.floor(360 / five_minute).astype('int'))
 
 latbins=np.floor(len(lArr)/len(lats)).astype('int')
 lonbins=np.floor(len(lArr[0])/len(lons)).astype('int')
@@ -80,9 +72,9 @@ lats2d, lons2d = np.meshgrid(lats, lons)
 
 #the crop data is a percent, so we divide by 100 to get a fraction
 data = {"lats": pd.Series(lats2d.ravel()),
-		"lons": pd.Series(lons2d.ravel()),
-		# average fraction crop area.
-		"fraction": pd.Series(lBinnedReoriented.ravel())/100.0}
+        "lons": pd.Series(lons2d.ravel()),
+        # average fraction crop area.
+        "fraction": pd.Series(lBinnedReoriented.ravel())/100.0}
 
 df = pd.DataFrame(data=data)
 # print(len(df['']))
