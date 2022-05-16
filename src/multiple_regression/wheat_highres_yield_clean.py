@@ -16,8 +16,8 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
        sys.path.append(module_path)
 
-from src import params
-from src import utilities
+from src.utilities import params
+from src.utilities import utilities
 import pandas as pd
 from scipy import stats
 import matplotlib
@@ -238,14 +238,14 @@ Split the data into a validation and a calibration dataset
 # select a random sample of 20% from the dataset to set aside for later validation
 # random_state argument ensures that the same sample is returned each time the code is run
 dwheat_val_elim = dwheat_duw_elim.sample(frac=0.2, random_state=2705)  # RAW
-dwheat_val_elim.to_csv('dwheat_val_elim.csv')
+# dwheat_val_elim.to_csv('dwheat_val_elim.csv')
 # drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
 dwheat_fit_elim = dwheat_duw_elim.drop(dwheat_val_elim.index)
 
 #select the independent variables from the validation dataset
 w_val_elim = dwheat_val_elim.iloc[:, [5, 8, 9, 10, 11, 13, 14, 15]]
 
-w_val_elim.to_csv('w_val_elim.csv')
+# w_val_elim.to_csv('w_val_elim.csv')
 
 
 '''
@@ -305,7 +305,7 @@ Calibrate the Regression model and calculate fit statistics
 '''
 
 link = sm.families.links.log
-dwheat_fit_elim.to_csv('dwheat_fit_elim.csv')
+# dwheat_fit_elim.to_csv('dwheat_fit_elim.csv')
 
 #determine model with a gamma distribution
 w_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + irrigation_tot + mechanized + pesticides_H +  C(thz_class) + \

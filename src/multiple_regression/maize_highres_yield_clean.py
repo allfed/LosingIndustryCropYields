@@ -16,13 +16,18 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src import params
-from src import utilities
+from src.utilities import params  # get file location and varname parameters for data import
+from src.utilities.plotter import Plotter
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+import geopandas as gpd
+import rasterio
+import src.utilities.utilities as utilities
+
 from scipy import stats
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 #seaborn is just used for plotting, might be removed later
 import seaborn as sb
 import statsmodels.api as sm
