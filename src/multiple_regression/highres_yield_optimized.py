@@ -4,59 +4,33 @@ File containing the code to explore data and perform a multiple regression
 on yield for crop
 '''
 
+
 import os
 import sys
 module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src import params
-from src import utilities
-# from src import outdoor_growth
-# from src.outdoor_growth import OutdoorGrowth
-from src import stat_ut
-import pandas as pd
-import scipy
-from scipy import stats
-import matplotlib
+from src.utilities import params  # get file location and varname parameters for data import
+from src.utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
-#seaborn is just used for plotting, might be removed later
+import pandas as pd
+import geopandas as gpd
+import rasterio
+import src.utilities.utilities as utilities
+
+from scipy import stats
+import matplotlib
 import seaborn as sb
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
-from sklearn.metrics import r2_score
 from sklearn.metrics import d2_tweedie_score
-from sys import platform
+from sklearn.metrics import mean_tweedie_deviance
 
-if platform == "linux" or platform == "linux2":
-    #this is to ensure Morgan's computer doesn't crash
-    import resource
-    rsrc = resource.RLIMIT_AS
-    resource.setrlimit(rsrc, (4e9, 4e9))#no more than 3 gb
-    # soft_limit,hard_limit=resource.getrlimit(resource.RLIMIT_DATA)
-    # print('soft_limit')
-    # print(soft_limit)
-    # print('hard_limit')
-    # print(hard_limit)
-    # for name, desc in [
-    #     ('RLIMIT_CORE', 'core file size'),
-    #     ('RLIMIT_CPU',  'CPU time'),
-    #     ('RLIMIT_FSIZE', 'file size'),
-    #     ('RLIMIT_DATA', 'heap size'),
-    #     ('RLIMIT_STACK', 'stack size'),
-    #     ('RLIMIT_RSS', 'resident set size'),
-    #     ('RLIMIT_NPROC', 'number of processes'),
-    #     ('RLIMIT_NOFILE', 'number of open files'),
-    #     ('RLIMIT_MEMLOCK', 'lockable memory address'),
-    #     ]:
-    #     limit_num = getattr(resource, name)
-    #     soft, hard = resource.getrlimit(limit_num)
-    #     print('Maximum %-25s (%-15s) : %20s %20s' % (desc, name, soft, hard))
-    # quit()
 import gc
 
 

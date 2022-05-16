@@ -10,35 +10,22 @@ morgan@allfed.info
 '''
 import os
 import sys
-module_path = os.path.abspath(os.path.join('..'))
+module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src import params  # get file location and varname parameters for data import
-from src.plotter import Plotter
+from src.utilities import params  # get file location and varname parameters for data import
+from src.utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from geopandas.tools import sjoin
 import rasterio
-import utilities
-
-# import datetime
-
-# import gc
-# import os, psutil
-# from pympler import summary
-# from pympler import muppy
-
-# process = psutil.Process(os.getpid())
-# print("mem1: "+str(process.memory_info().rss/1e6))  # in megabytes 
-# from pympler.tracker import SummaryTracker
-# tracker = SummaryTracker()
+import src.utilities.utilities as utilities
+from geopandas.tools import sjoin
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
-# params.deleteGlobals()
 
 MAKE_GRID = False
 

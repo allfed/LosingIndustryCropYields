@@ -45,24 +45,15 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src import params  # get file location and varname parameters for data import
-from src.plotter import Plotter
+from src.utilities import params  # get file location and varname parameters for data import
+from src.utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from src import utilities
-import netCDF4 as nc
 import rasterio
-
-#import resource
-from sys import platform
-# if platform == "linux" or platform == "linux2":
-#   #this is to ensure Morgan's computer doesn't crash
-#   import resource
-#   rsrc = resource.RLIMIT_AS
-#   resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
-
+import src.utilities.utilities as utilities
+import netCDF4 as nc
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()

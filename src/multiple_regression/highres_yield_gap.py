@@ -10,33 +10,25 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src import params
-from src import outdoor_growth
-from src.outdoor_growth import OutdoorGrowth
-from src import stat_ut
-import pandas as pd
-import scipy
-from scipy import stats
-import matplotlib
+from src.utilities import params  # get file location and varname parameters for data import
+from src.utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
-#seaborn is just used for plotting, might be removed later
+import pandas as pd
+import geopandas as gpd
+import rasterio
+import src.utilities.utilities as utilities
+
+from scipy import stats
+import matplotlib
 import seaborn as sb
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
 from statsmodels.graphics.gofplots import ProbPlot
-from sklearn.metrics import r2_score
-from sys import platform
-
-if platform == "linux" or platform == "linux2":
-    #this is to ensure Morgan's computer doesn't crash
-    import resource
-    rsrc = resource.RLIMIT_AS
-    resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
-
-
+from sklearn.metrics import d2_tweedie_score
+from sklearn.metrics import mean_tweedie_deviance
 
 params.importAll()
 

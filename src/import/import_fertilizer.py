@@ -19,15 +19,15 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src import params  # get file location and varname parameters for data import
-from src.plotter import Plotter
+from src.utilities import params  # get file location and varname parameters for data import
+from src.utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
-from geopandas.tools import sjoin
 import rasterio
-import utilities
+import src.utilities.utilities as utilities
+from geopandas.tools import sjoin
 
 # import datetime
 
