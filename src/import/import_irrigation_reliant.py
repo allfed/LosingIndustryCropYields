@@ -203,6 +203,8 @@ def estimate_reliant_scheme_sw(reliant_scheme,reliant_scheme_area,sw_area,max_ar
 
     return [reliant_sw,reliant_nonsw]
 
+
+#estimate the total reliant irrigated area for the source 
 def estimate_source_reliance(power_area,total_irrigated_area,max_area,sw_area):
 
     if(np.isnan(power_area)):
@@ -281,6 +283,7 @@ def estimate_scheme_reliance(scheme_total,total_irrigated_area,localized_area,sp
         
     #catch issues with incomplete or nonsense data
     #(ignore aquastat surface and ground water area data, if data is not complete or is erroneous)
+    # the scheme_total and total_irrigated area are large positive numbers of hectares, and are expected to generally be close in value to each other or equal. This conditional checks whether they are more than 1 hectare different in value.
     if(
         abs(scheme_total)-1 
         > abs(total_irrigated_area_zeroed) 
@@ -289,8 +292,8 @@ def estimate_scheme_reliance(scheme_total,total_irrigated_area,localized_area,sp
         < abs(total_irrigated_area_zeroed)
         ):      
 
-        # in this case we don't have good direct estimate regarding the fraction of the scheme that is reliant. We'll guess all remaining area is electrified if spate or lowland are listed explicitly,
-        # as long as neither sprinkler or localized are listed explicitly as zero
+        # in this case scheme total and irrigated area total are different, so we don't have good direct estimate regarding the fraction of the scheme that is reliant.
+        #if spate or lowland are listed explicitly and are nonzero: We'll guess that all non-spate and non-lowland area is electrified 
         if(localized_area_zeroed+sprinkler_area_zeroed==0):
             if(localized_area==0 or sprinkler_area==0):
                 reliant_scheme=np.nan
@@ -300,24 +303,32 @@ def estimate_scheme_reliance(scheme_total,total_irrigated_area,localized_area,sp
             elif(#both localized_area and sprinkler area must have been nan
                 spate_area_zeroed+lowland_area_zeroed+surface_area_zeroed>max_area/2
                 ):
+
+                #reliant scheme as a fraction of area
                 reliant_scheme =\
                     (max_area-(spate_area_zeroed+lowland_area_zeroed+surface_area_zeroed))/max_area
                 reliant_scheme_assumed=reliant_scheme
+                
+                #reliant scheme as total area
                 reliant_scheme_area=max_area-(spate_area_zeroed+lowland_area_zeroed+surface_area_zeroed)
+                
                 [reliant_scheme_sw,reliant_scheme_nonsw]=estimate_reliant_scheme_sw(reliant_scheme_assumed,reliant_scheme_area,surface_water_area,max_area,spate_area,lowland_area,surface_area,localized_area,sprinkler_area)
 
-            #we don't really know anything about it.
+            #we don't really know anything useful about reliant irrigation from the scheme in this condition.
             else:
                 reliant_scheme=np.nan
                 reliant_scheme_assumed=0
                 reliant_scheme_nonsw=reliant_scheme_assumed
                 reliant_scheme_sw=reliant_scheme_assumed                
         else:
+
             reliant_scheme=(localized_area_zeroed+sprinkler_area_zeroed)/max_area
             reliant_scheme_assumed=reliant_scheme
+
             reliant_scheme_area=localized_area_zeroed+sprinkler_area_zeroed
             [reliant_scheme_sw,reliant_scheme_nonsw]=estimate_reliant_scheme_sw(reliant_scheme_assumed,reliant_scheme_area,surface_water_area,max_area,spate_area,lowland_area,surface_area,localized_area,sprinkler_area)
-    #good data with nonzero values, complete irrigation data, surface water greater than spate plus lowland irrigation 
+
+    #The total areas are similar. In this condition, we have good data with nonzero values, complete irrigation data, and surface water is greater than spate plus lowland irrigation 
     else:
         reliant_scheme=(localized_area_zeroed+sprinkler_area_zeroed)/max_area
         reliant_scheme_assumed=reliant_scheme
@@ -360,11 +371,15 @@ for countryIndex in set(pointInPolys.index_right.values):
     total_irrigated_area=get_value(total_equipped_id)
     
     scheme_total_arr=np.array([surface_area,sprinkler_area,localized_area,spate_area,lowland_area])
+
+    #take the scheme areas where defined and add them up
     scheme_total_arr=scheme_total_arr[~np.isnan(scheme_total_arr)]
     scheme_total=np.sum(scheme_total_arr)
-    #assign total irrigated area to the maximum of total area, scheme area, or power area
+
+    #assign total irrigated area to the maximum of total area, scheme area, or power area, where defined
     areas=np.array([scheme_total,total_irrigated_area,power_area])
     areas=areas[~np.isnan(areas)]
+
     #not enough data to estimate value.
     if(np.sum(areas)==0):
         max_area=np.nan
@@ -392,35 +407,6 @@ for countryIndex in set(pointInPolys.index_right.values):
         reliant=1-(1-reliant_scheme_assumed)*(1-reliant_source_assumed)
         reliant_sw=1-(1-reliant_scheme_sw)*(1-reliant_source_sw)
         reliant_nonsw=1-(1-reliant_scheme_nonsw)*(1-reliant_source_nonsw)
-
-        # if(~np.isnan(surface_water_area)):
-            # print('')
-            # print('reliant'+str(reliant))
-            # print('estreliant'+str((reliant_sw*surface_water_area+reliant_nonsw*(max_area-surface_water_area))/max_area))
-            # print('reliant_sw_rat'+str(reliant_sw*surface_water_area/max_area)        )
-            # print('reliant_nonsw_rat'+str(reliant_nonsw*(max_area-surface_water_area)/max_area))
-
-        # print('')
-        # print('code'+str(code))
-        # print('reliant'+str(reliant))
-        # print('reliant_source'+str(reliant_source))
-        # print('reliant_source_sw'+str(reliant_source_sw))
-        # print('reliant_source_nonsw'+str(reliant_source_nonsw))
-        # print('reliant_scheme_assumed'+str(reliant_scheme_assumed))
-        # print('reliant_scheme_sw'+str(reliant_scheme_sw))
-        # print('reliant_scheme_nonsw'+str(reliant_scheme_nonsw))
-        # print('')
-        # print('spate_area'+str(spate_area))
-        # print('lowland_area'+str(lowland_area))
-        # print('sprinkler_area'+str(sprinkler_area))
-        # print('localized_area'+str(localized_area))
-        # print('surface_area'+str(surface_area))
-        # print('power_area'+str(power_area))
-        # print('surface_water_area'+str(surface_water_area))
-        # print('ground_water_area'+str(ground_water_area))
-        # print('total_irrigated_area'+str(total_irrigated_area))
-
-
 
         world.loc[int(row.index[0]),'reliant']=reliant
         world.loc[int(row.index[0]),'reliant_source']=reliant_source
