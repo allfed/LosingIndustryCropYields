@@ -63,6 +63,8 @@ total_equipped_id=4313
 flood_recession_id=6043
 ground_water_id=4320
 surface_water_id=4321
+non_equipped_flood_id=4314
+total_equipped_wetlands_id=4315
 
 #total area
 areadata=rasterio.open(params.irrigationDataLoc+'gmia_v5_aei_ha.asc')
