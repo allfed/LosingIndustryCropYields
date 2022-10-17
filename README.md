@@ -107,10 +107,10 @@ slowly at full resolution.
 ##### statistical analysis of the relationship between crop yield and its influencing factors, predicting
 ##### crop yields in a loss of industry scenario
 
-src/maize_highres_yield_clean.py
-src/rice_highres_yield_clean.py
-src/soybean_highres_yield_clean.py
-src/wheat_highres_yield_clean.py - loads yield, fertilizer, manure, pesticides, irrigation,
+src/multiple_regression/maize_highres_yield_clean.py
+src/multiple_regression/rice_highres_yield_clean.py
+src/multiple_regression/soybean_highres_yield_clean.py
+src/multiple_regression/wheat_highres_yield_clean.py - loads yield, fertilizer, manure, pesticides, irrigation,
 mechanisation and AEZ data. The data are preprocessed by eliminating missing data points
 and outliers, combining categories with few observations and by checking for multicollinearity.
 A generalized linear model (GLM) with gamma distribution is applied to the data to examine the
@@ -118,56 +118,56 @@ relationship between yield and the influencing factors (n_total, p_fertilizer, p
 irrigation, mechanized, temperature regime, moisture regime and soil/terrain related categories).
 The GLM is used to predict yields in a loss of industry scenario and the results saved as ASCII files.
 
-src/maize_highres_yield_optimized.py - as above but this file tests different resolutions.
+src/multiple_regression/maize_highres_yield_optimized.py - as above but this file tests different resolutions.
 
 ##### importing spatial raster datasets
 
-src/import_aez.py - Imports a raster (geotiff) of agroecological zones (AEZ) from the FAO at
+src/import/import_aez.py - Imports a raster (geotiff) of agroecological zones (AEZ) from the FAO at
 5 arcmin resolution and saves it as a text file (.csv).
 
-src/import_fertilizer.py - Imports application rates of nitrogen and phosphorus in artificial fertilizer,
+src/import/import_fertilizer.py - Imports application rates of nitrogen and phosphorus in artificial fertilizer,
 upsamples it from half-degree to 5 arcmin resolution and saves the result as a text file (.csv).
 
-src/import_irrigation_reliant.py - Determine irrigated area reliant on electricity 
+src/import/import_irrigation_reliant.py - Determine irrigated area reliant on electricity 
 for ground and surface water, save a text file (csv) and print summary statistics.
 25 arcminute resolution. Uses aquastat and gmiav5.
 
-src/upsample_irrigation.py - Upsamples the irrigation reliant csv to a 5 arcmin resolution.
+src/import/upsample_irrigation.py - Upsamples the irrigation reliant csv to a 5 arcmin resolution.
 
-src/import_irrigation_total.py - Imports a raster of crop irrigation area from gmiav5 at
+src/import/import_irrigation_total.py - Imports a raster of crop irrigation area from gmiav5 at
 5 arcmin resolution and saves it as a text file (.csv).
 
-src/import_manure_fertilizer.py - Imports a raster (geotiff) of manure nitrogen application
+src/import/import_manure_fertilizer.py - Imports a raster (geotiff) of manure nitrogen application
 rate at 5 arcmin resolution and saves it as a text file (.csv).
 
-src/import_pesticide_application_bycrop.py - Imports fermanv1 pesticide data and saves 
+src/import/import_pesticide_application_bycrop.py - Imports fermanv1 pesticide data and saves 
 as text (.csv) format. Additionally sums up the pesticide application of each type.
 
-src/import_spam_yield_data.py - Imports crop yields and areas for each crop from 
+src/import/import_spam_yield_data.py - Imports crop yields and areas for each crop from 
 SPAM, and saves to text file (.csv).
 
-src/import_tillage.py - Imports a netcdf defined set of arrays of six classes of tillage,
+src/import/import_tillage.py - Imports a netcdf defined set of arrays of six classes of tillage,
 reclassifying them into two new classes: 0 = Not mechanized, 1 = mechanized and saving the
 result as a csv file.
 
 ##### utilities
 
-src/params.py - Imports parameter values from the Params.ods file, including 
+src/utilities/params.py - Imports parameter values from the Params.ods file, including 
 data directory locations, latitude and longitude grid resolution, etc.
 Minimum 5 arcminute resolution.
 
-src/plotter.py - Utility class to plot maps and countries.
+src/utilities/plotter.py - Utility class to plot maps and countries.
 
-src/stat_ut.py - Utility class containing useful functions involving statistical operations
+src/utilities/stat_ut.py - Utility class containing useful functions involving statistical operations
 
-src/utilities.py - Utility class containing useful functions that don't involve plotting.
+src/utilities/utilities.py - Utility class containing useful functions that don't involve plotting.
 
-src/create_asciis.py - Creates ASCII files from csv input files in order to visualize the
+src/utilities/create_asciis.py - Creates ASCII files from csv input files in order to visualize the
 data resulting from the predictive analysis in QGIS.
 
 #### misc
 
-Params.ods - A spreadsheet file which includes all of the custom parameters used for the model.
+src/misc/Params.ods - A spreadsheet file which includes all of the custom parameters used for the model.
 
 Project Organization
 ------------
