@@ -149,6 +149,71 @@ datar_raw = {"lat": rice_yield.loc[:,'lats'],
 
 #arrange data_raw in a dataframe
 drice_raw = pd.DataFrame(data=datar_raw)
+
+
+dr0_raw=drice_raw.loc[drice_raw['area'] > 0]
+dr0_raw['n_fertilizer'].min()
+dr0_raw['n_fertilizer'] = dr0_raw['n_fertilizer'].replace(-99989.9959564209, np.nan)
+dr0_raw['n_fertilizer'].isna().sum()
+dr0_raw['p_fertilizer'] = dr0_raw['p_fertilizer'].replace(-99989.9959564209, np.nan)
+dr0_raw['p_fertilizer'].isna().sum()
+dr0_raw['n_total'] = dr0_raw['n_total'].replace(-99989.9959564209, np.nan)
+dr0_raw['n_total'].isna().sum()
+#Boxplot of all the variables
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+fig.suptitle('dr0_raw Boxplots for each variable')
+
+sb.boxplot(ax=axes[0, 0], data=dr0_raw, x='n_fertilizer')
+sb.boxplot(ax=axes[0, 1], data=dr0_raw, x='p_fertilizer')
+sb.boxplot(ax=axes[0, 2], data=dr0_raw, x='n_manure')
+sb.boxplot(ax=axes[1, 0], data=dr0_raw, x='n_total')
+sb.boxplot(ax=axes[1, 1], data=dr0_raw, x='pesticides_H')
+sb.boxplot(ax=axes[1, 2], data=dr0_raw, x='Y')
+
+ax = sb.boxplot(x=dr0_raw["Y"], orient='v')
+ax = sb.boxplot(x=dr0_raw["n_fertilizer"])
+ax = sb.boxplot(x=dr0_raw["p_fertilizer"])
+ax = sb.boxplot(x=dr0_raw["n_manure"])
+ax = sb.boxplot(x=dr0_raw["n_total"])
+ax = sb.boxplot(x=dr0_raw["pesticides_H"])
+ax = sb.boxplot(x=dr0_raw["irrigation_tot"])
+ax = sb.boxplot(x=dr0_raw["irrigation_rel"])
+ax = sb.boxplot(x="mechanized", y='Y', data=dr0_raw)
+ax = sb.boxplot(x="thz_class", y='Y', data=dr0_raw)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="mst_class", y='Y', data=dr0_raw)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="soil_class", y='Y', data=dr0_raw)
+plt.ylim(0,20000)
+
+dr0_qt = dr0_raw.quantile([ .25, .5, .75, .85, .95, .99, .999])
+dr0_qt.reset_index(inplace=True, drop=True)
+
+#Values above the 99.9th percentile are considered unreasonable outliers
+#Calculate number and statistic properties of the outliers
+Y_out = dr0_raw.loc[dr0_raw['Y'] > dr0_qt.iloc[6,3]]
+nf_out = dr0_raw.loc[dr0_raw['n_fertilizer'] > dr0_qt.iloc[6,4]]
+pf_out = dr0_raw.loc[dr0_raw['p_fertilizer'] > dr0_qt.iloc[6,5]] 
+nm_out = dr0_raw.loc[dr0_raw['n_manure'] > dr0_qt.iloc[5,6]] 
+nt_out = dr0_raw.loc[dr0_raw['n_total'] > dr0_qt.iloc[6,8]] 
+P_out = dr0_raw.loc[dr0_raw['pesticides_H'] > dr0_qt.iloc[6,9]]
+r_out = pd.concat([Y_out['Y'], nf_out['n_fertilizer'], pf_out['p_fertilizer'],
+                 nm_out['n_manure'], nt_out['n_total'], P_out['pesticides_H']], axis=1)
+r_out.max()
+r_out.min()
+r_out.mean()
+
+#Eliminate all points above the 99.9th percentile
+dr0_raw = dr0_raw.loc[dr0_raw['Y'] < dr0_qt.iloc[6,3]]
+dr0_raw = dr0_raw.loc[dr0_raw['n_fertilizer'] < dr0_qt.iloc[6,4]]
+dr0_raw = dr0_raw.loc[dr0_raw['p_fertilizer'] < dr0_qt.iloc[6,5]]
+dr0_raw = dr0_raw.loc[dr0_raw['n_manure'] < dr0_qt.iloc[5,6]]
+dr0_raw = dr0_raw.loc[dr0_raw['n_total'] < dr0_qt.iloc[6,8]]
+dr0_raw = dr0_raw.loc[dr0_raw['pesticides_H'] < dr0_qt.iloc[6,9]]
+
+
+
 #select only the rows where the area of the cropland is larger than 100 ha
 dr0_raw=drice_raw.loc[drice_raw['area'] > 100]
 

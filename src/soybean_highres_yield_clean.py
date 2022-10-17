@@ -145,6 +145,44 @@ datas_raw = {"lat": soyb_yield.loc[:,'lats'],
 
 #arrange data_raw in a dataframe
 dsoyb_raw = pd.DataFrame(data=datas_raw)
+
+ds0_raw=dsoyb_raw.loc[dsoyb_raw['area'] > 0]
+ds0_raw['n_fertilizer'].min()
+ds0_raw['n_fertilizer'] = ds0_raw['n_fertilizer'].replace(-99989.9959564209, np.nan)
+ds0_raw['n_fertilizer'].isna().sum()
+ds0_raw['p_fertilizer'] = ds0_raw['p_fertilizer'].replace(-99989.9959564209, np.nan)
+ds0_raw['p_fertilizer'].isna().sum()
+ds0_raw['n_total'] = ds0_raw['n_total'].replace(-99989.9959564209, np.nan)
+ds0_raw['n_total'].isna().sum()
+#Boxplot of all the variables
+fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+
+fig.suptitle('ds0_raw Boxplots for each variable')
+
+sb.boxplot(ax=axes[0, 0], data=ds0_raw, x='n_fertilizer')
+sb.boxplot(ax=axes[0, 1], data=ds0_raw, x='p_fertilizer')
+sb.boxplot(ax=axes[0, 2], data=ds0_raw, x='n_manure')
+sb.boxplot(ax=axes[1, 0], data=ds0_raw, x='n_total')
+sb.boxplot(ax=axes[1, 1], data=ds0_raw, x='pesticides_H')
+sb.boxplot(ax=axes[1, 2], data=ds0_raw, x='Y')
+
+ax = sb.boxplot(x=ds0_raw["Y"], orient='v')
+ax = sb.boxplot(x=ds0_raw["n_fertilizer"])
+ax = sb.boxplot(x=ds0_raw["p_fertilizer"])
+ax = sb.boxplot(x=ds0_raw["n_manure"])
+ax = sb.boxplot(x=ds0_raw["n_total"])
+ax = sb.boxplot(x=ds0_raw["pesticides_H"])
+ax = sb.boxplot(x=ds0_raw["irrigation_tot"])
+ax = sb.boxplot(x=ds0_raw["irrigation_rel"])
+ax = sb.boxplot(x="mechanized", y='Y', data=ds0_raw)
+ax = sb.boxplot(x="thz_class", y='Y', data=ds0_raw)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="mst_class", y='Y', data=ds0_raw)
+plt.ylim(0,20000)
+ax = sb.boxplot(x="soil_class", y='Y', data=ds0_raw)
+plt.ylim(0,20000)
+
+
 #select only the rows where the area of the cropland is larger than 100 ha
 ds0_raw=dsoyb_raw.loc[dsoyb_raw['area'] > 100]
 

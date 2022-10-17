@@ -79,6 +79,54 @@ def stat_overview(distList, pdfList, paramDict):
     results.sort_values(['BIC'], inplace=True)
     print(results)
 
+def weighted_mean_zonal(df, levels, weights):
+    groups = np.sort(levels.unique()).astype(np.int64)
+    df_l = pd.concat([levels, df], axis='columns')
+    col = list(range(1,len(df_l.columns)))
+    lists = [[] for g in range(0, len(groups))]
+    for g in groups:        
+        df_g = df_l.loc[df_l.iloc[:,0]==g]
+        w_g = weights[df_g.index]
+        for c in col:
+            w_a = round(np.average(df_g.iloc[:,c], weights=w_g), 2)
+            #here I need to append the list with the result
+            lists[g-1].append(w_a)
+    results = pd.DataFrame(lists, index = [groups], columns=[df.columns])
+    return results
+
+def weighted_mean(df, weights):
+    col = list(range(0,len(df.columns)))
+    lists = [[] for c in col]
+    for c in col:
+        w_m = round(np.average(df.iloc[:,c], weights=weights), 2)
+            #here I need to append the list with the result
+        lists[c].append(w_m)
+    results = pd.DataFrame(lists, index = ['mean'], columns=[df.columns])
+    return results
+
+'''
+def weighted_mean2(df, levels, weights):
+    groups = np.sort(levels.unique())
+    df_l = pd.concat([levels, df], axis='columns')
+    col = list(range(1,len(df_l.columns)))
+    lists = [[] for c in col]
+    #how do I create a list for each dataframe column that I want the operation to run on?
+    for c in col:
+        for g in groups:        
+            df_g = df_l.loc[df_l.iloc[:,0]==g]
+            w_g = weights[df_g.index]        
+            w_a = round(np.average(df_g.iloc[:,c], weights=w_g), 2)
+            #here I need to append the list with the result
+            lists[c-1].append(w_a)
+    #results = pd.DataFrame(lists, index = [groups], columns=['w1', 'w2', 'w3', 'w4'])
+    return lists
+
+#len(df_l.columns)
+#cont_1 = zon_stat.loc[zon_stat['continent'] == 1]
+#weights_1 = cont_1['Y'] * cont_1['area']
+#cont1_y1_c0 = round(np.average(cont_1['w_y1_c0'], weights=weights_1), 2)
+'''
+
 '''
 # Create models from data
 def best_fit_distribution(data, bins=200, ax=None):
