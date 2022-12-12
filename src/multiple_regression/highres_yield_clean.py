@@ -16,9 +16,9 @@ module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
        sys.path.append(module_path)
 
-from src import params
-from src import utilities
-from src import stat_ut
+from utilities import params
+from utilities import utilities
+from utilities import stat_ut
 import pandas as pd
 from scipy import stats
 import matplotlib
@@ -74,7 +74,7 @@ fertilizer_man = pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.
 irr_t = pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
 crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
 irr_rel = pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage = pd.read_csv(params.geopandasDataDir + 'TillageHighResAllCrops.csv')
+tillage = pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
 aez = pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
 
 #fraction of irrigation total is of total cell area so it has to be divided by the
@@ -129,16 +129,19 @@ dataw_raw = {"lat": wheat_yield.loc[:, 'lats'],
 #arrange data_raw in a dataframe
 dwheat_raw = pd.DataFrame(data=dataw_raw)
 #select only the rows where the area of the cropland is larger than 100 ha
-dw0_raw = dwheat_raw.loc[dwheat_raw['area'] > 0]
-#assign dw0_raw to a new variable to be able to use it later (for calculating LoI input variables)
-dw0 = dw0_raw
-
-dw0_raw['n_fertilizer'] = dw0_raw['n_fertilizer'].replace(-99989.9959564209, np.nan)
-dw0_raw['n_fertilizer'].isna().sum()
-dw0_raw['p_fertilizer'] = dw0_raw['p_fertilizer'].replace(-99989.9959564209, np.nan)
-dw0_raw['p_fertilizer'].isna().sum()
-dw0_raw['n_total'] = dw0_raw['n_total'].replace(-99989.9959564209, np.nan)
-dw0_raw['n_total'].isna().sum()
+dw0_raw = dwheat_raw.loc[dwheat_raw['area'] > 100]
+#save the rows with an area greater 0 in a seperate variable to use them later (for calculating LoI input variables)
+dw0 = dwheat_raw.loc[dwheat_raw['area'] > 0]
+'''
+#Code for calculating the number of missing values. Not to be used in the peparation calculations!!
+dw0_mv = dw0
+dw0_mv['n_fertilizer'] = dw0_mv['n_fertilizer'].replace(-99989.9959564209, np.nan)
+dw0_mv['n_fertilizer'].isna().sum()
+dw0_mv['p_fertilizer'] = dw0_mv['p_fertilizer'].replace(-99989.9959564209, np.nan)
+dw0_mv['p_fertilizer'].isna().sum()
+dw0_mv['n_total'] = dw0_mv['n_total'].replace(-99989.9959564209, np.nan)
+dw0_mv['n_total'].isna().sum()
+'''
 #Boxplot of all the variables
 fig, axes = plt.subplots(2, 3, figsize=(18, 10))
 
@@ -167,9 +170,8 @@ plt.ylim(0,20000)
 ax = sb.boxplot(x="soil_class", y='Y', data=dw0_raw)
 plt.ylim(0,20000)
 
-#delete all cells with an area smaller than 100 ha
-dw0_raw = dw0_raw.loc[dw0_raw['area'] > 100]
-
+#replace NaN values with the value -9 so that the fillna method can be used on
+#the entire dataframe in the next step
 dw0_raw['pesticides_H'] = dw0_raw['pesticides_H'].replace(np.nan, -9)
 dw0_raw['irrigation_rel'] = dw0_raw['irrigation_rel'].replace(np.nan, -9)
 '''
@@ -186,7 +188,7 @@ dw0_raw['mst_class'] = dw0_raw['mst_class'].replace(0, np.nan)
 dw0_raw['soil_class'] = dw0_raw['soil_class'].replace([0, 7, 8], np.nan)
 #replace 8,9 & 10 with 7 in the temperature class to combine all three classes
 #into one Temp,cool-Arctic class
-#repalce 2 with 1 and 7 with 6 in the moisture class to compile them into one class each
+#repalce 2 with 1 and 7 with 6 in the moisture class to compile them into one joined class each
 dw0_raw['thz_class'] = dw0_raw['thz_class'].replace([8, 9, 10], 7)
 dw0_raw['mst_class'] = dw0_raw['mst_class'].replace(2, 1)
 dw0_raw['mst_class'] = dw0_raw['mst_class'].replace(7, 6)
@@ -256,9 +258,9 @@ duw_thz_elim = duw_thz_elim.rename(columns={1: "Trop_low", 2: "Trop_high", 3: "S
 duw_soil_elim = duw_soil_elim.rename(columns={1: "S1_very_steep", 2: "S2_hydro_soil", 3: "S3_no-slight_lim", 4: "S4_moderate_lim",
                                               5: "S5_severe_lim", 6: "L1_irr"}, errors="raise")
 # merge the two dummy dataframes with the rest of the variables
-dwheat_d_elim = pd.concat([dw0_elim, duw_mst_elim, duw_thz_elim, duw_soil_elim], axis='columns')
+dwheat_d_elim = pd.concat([dw0_elim, duw_thz_elim, duw_mst_elim, duw_soil_elim], axis='columns')
 #drop one column of each dummy (this value will be encoded by 0 in all columns)
-dwheat_duw_elim = dwheat_d_elim.drop(['270+days', 'Temp_cool+Bor+Arctic', 'L1_irr'], axis='columns')
+dwheat_duw_elim = dwheat_d_elim.drop(['LGP<120days', 'Trop_low', 'S1_very_steep'], axis='columns')
 
 
 '''
@@ -306,7 +308,7 @@ pd.Series([variance_inflation_factor(Xw.values, i)
 Calibrate the Regression model and calculate fit statistics
 '''
 
-link = sm.families.links.log
+#link = sm.families.links.log
 
 #determine model with a gamma distribution
 w_mod_elimg = smf.glm(formula='Y ~ n_total + p_fertilizer + irrigation_tot + mechanized + pesticides_H +  C(thz_class) + \
@@ -324,7 +326,7 @@ print(w_fit_elimg.summary())
 print(w_fit_elim0.summary())
 
 #calculate the odds ratios on the response scale
-np.exp(w_fit_elimg.params)
+coef_rs = np.exp(w_fit_elimg.params)
 
 ### Fit statistics ###
 
@@ -346,6 +348,7 @@ w_val_elim = dwheat_val_elim.iloc[:, [5, 8, 9, 10, 11, 13, 14, 15]]
 
 #let the model predict yield values for the validation data
 w_pred_elimg = w_fit_elimg.predict(w_val_elim)
+w_pred_elimg.mean()
 
 #calculate McFadden's roh² and the RMGD scores
 d2_tweedie_score(dwheat_val_elim['Y'], w_pred_elimg, power=2)
@@ -657,181 +660,6 @@ LoI_welim['irr_LoI'] = LoI_welim['irrigation_tot'] * (1 - LoI_welim['irrigation_
 
 
 
-######################################################################################
-######################################################################################
-
-'''
-Prepare and modify datasets according to the assumptions of the LoI scenario
-'''
-#take the raw dataset to calculate the distribution of remaining fertilizer/pesticides
-#and available manure correctly
-LoI_welim = dwheat_raw.loc[dwheat_raw['area'] > 0]
-
-LoI_welim['mechanized'] = LoI_welim['mechanized'].replace(-9, np.nan)
-LoI_welim['pesticides_H'] = LoI_welim['pesticides_H'].replace(-9, np.nan)
-
-### Mechanised ###
-
-#set mechanization to 0 in phase 2; due to the estimated stock in  fuel the variable remains 
-#unchanged in phase 1
-LoI_welim['mechanized_y2'] = LoI_welim['mechanized'].replace(1, 0)
-
-### N fertilizer ###
-
-#drop all cells where mechanized or pesticiedes AND n_fertilizer are no data values
-wn_drop = LoI_welim[((LoI_welim['mechanized'].isna()) | (LoI_welim['pesticides_H'].isna()))
-                    & (LoI_welim['n_fertilizer'] < 0)].index
-LoI_welim_pn = LoI_welim.drop(wn_drop)
-
-#replace remaining no data values in the fertilizer datasets with NaN and then fill them
-LoI_welim_pn.loc[LoI_welim_pn['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan
-LoI_welim_pn.loc[LoI_welim_pn['p_fertilizer'] < 0, 'p_fertilizer'] = np.nan
-LoI_welim_pn[['n_fertilizer', 'p_fertilizer']] = LoI_welim_pn[['n_fertilizer', 'p_fertilizer']].fillna(method='ffill')
-#replace no data values in n_total with the sum of the newly filled n_fertilizer and the
-#n_manure values
-LoI_welim_pn.loc[LoI_welim_pn['n_total'] < 0, 'n_total'] = LoI_welim_pn['n_fertilizer'] + LoI_welim_pn['n_manure']
-
-#drop the outliers (99.9th percentile) in the n and p fertilizer columns
-LoI_welim_pn = LoI_welim_pn.loc[LoI_welim_pn['n_fertilizer'] < dw0_qt.iloc[6, 4]]
-LoI_welim_pn = LoI_welim_pn.loc[LoI_welim_pn['p_fertilizer'] < dw0_qt.iloc[6, 5]]
-
-#in phase 1, there will probably be a small stock of N due to production surplus in the previous year(production>application)
-#the surplus is assumed to be the new total
-
-#calculate kg N applied per cell
-LoI_welim_pn['n_kg'] = LoI_welim_pn['n_fertilizer']*LoI_welim_pn['area']
-#calculate the fraction of the total N applied to wheat fields for each cell
-LoI_welim_pn['n_ffrac'] = LoI_welim_pn['n_kg']/(LoI_welim_pn['n_kg'].sum())
-
-#calculate the fraction of total N applied to wheat fields of the total N applied
-#divide total of wheat N by 1000000 to get from kg to thousand t
-w_nfert_frac = (LoI_welim_pn['n_kg'].sum())/1000000/118763
-#calculate the new total for N wheat in phase one based on the N total surplus
-w_ntot_new = w_nfert_frac * 14477 * 1000000
-
-#calculate the new value of N application rate in kg per ha per cell, assuming
-#the distribution remains the same as before the catastrophe
-LoI_welim_pn['n_fert_y1'] = (w_ntot_new * LoI_welim_pn['n_ffrac']) / LoI_welim_pn['area']
-
-#in phase 2 no industrially produced fertilizer will be available anymore: set to 0
-LoI_welim_pn['n_fert_y2'] = 0
-
-### P Fertilizer ###
-
-#in phase 1, there will probably be a slight surplus of P (production>application)
-#calculate kg p applied per cell
-LoI_welim_pn['p_kg'] = LoI_welim_pn['p_fertilizer']*LoI_welim_pn['area']
-#calculate the fraction of the total N applied to rice fields for each cell
-LoI_welim_pn['p_ffrac'] = LoI_welim_pn['p_kg']/(LoI_welim_pn['p_kg'].sum())
-
-#calculate the fraction of total P applied to wheat fields on the total P applied to cropland
-#divide total of wheat P by 1000000 to get from kg to thousand t
-w_pfert_frac = (LoI_welim_pn['p_kg'].sum())/1000000/45858
-#calculate the new total for P wheat in phase one based on the P total surplus
-w_ptot_new = w_pfert_frac * 4142 * 1000000
-
-#calculate the new value of P application rate in kg per ha per cell, assuming
-#the distribution remains the same as before the catastrophe
-LoI_welim_pn['p_fert_y1'] = (w_ptot_new * LoI_welim_pn['p_ffrac']) / LoI_welim_pn['area']
-
-#in phase 2 no industrially produced fertilizer will be available anymore: set to 0
-LoI_welim_pn['p_fert_y2'] = 0
-
-### N Manure ###
-
-#drop the rows containing outliers (99th percentile) in the manure column
-LoI_welim_man = LoI_welim.loc[LoI_welim['n_manure'] < dw0_qt.iloc[5, 6]]
-
-#calculate animal labor demand by dividing the area in a cell by the area a cow
-#can be assumed to work
-LoI_welim_man['labor'] = LoI_welim_man['area']/5 #current value (7.4) is taken from Cole et al. (2016)
-#due to information from a farmer, the value is set to 5
-
-#calculate mean excretion rate of each cow in one phase: cattle supplied ~ 43.7% of 131000 thousand t
-#manure production in 2014, there were ~ 1.008.570.000(Statista)/1.439.413.930(FAOSTAT)
-#heads of cattle in 2014
-cow_excr = 131000000000*0.437/1439413930
-
-# calculate the new value of man application rate in kg per ha per cell, according
-# to the available cows in each cell due to labor demand
-LoI_welim_man['man_fert'] = (cow_excr * LoI_welim_man['labor']) / LoI_welim_man['area']
-
-#that leads the application rate being the same in every cell because everybody has the same number of cows per ha
-#it's assumed to be the same for both phases
-
-
-### N total ###
-
-#in phase 1, the total N available is the sum of available fertilizer and manure
-LoI_welim['N_toty1'] = LoI_welim_pn['n_fert_y1'] + LoI_welim_man['man_fert']
-
-#in phase 2 there is no more artificial fertilizer, so N total is equal to man_fert
-
-### Pesticides ###
-
-#drop the cells containing NaN values and outliers
-LoI_welimp = LoI_welim.loc[LoI_welim['pesticides_H'].notna()]
-LoI_welimp = LoI_welimp.loc[LoI_welimp['pesticides_H'] < dw0_qt.iloc[6, 9]]
-
-#in phase 1, there will probably be a slight surplus of Pesticides (production>application)
-
-#calculate kg p applied per cell
-LoI_welimp['pest_kg'] = LoI_welimp['pesticides_H']*LoI_welimp['area']
-#calculate the fraction of the total N applied to wheat fields for each cell
-LoI_welimp['pest_frac'] = LoI_welimp['pest_kg']/(LoI_welimp['pest_kg'].sum())
-
-#calculate the fraction of total pesticides applied to wheat fields on the total pesticides applied to cropland
-#divide total of wheat pesticides by 1000 to get from kg to t
-w_pest_frac = (LoI_welimp['pest_kg'].sum())/1000/4190985
-
-#due to missing reasonable data on the pesticide surplus, it is assumed that the
-#surplus is in the same range as for P and N fertilizer
-#the mean of N and P fertilizer surplus is calculated
-frac_pest = ((14477/118763) + (4142/45858))/2
-#calculate the new total for pesticides wheat in phase one based on the pesticides total surplus
-w_pestot_new = w_pest_frac * (4190985 * frac_pest) * 1000
-
-#calculate the new value of pesticides application rate in kg per ha per cell, assuming
-#the distribution remains the same as before the catastrophe
-LoI_welimp['pest_y1'] = (
-    w_pestot_new * LoI_welimp['pest_frac']) / LoI_welimp['area']
-
-# in phase 2 no industrially produced pesticides will be available anymore: set to 0
-LoI_welimp['pest_y2'] = 0
-
-### Irrigation ###
-
-#in LoI it is assumed that only irrigation which is not reliant on electricity
-#can still be maintained
-#calculate fraction of cropland area actually irrigated in a cell in LoI by multiplying
-#'irrigation_tot' (fraction of cropland irrigated in cell) with 1-'irrigation_rel'
-#(fraction of irrigated cropland reliant on electricity)
-LoI_welim['irr_LoI'] = LoI_welim['irrigation_tot'] * (1 - LoI_welim['irrigation_rel'])
-
-### Combine the different dataframes and drop rows with missing values ###
-
-LoI_welim = pd.concat([LoI_welim, LoI_welim_pn['n_fert_y1'], LoI_welim_pn['n_fert_y2'],
-                       LoI_welim_pn['p_fert_y1'], LoI_welim_pn['p_fert_y2'],
-                       LoI_welim_man['man_fert'], LoI_welimp['pest_y1'],
-                       LoI_welimp['pest_y2']], axis='columns')
-
-LoI_welim = LoI_welim.loc[LoI_welim['area'] > 100]
-
-#Eliminate the rows without data:
-LoI_welim.loc[LoI_welim['n_fertilizer'] < 0, 'n_fertilizer'] = np.nan  
-LoI_welim.loc[LoI_welim['p_fertilizer'] < 0, 'p_fertilizer'] = np.nan
-LoI_welim = LoI_welim.dropna()
-
-#Eliminating all points above the 99.9th percentile
-LoI_welim = LoI_welim.loc[LoI_welim['Y'] < dw0_qt.iloc[6, 3]]
-LoI_welim = LoI_welim.loc[LoI_welim['n_total'] < dw0_qt.iloc[6, 8]]
-#LoI_welim = LoI_welim.loc[LoI_welim['n_fertilizer'] > dw0_qt.iloc[6, 4]]
-#LoI_welim = LoI_welim.loc[LoI_welim['p_fertilizer'] > dw0_qt.iloc[6, 5]]
-#LoI_welim = LoI_welim.loc[LoI_welim['n_manure'] > dw0_qt.iloc[5, 6]]  
-#LoI_welim = LoI_welim.loc[LoI_welim['pesticides_H'] > dw0_qt.iloc[6, 9]]
-
-
-
 
 '''
 Prediction of LoI yields and yield change rates in phase 1 and 2
@@ -850,6 +678,22 @@ LoI_w_phase1 = LoI_w_phase1.rename(columns={'p_fert_y1': "p_fertilizer", 'N_toty
 
 #predict the yield for phase 1 using the gamma GLM
 w_yield_y1 = w_fit_elimg.predict(LoI_w_phase1)
+
+
+#Code to calculate LoI predictions 95% confidence interval
+
+#Calculate the confidence intervals for the predicted mean on the response scale
+w_r_y1 = w_fit_elimg.get_prediction(LoI_w_phase1)
+w_r_y1_conf = w_r_y1.summary_frame(alpha = 0.05)
+#verify that the results are the same as with the other predict method
+np.mean(np.isclose(
+    w_r_y1_conf.iloc[:,0], 
+    w_yield_y1))
+#calculate the confidence and prediction intervals for the predicted mean on the link scale
+w_l_y1 = w_r_y1.linpred
+w_l_y1_cp = w_l_y1.summary_frame()
+
+
 #calculate the change rate from actual yield to the predicted yield
 w_y1_change = ((w_yield_y1-wheat_kgha)/wheat_kgha).dropna()
 #calculate the number of cells with a postivie change rate
@@ -1032,33 +876,6 @@ wp = zon_stat['area']
 
 wm_p = stat_ut.weighted_mean_zonal(zon_p, new_cont, wp)
 
-
-
-
-cont_1 = zon_stat.loc[zon_stat['continent'] == 1]
-weights_1 = cont_1['Y'] * cont_1['area']
-w_test = ww[cont_1.index]
-cont1_y1_c0 = round(np.average(cont_1['w_y1_c0'], weights=weights_1), 2)
-
-cont_2 = zon_stat.loc[zon_stat['continent'] == 2]
-weights_2 = cont_2['Y'] * cont_2['area']
-cont2_y1_c0 = round(np.average(cont_2['w_y1_c0'], weights=weights_2), 2)
-
-cont_3 = zon_stat.loc[zon_stat['continent'] == 3]
-weights_3 = cont_3['Y'] * cont_3['area']
-cont3_y1_c0 = round(np.average(cont_3['w_y1_c0'], weights=weights_3), 2)
-
-cont_4 = zon_stat.loc[zon_stat['continent'] == 4]
-weights_4 = cont_4['Y'] * cont_4['area']
-cont4_y1_c0 = round(np.average(cont_4['w_y1_c0'], weights=weights_4), 2)
-
-cont_5 = zon_stat.loc[zon_stat['continent'] == 5]
-weights_5 = cont_5['Y'] * cont_5['area']
-cont5_y1_c0 = round(np.average(cont_5['w_y1_c0'], weights=weights_5), 2)
-
-cont_6 = zon_stat.loc[zon_stat['continent'] == 6]
-weights_6 = cont_6['Y'] * cont_6['area']
-cont6_y1_c0 = round(np.average(cont_6['w_y1_c0'], weights=weights_6), 2)
 
 '''
 save the predicted yields and the yield change rates for each phase

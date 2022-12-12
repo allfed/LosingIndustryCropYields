@@ -24,33 +24,24 @@ module_path = os.path.abspath(os.path.join('..'))
 if module_path not in sys.path:
 	sys.path.append(module_path)
 
-from src import params  # get file location and varname parameters for data import
-from src.plotter import Plotter
+from utilities import params  # get file location and varname parameters for data import
+from utilities.plotter import Plotter
 
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio
-from src import utilities
+from utilities import utilities
 
+#params.importAll()
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
 MAKE_GRID = False
 
-import resource
-from sys import platform
-if platform == "linux" or platform == "linux2":
-	#this is to ensure Morgan's computer doesn't crash
-	import resource
-	rsrc = resource.RLIMIT_AS
-	resource.setrlimit(rsrc, (3e9, 3e9))#no more than 3 gb
+cdata=rasterio.open(params.continentDataLoc+'/continents_raster_5arcmin.tif')
 
-
-
-cdata=rasterio.open('data/raw/continents_raster_5arcmin.tif')
-
-print('reading grow area and yield data')
+print('reading continent data')
 cArr=cdata.read(1)
 print('done reading')
 

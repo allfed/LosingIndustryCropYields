@@ -54,6 +54,7 @@ def deleteGlobals():
     del estimateYield
     del allCrops
     del rain_mps_to_mm
+    '''
     del Tbase
     del Tfp
     del Topt1
@@ -70,15 +71,15 @@ def deleteGlobals():
     del fracProtein
     del fracFat
     del fracCarbs
-
+'''
 
 def importAll():
     importDirectories()
     importModelParams()
-    importYieldTemp()
-    importYieldRain()
-    importGrowingSeason()
-    importNutrition()
+    #importYieldTemp()
+    #importYieldRain()
+    #importGrowingSeason()
+    #importNutrition()
 
 
 def importDirectories():
@@ -103,6 +104,7 @@ def importDirectories():
     global windCSVloc
     global temphumsunrainCSVloc
     global asciiDir
+    global continentDataLoc
     data = get_data(paramsfilename)
     paramdata = data['Directory']
 
@@ -144,6 +146,8 @@ def importDirectories():
             windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
         if(coltitle == 'asciiDir'):
             asciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'continentDataLoc'):
+            continentDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
 
 
 def importModelParams():
@@ -212,18 +216,18 @@ def importModelParams():
             plotYield = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
         if(coltitle == 'plotGrowArea'):
             plotGrowArea = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'plotTempCoeff'):
-            plotTempCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'plotRainCoeff'):
-            plotRainCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'saveTempCSV'):
-            saveTempCSV = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+        #if(coltitle == 'plotTempCoeff'):
+            #plotTempCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+        #if(coltitle == 'plotRainCoeff'):
+            #plotRainCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+        #if(coltitle == 'saveTempCSV'):
+            #saveTempCSV = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
         if(coltitle == 'estimateYield'):
             estimateYield = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
         if(coltitle == 'estimateNutrition'):
             estimateNutrition = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
 
-
+'''
 def importYieldTemp():
 
     from pyexcel_ods3 import get_data
@@ -363,3 +367,4 @@ def importNutrition():
                 fracFat[crop]=paramdata[cropindex][coltitleindex]
             if(coltitle == 'fracCarbs'):
                 fracCarbs[crop]=paramdata[cropindex][coltitleindex]
+'''
