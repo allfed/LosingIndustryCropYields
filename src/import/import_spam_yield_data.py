@@ -19,21 +19,21 @@ if module_path not in sys.path:
     sys.path.append(module_path)
 
 from src.utilities import params  # get file location and varname parameters for data import
-from src.utilities.plotter import Plotter
+from utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio
-import src.utilities.utilities as utilities
+import utilities.utilities as utilities
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
 
 MAKE_GRID = False
 
-import resource
-from sys import platform
+#import resource
+#from sys import platform
 
 
 

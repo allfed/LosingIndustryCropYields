@@ -9,7 +9,7 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src.utilities import params
+from utilities import params
 
 import numpy as np
 import geopandas as gpd
