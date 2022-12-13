@@ -1,0 +1,12 @@
+name: loi
+channels:
+  - defaults
+dependencies:
+  - geopandas
+  - rasterio
+  - pyexcel-ods3
+  - statsmodels
+  - notebook
+  - nb_conda_kernels
+  - netcdf4
+  - seaborn
