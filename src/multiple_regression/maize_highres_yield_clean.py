@@ -154,6 +154,7 @@ datam_raw = {"lat": maize_yield.loc[:,'lats'],
 
 #arrange data in a dataframe
 dmaize_raw = pd.DataFrame(data=datam_raw)
+dm0 = dmaize_raw.loc[dmaize_raw['area'] > 0]
 #select only the rows where the area of the cropland is larger than 100 ha
 dm0_raw=dmaize_raw.loc[dmaize_raw['area'] > 100]
 
@@ -213,6 +214,7 @@ dm0_elim = dm0_elim.loc[dm0_elim['p_fertilizer'] < dm0_qt.iloc[6,5]] #~34
 dm0_elim = dm0_elim.loc[dm0_elim['n_manure'] < dm0_qt.iloc[5,6]] #~11
 dm0_elim = dm0_elim.loc[dm0_elim['n_total'] < dm0_qt.iloc[6,8]] #~195
 dm0_elim = dm0_elim.loc[dm0_elim['pesticides_H'] < dm0_qt.iloc[6,9]]#~11
+dm0_elim_index = dm0_elim.index
 
 '''
 Dummy-code the categorical variables to be able to assess multicollinearity
