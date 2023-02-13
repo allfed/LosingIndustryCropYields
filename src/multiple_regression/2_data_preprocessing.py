@@ -62,9 +62,6 @@ for crop in crops:
     area_data[crop] = data_raw[crop].fillna(-9)
     area_stat[crop] = calculate_area(area_data[crop], columns)
     
-#area_data['Corn'] = data_raw['Corn'].fillna(-9)
-#data_raw['Corn']= data_raw['Corn']['continents'].astype('int8')
-#data_raw['Corn'].dtypes
 #convert dict to dataframe and save to csv
 area_col = pd.DataFrame(area_stat)
 area_col.to_csv(params.geopandasDataDir + 'Raw_Column_Area.csv') 
@@ -164,14 +161,6 @@ print('Done combining AEZ classes, fill or eliminate missing data')
 Calculate and eliminate outliers (values above the 99th/99.9th quantile) from the dataset
 and extract the outliers to calculate outlier statistics in a later step
 '''
-#select the columns of the dataframe where outliers will be calculated
-factors = ['Yield', 'n_fertilizer', 'p_fertilizer', 'n_manure', 'n_total', 'pesticides']
-#calculate the 99.9th quantile for the columns specified above
-quant = data_step2['Corn'][factors].quantile(.999)
-#combine both into a dictionary
-out_threshold = dict(zip(factors, quant))
-#replace the value for n_manure with the 99th quantile
-out_threshold['n_manure'] =  data_step2['Corn']['n_manure'].quantile(.99)
 
 #function to remove all rows from a dataframe where the values of the specified
 #columns surpass the specified threshold
@@ -190,12 +179,18 @@ def extract_outliers(data, factors, thresholds):
   results = pd.concat([outliers, data['area'][data['area'].index.isin(outliers.index)]], axis='columns')
   return results
 
-#for each crop: apply the above functions and save the resulting data_clean dataframes to csv files
-data_step3 = {}
-outliers = {}
+#select the columns of the dataframe where outliers will be calculated
+factors = ['Yield', 'n_fertilizer', 'p_fertilizer', 'n_manure', 'n_total', 'pesticides']
+
+#for each crop: calculate the outlier thresholds and apply the above functions
+out_threshold, data_step3, outliers = {}, {}, {}
 for crop in crops:
-    data_step3[crop] = eliminate_outliers(data_step2[crop], factors, out_threshold)
-    outliers[crop] = extract_outliers(data_step2[crop], factors, out_threshold)
+    #combine variables where to calculate the outliers and the 99.9th quantile of each variable into a dictionary
+    out_threshold[crop] = dict(zip(factors, data_step2[crop][factors].quantile(.999)))
+    #replace the value for n_manure with the 99th quantile
+    out_threshold[crop]['n_manure'] =  data_step2[crop]['n_manure'].quantile(.99)
+    data_step3[crop] = eliminate_outliers(data_step2[crop], factors, out_threshold[crop])
+    outliers[crop] = extract_outliers(data_step2[crop], factors, out_threshold[crop])
 
 print('Done extracting and eliminating outliers')  
 
@@ -206,8 +201,8 @@ Replace No Data Values in continent column with corresponding continent value
 #Create lists with the continent values for the missing data points
 fill_values_Corn = [4] * 11 + [6, 6, 4, 4, 4, 6, 1, 5, 1,
                    1, 1, 5, 1, 1, 1, 1, 1] + [2] * 39 
-fill_values_Rice = [6] * 12 + [1] * 10 + [2] * 133
-fill_values_Soybean = [4] * 3 + [2] * 9
+fill_values_Rice = [6] * 12 + [1] * 10 + [2] * 132
+fill_values_Soybean = [4] * 3 + [2] * 8
 fill_values_Wheat = [4, 6, 5, 5, 5, 5, 5, 1, 5, 2,
                     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2]
 
@@ -235,6 +230,32 @@ print('Done replacing no data values in the continent column and saving the clea
 
 '''
 Overview Stats for each step and each crop
+'''
+
+'''
+Calculate area of raw datasets for specified columns to use them in LoI_scenario_data.py
+'''
+def calculate_area(data, columns):
+    dict_area = {}
+    for col in columns:
+        dict_area[col] = data['area'].loc[data[col]>=0].sum().astype('int')
+    return dict_area
+
+#specify columns and apply function for all crops
+columns = ['n_fertilizer', 'p_fertilizer', 'pesticides']
+area_data, area_stat = {}, {}
+for crop in crops:
+    #calculate_area selects valid rows based on values >=0 so the no data value
+    #of the dataframe is set to a negative number
+    area_data[crop] = data_raw[crop].fillna(-9)
+    area_stat[crop] = calculate_area(area_data[crop], columns)
+    
+#area_data['Corn'] = data_raw['Corn'].fillna(-9)
+#data_raw['Corn']= data_raw['Corn']['continents'].astype('int8')
+#data_raw['Corn'].dtypes
+#convert dict to dataframe and save to csv
+area_col = pd.DataFrame(area_stat)
+area_col.to_csv(params.geopandasDataDir + 'Raw_Column_Area.csv') 
 
 metrics = ['Tot_Area', 'Numb_Rows', 'Numb_Outliers']
 steps = ['raw', 'step1', 'step2', 'clean']
@@ -242,7 +263,7 @@ overview_stats = {}
 for crop, metric in crops, metrics:
     for step in steps:
         step_name = 'data_{}'.format(step)
-'''
+
 '''
 Dummy-code the categorical variables to be able to assess multicollinearity
 '''
