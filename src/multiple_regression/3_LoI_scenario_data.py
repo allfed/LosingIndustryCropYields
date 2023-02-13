@@ -27,7 +27,7 @@ Area_Data = pd.read_csv(params.geopandasDataDir + 'Raw_Column_Area.csv', index_c
 #take the cleaned dataset as a basis to calculate the conditions for the LoI scenario in phase 1 and 2
 LoI_data = {}
 for crop in crops:
-    LoI_data[crop] = pd.read_csv(params.geopandasDataDir + crop + '_data.gzip', compression='gzip')
+    LoI_data[crop] = pd.read_csv(params.geopandasDataDir + crop + '_data.gzip', index_col=0, compression='gzip')
     #set mechanization to 0 in phase 2; due to the estimated stock in fuel the variable remains 
     #unchanged in phase 1
     LoI_data[crop]['mechanized_y2'] = 0
@@ -38,7 +38,6 @@ for crop in crops:
     #(fraction of irrigated cropland reliant on electricity)
     LoI_data[crop]['irrigation_LoI'] = LoI_data[crop]['irrigation_tot'] * (1 - LoI_data[crop]['irrigation_rel'])
 
-    
 ### N Manure ###
 #The application rate in kg/ha/cell for Loss of Industry is a constant as it is based
 #on the number of cows that are needed to work a certain area. Their manure is assumed

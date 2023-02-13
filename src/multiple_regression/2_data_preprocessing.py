@@ -41,6 +41,8 @@ for crop in crops:
     data_raw[crop] = pd.read_pickle(params.geopandasDataDir + data_name + '.pkl', compression='zip')
     #crop_name = '{}_clean'.format(crop)
     data_step1[crop] = data_raw[crop].loc[data_raw[crop]['area']>100]
+    
+print('Done reading crop data and eliminate all rows below 100 ha')
 
 '''
 Calculate area of raw datasets for specified columns to use them in LoI_scenario_data.py
@@ -60,9 +62,14 @@ for crop in crops:
     area_data[crop] = data_raw[crop].fillna(-9)
     area_stat[crop] = calculate_area(area_data[crop], columns)
     
+#area_data['Corn'] = data_raw['Corn'].fillna(-9)
+#data_raw['Corn']= data_raw['Corn']['continents'].astype('int8')
+#data_raw['Corn'].dtypes
 #convert dict to dataframe and save to csv
 area_col = pd.DataFrame(area_stat)
-area_col.to_csv(params.geopandasDataDir + 'Raw_Column_Area.csv')   
+area_col.to_csv(params.geopandasDataDir + 'Raw_Column_Area.csv') 
+
+print('Done calculating total crop area and saving it to csv')  
 
 '''
 I still have a couple of problems in the following for loop to calculate min, max, weighted mean and NaN count
@@ -150,6 +157,8 @@ for crop in crops:
     data_step2[crop] = clean_fertilizer(data_step2[crop])
     #Eliminate the rows without data in the pesticides and mechanized columns
     data_step2[crop] = data_step2[crop].query('pesticides > -9 and mechanized > -9')
+    
+print('Done combining AEZ classes, fill or eliminate missing data')
 
 '''
 Calculate and eliminate outliers (values above the 99th/99.9th quantile) from the dataset
@@ -182,26 +191,58 @@ def extract_outliers(data, factors, thresholds):
   return results
 
 #for each crop: apply the above functions and save the resulting data_clean dataframes to csv files
-data_clean = {}
+data_step3 = {}
 outliers = {}
 for crop in crops:
-    data_clean[crop] = eliminate_outliers(data_step2[crop], factors, out_threshold)
+    data_step3[crop] = eliminate_outliers(data_step2[crop], factors, out_threshold)
     outliers[crop] = extract_outliers(data_step2[crop], factors, out_threshold)
-    data_clean[crop].to_csv(params.geopandasDataDir + crop + '_data.gzip', index=False, compression='gzip')
 
-  
+print('Done extracting and eliminating outliers')  
+
+'''
+Replace No Data Values in continent column with corresponding continent value
+'''
+
+#Create lists with the continent values for the missing data points
+fill_values_Corn = [4] * 11 + [6, 6, 4, 4, 4, 6, 1, 5, 1,
+                   1, 1, 5, 1, 1, 1, 1, 1] + [2] * 39 
+fill_values_Rice = [6] * 12 + [1] * 10 + [2] * 133
+fill_values_Soybean = [4] * 3 + [2] * 9
+fill_values_Wheat = [4, 6, 5, 5, 5, 5, 5, 1, 5, 2,
+                    2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2]
+
+#store the lists in a dictionary
+continents_NoData = {'fill_values_Corn': fill_values_Corn,
+                     'fill_values_Rice': fill_values_Rice,
+                     'fill_values_Soybean': fill_values_Soybean,
+                     'fill_values_Wheat': fill_values_Wheat}
+
+data_clean ={}
+for crop in crops:
+    fill_values = 'fill_values_{}'.format(crop)
+    #for each crop, add the index of rows which are missing continent data to the dictionary
+    continents_NoData[crop] = data_step3[crop].loc[data_step3[crop]['continents']==0].index
+    #initialize data_clean by creating a copy of data_step3
+    data_clean[crop] = data_step3[crop].copy()
+    #set the cells where continent==0 to the values stored in the lists
+    data_clean[crop].loc[continents_NoData[crop], 'continents'] = continents_NoData[fill_values]
+    #save the clean dataset to csv
+    data_clean[crop].to_csv(params.geopandasDataDir + crop + '_data.gzip', compression='gzip')
+
+
+print('Done replacing no data values in the continent column and saving the clean dataset to file')  
 
 
 '''
 Overview Stats for each step and each crop
-'''
+
 metrics = ['Tot_Area', 'Numb_Rows', 'Numb_Outliers']
 steps = ['raw', 'step1', 'step2', 'clean']
 overview_stats = {}
 for crop, metric in crops, metrics:
     for step in steps:
         step_name = 'data_{}'.format(step)
-
+'''
 '''
 Dummy-code the categorical variables to be able to assess multicollinearity
 '''
@@ -214,7 +255,7 @@ aez_names = {'TRC_2': "Trop_high", 'TRC_3': "Sub-trop_warm", 'TRC_4': "Sub-trop_
              'S_2': "S2_hydro_soil", 'S_3': "S3_no-slight_lim", 'S_4': "S4_moderate_lim", 'S_5': "S5_severe_lim", 'L_3': "L3_irr"}
 dum = pd.get_dummies(data_clean['Corn'], prefix=['TRC', 'M', 'S'], columns=aez_classes, drop_first=True).rename(columns={'S_6':'L_3'})
 data_dummy = pd.concat([dum.iloc[:,:12], data_clean['Corn'][aez_classes],dum.iloc[:,12:]], axis='columns').rename(columns=aez_names, errors='raise')
-dumdum = data_dummy.rename(columns=aez_names, errors='raise')
+#dumdum = data_dummy.rename(columns=aez_names, errors='raise')
 
 data_dummy = {}
 #have to decide if I want to keep the TRC,M,S classification or if I want to rename them according to the aez_names(see above)

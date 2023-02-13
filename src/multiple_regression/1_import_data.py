@@ -62,6 +62,8 @@ print('Done reading irrigation data')
 tillage = pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv', index_col=[0])
 aez = pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv', index_col=[0])
 print('Done reading AEZ and tillage data')
+continents = pd.read_pickle(params.geopandasDataDir + 'Continents.pkl', compression='zip')
+print('Done reading continent data')
 
 #fraction of irrigation total is of total cell area so it has to be divided by the
 #fraction of crop area in a cell
@@ -127,6 +129,7 @@ for crop in crops:
              "thz_class": aez.loc[:, 'thz'],
              "mst_class": aez.loc[:, 'mst'],
              "soil_class": aez.loc[:, 'soil'],
+             "continents": continents.loc[:, 'continent']
              }
     df_raw[data_name] = pd.DataFrame(data=data_raw[data_name])
     crop_raw[data_name] = df_raw[data_name].loc[df_raw[data_name]['area']>0]
