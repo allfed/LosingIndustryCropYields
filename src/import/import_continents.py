@@ -77,6 +77,7 @@ cdata = {"lats": pd.Series(lats2d.ravel()),
 		}
 
 cdf = pd.DataFrame(data=cdata)
+cdf['continent'] = cdf['continent'].astype('int8')
 if(MAKE_GRID):
 	geometry = gpd.points_from_xy(cdf.lons, cdf.lats)
 	gcdf = gpd.GeoDataFrame(cdf, crs={'init':'epsg:4326'}, geometry=geometry)
@@ -93,7 +94,7 @@ else:
 	assert(cdf['lats'].iloc[-1]>cdf['lats'].iloc[0])
 	assert(cdf['lons'].iloc[-1]>cdf['lons'].iloc[0])
 
-	cdf.to_csv(params.geopandasDataDir + "Continents.csv")
+	cdf.to_pickle(params.geopandasDataDir + "Continents.pkl", compression='zip')
 
 #create ASCII to ensure that the process worked the way it is intended
 #utilities.create5minASCIIneg(cdf, 'continent', params.asciiDir+'Continents')
