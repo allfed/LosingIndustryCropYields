@@ -22,12 +22,12 @@ import pandas as pd
 params.importAll()
 
 crops = {"Corn", "Rice", "Soybean", "Wheat"}
-Area_Data = pd.read_csv(params.geopandasDataDir + 'Raw_Column_Area.csv', index_col=0)
+Area_Data = pd.read_csv(params.statisticsDir + 'Raw_Column_Area.csv', index_col=0)
 
 #take the cleaned dataset as a basis to calculate the conditions for the LoI scenario in phase 1 and 2
 LoI_data = {}
 for crop in crops:
-    LoI_data[crop] = pd.read_csv(params.geopandasDataDir + crop + '_data.gzip', index_col=0, compression='gzip')
+    LoI_data[crop] = pd.read_csv(params.modelDataDir + crop + '_data.gzip', index_col=0, compression='gzip')
     #set mechanization to 0 in phase 2; due to the estimated stock in fuel the variable remains 
     #unchanged in phase 1
     LoI_data[crop]['mechanized_y2'] = 0
@@ -104,5 +104,5 @@ for crop in crops:
      LoI_data[crop] = LoI_data[crop].drop(['Yield', 'n_fertilizer', 'p_fertilizer', 'n_manure', 'n_total',\
                                            'pesticides', 'irrigation_tot', 'irrigation_rel'], axis='columns')
      #save dataframe to compressed csv file
-     LoI_data[crop].to_csv(params.geopandasDataDir + crop + '_LoI_data.gzip', compression='gzip')
+     LoI_data[crop].to_csv(params.LoIDataDir + crop + '_LoI_data.gzip', compression='gzip')
 

@@ -28,7 +28,7 @@ from statsmodels.tools.tools import add_constant
 
 params.importAll()
 
-crops = {"Corn", "Rice", "Soybean", "Wheat"}
+crops = ["Corn", "Rice", "Soybean", "Wheat"]
 
 
 
@@ -38,8 +38,10 @@ Load raw data and eliminate all rows with an area below 100 ha
 data_raw, data_step1 = {}, {}
 for crop in crops:
     data_name = '{}_raw'.format(crop)
-    data_raw[crop] = pd.read_pickle(params.geopandasDataDir + data_name + '.pkl', compression='zip')
-    #crop_name = '{}_clean'.format(crop)
+    data_raw[crop] = pd.read_pickle(params.cropDataDir + data_name + '.pkl', compression='zip')
+    data_raw[crop]['irrigation_rel'] = data_raw[crop]['irrigation_rel'].fillna(0)
+    data_raw[crop] = data_raw[crop].replace([data_raw[crop]['n_fertilizer'].min(), -9], np.nan)
+    data_raw[crop] = data_raw[crop].replace({'continents':0, 'irrigation_tot':-0}, {'continents':np.nan, 'irrigation_tot':0})
     data_step1[crop] = data_raw[crop].loc[data_raw[crop]['area']>100]
     
 print('Done reading crop data and eliminate all rows below 100 ha')
@@ -50,66 +52,17 @@ Calculate area of raw datasets for specified columns to use them in LoI_scenario
 def calculate_area(data, columns):
     dict_area = {}
     for col in columns:
-        dict_area[col] = data['area'].loc[data[col]>=0].sum().astype('int')
+        dict_area[col] = data['area'].loc[data[col].notna()].sum().astype('int')
     return dict_area
 
 #specify columns and apply function for all crops
 columns = ['n_fertilizer', 'p_fertilizer', 'pesticides']
-area_data, area_stat = {}, {}
-for crop in crops:
-    #calculate_area selects valid rows based on values >=0 so the no data value
-    #of the dataframe is set to a negative number
-    area_data[crop] = data_raw[crop].fillna(-9)
-    area_stat[crop] = calculate_area(area_data[crop], columns)
-    
+area_stat = {crop: calculate_area(data_raw[crop], columns) for crop in crops}
 #convert dict to dataframe and save to csv
-area_col = pd.DataFrame(area_stat)
-area_col.to_csv(params.geopandasDataDir + 'Raw_Column_Area.csv') 
+area_col = pd.DataFrame.from_dict(area_stat)
+area_col.to_csv(params.statisticsDir + 'Raw_Column_Area.csv') 
 
 print('Done calculating total crop area and saving it to csv')  
-
-'''
-I still have a couple of problems in the following for loop to calculate min, max, weighted mean and NaN count
-of the raw dataset:
-    1. variable names are not the best yet: have to change test and desc_stat name
-    2.new variable for values that concern the whole dataset: total NaN rows?, total crop area raw and clean,
-    number of rows raw and clean
-    3. write function for one block of descriptive statistics.
-    4. turn dict into multiindexed dataframe? Already in the beginning or in the end when exporting it?
-
-#numerical = ['area', 'Yield', 'n_fertilizer', 'p_fertilizer', 'n_manure', 'n_total', 'pesticides', 'irrigation_tot']
-
-test, desc_stat = {}, {}
-for crop in crops:
-    data_name = '{}_raw'.format(crop)
-    cat = {'mechanized':1, 'thz_class':2, 'mst_class':3, 'soil_class':4}
-    test[data_name] = data_raw[crop].drop(['lat', 'lon'], axis='columns')\
-                                                .replace([-99989.9959564209, -9], np.nan) # I think one time np.nan without brackets suffices
-    desc_stat[data_name] = pd.DataFrame(test[data_name].isna().sum(), columns=['NaN Count'])
-    desc_stat[data_name]['0 count'] = (test[data_name] == 0).sum()
-    desc_stat[data_name]['Max'] = test[data_name].max()
-    desc_stat[data_name]['Min'] = test[data_name].min()
-    desc_stat[data_name]['Weighted Mean_Mode'] = test[data_name].apply(lambda x: stat_ut.weighted_average(\
-                                                                        x, weights=test[data_name]['area'], dropna=True))
-    #desc_stat[data_name]['Weighted Mean_Mode'] = np.average(test[data_name], weights=test[data_name]['area'], axis=0)
-    desc_stat[data_name].loc[cat, 'Weighted Mean_Mode'] = test[data_name].loc[:,cat].apply(lambda x: \
-                                                          stat_ut.weighted_mode(x, weights=test[data_name]['area'], dropna=True))
-    #desc_stat[data_name].loc[cat, 'Weighted Mean_Mode'] = np.transpose(test[data_name].loc[:,cat].mode()).values.tolist()
-
-    crop_name = '{}_clean'.format(crop)
-    test[crop_name] = data_step1[crop].drop(['lat', 'lon'], axis='columns')\
-                                            .replace([-99989.9959564209, -9], np.nan)
-    desc_stat[crop_name] = pd.DataFrame(test[crop_name].isna().sum(), columns=['NaN Count'])
-    desc_stat[crop_name]['0 count'] = (test[crop_name] == 0).sum()
-    desc_stat[crop_name]['Max'] = test[crop_name].max()
-    desc_stat[crop_name]['Min'] = test[crop_name].min()
-    desc_stat[crop_name]['Weighted Mean_Mode'] = test[crop_name].apply(lambda x: stat_ut.weighted_average(\
-                                                                        x, weights=test[crop_name]['area'], dropna=True))
-    desc_stat[crop_name].loc[cat, 'Weighted Mean_Mode'] = test[crop_name].loc[:,cat].apply(lambda x: \
-                                                          stat_ut.weighted_mode(x, weights=test[crop_name]['area'], dropna=True))
-    #desc_stat[crop_name]['Weighted Mean_Mode'] = np.average(test[crop_name], weights=test[crop_name]['area'], axis=0)
-    #desc_stat[crop_name].loc[cat, 'Weighted Mean_Mode'] = np.transpose(test[crop_name].loc[:,cat].mode()).values.tolist()
-'''
 
 '''
 Combine some of the levels of AEZ classes, fill or eliminate missing data
@@ -144,18 +97,19 @@ def clean_fertilizer(data):
 
 #for each crop: remove rows with missing data in pesticides and mechanized columns, replace missing values in
 #irrigation_rel with 0 and apply the above defined functions
-data_step2 = {}
+#replace NaN values with -9 so that fillna can be used on the entire dataframe in the next step
+data_step2 = {crop:data_step1[crop].replace(np.nan, -9) for crop in crops}
 for crop in crops:
-    #replace NaN values with -9 so that fillna can be used on the entire dataframe in the next step
-    data_step2[crop] = data_step1[crop].replace({'pesticides':np.nan, 'irrigation_rel':np.nan}, {'pesticides':-9, 'irrigation_rel':0})
     #fill NaN values in soil_class and combine categories in thz & mst class
     data_step2[crop] = clean_aez(data_step2[crop])
     #fill NaN values in n & p fertilizer and n total columns
     data_step2[crop] = clean_fertilizer(data_step2[crop])
     #Eliminate the rows without data in the pesticides and mechanized columns
     data_step2[crop] = data_step2[crop].query('pesticides > -9 and mechanized > -9')
+    #replace -9 in continent column with np.nan
+    data_step2[crop] = data_step2[crop].replace(-9, np.nan)
     
-print('Done combining AEZ classes, fill or eliminate missing data')
+print('Done combining AEZ classes, filling or eliminating missing data')
 
 '''
 Calculate and eliminate outliers (values above the 99th/99.9th quantile) from the dataset
@@ -180,7 +134,7 @@ def extract_outliers(data, factors, thresholds):
   return results
 
 #select the columns of the dataframe where outliers will be calculated
-factors = ['Yield', 'n_fertilizer', 'p_fertilizer', 'n_manure', 'n_total', 'pesticides']
+factors = {'Yield':5, 'n_fertilizer':0, 'p_fertilizer':3, 'n_manure':1, 'n_total':2, 'pesticides':4}
 
 #for each crop: calculate the outlier thresholds and apply the above functions
 out_threshold, data_step3, outliers = {}, {}, {}
@@ -206,63 +160,23 @@ fill_values_Soybean = [4] * 3 + [2] * 8
 fill_values_Wheat = [4, 6, 5, 5, 5, 5, 5, 1, 5, 2,
                     2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2]
 
+#create a dictionary with the NoData index for each crop
+NoData_Index = {crop:data_step3[crop].loc[data_step3[crop]['continents'].isna()].index for crop in crops}
+
 #store the lists in a dictionary
-continents_NoData = {'fill_values_Corn': fill_values_Corn,
-                     'fill_values_Rice': fill_values_Rice,
-                     'fill_values_Soybean': fill_values_Soybean,
-                     'fill_values_Wheat': fill_values_Wheat}
+continents_NoData = {'Corn': pd.Series(fill_values_Corn, index=NoData_Index['Corn']),
+                     'Rice': pd.Series(fill_values_Rice, index=NoData_Index['Rice']),
+                     'Soybean': pd.Series(fill_values_Soybean, index=NoData_Index['Soybean']),
+                     'Wheat': pd.Series(fill_values_Wheat, index=NoData_Index['Wheat'])}
 
-data_clean ={}
+data_clean ={crop: data_step3[crop].copy() for crop in crops}
 for crop in crops:
-    fill_values = 'fill_values_{}'.format(crop)
-    #for each crop, add the index of rows which are missing continent data to the dictionary
-    continents_NoData[crop] = data_step3[crop].loc[data_step3[crop]['continents']==0].index
-    #initialize data_clean by creating a copy of data_step3
-    data_clean[crop] = data_step3[crop].copy()
-    #set the cells where continent==0 to the values stored in the lists
-    data_clean[crop].loc[continents_NoData[crop], 'continents'] = continents_NoData[fill_values]
+    #set the cells where continent==0 to the values stored in the continents_NoData dict
+    data_clean[crop]['continents'] = data_clean[crop]['continents'].fillna(continents_NoData[crop], downcast='infer')
     #save the clean dataset to csv
-    data_clean[crop].to_csv(params.geopandasDataDir + crop + '_data.gzip', compression='gzip')
-
+    data_clean[crop].to_csv(params.modelDataDir + crop + '_data.gzip', compression='gzip')
 
 print('Done replacing no data values in the continent column and saving the clean dataset to file')  
-
-
-'''
-Overview Stats for each step and each crop
-'''
-
-'''
-Calculate area of raw datasets for specified columns to use them in LoI_scenario_data.py
-'''
-def calculate_area(data, columns):
-    dict_area = {}
-    for col in columns:
-        dict_area[col] = data['area'].loc[data[col]>=0].sum().astype('int')
-    return dict_area
-
-#specify columns and apply function for all crops
-columns = ['n_fertilizer', 'p_fertilizer', 'pesticides']
-area_data, area_stat = {}, {}
-for crop in crops:
-    #calculate_area selects valid rows based on values >=0 so the no data value
-    #of the dataframe is set to a negative number
-    area_data[crop] = data_raw[crop].fillna(-9)
-    area_stat[crop] = calculate_area(area_data[crop], columns)
-    
-#area_data['Corn'] = data_raw['Corn'].fillna(-9)
-#data_raw['Corn']= data_raw['Corn']['continents'].astype('int8')
-#data_raw['Corn'].dtypes
-#convert dict to dataframe and save to csv
-area_col = pd.DataFrame(area_stat)
-area_col.to_csv(params.geopandasDataDir + 'Raw_Column_Area.csv') 
-
-metrics = ['Tot_Area', 'Numb_Rows', 'Numb_Outliers']
-steps = ['raw', 'step1', 'step2', 'clean']
-overview_stats = {}
-for crop, metric in crops, metrics:
-    for step in steps:
-        step_name = 'data_{}'.format(step)
 
 '''
 Dummy-code the categorical variables to be able to assess multicollinearity
@@ -274,16 +188,116 @@ aez_classes = ['thz_class', 'mst_class', 'soil_class']
 aez_names = {'TRC_2': "Trop_high", 'TRC_3': "Sub-trop_warm", 'TRC_4': "Sub-trop_mod_cool", 'TRC_5': "Sub-trop_cool", 'TRC_6': "Temp_mod",
              'TRC_7': "Temp_cool+Bor+Arctic", 'M_3': "120-180days", 'M_4': "180-225days", 'M_5': "225-270days", 'M_6': "270+days",
              'S_2': "S2_hydro_soil", 'S_3': "S3_no-slight_lim", 'S_4': "S4_moderate_lim", 'S_5': "S5_severe_lim", 'L_3': "L3_irr"}
-dum = pd.get_dummies(data_clean['Corn'], prefix=['TRC', 'M', 'S'], columns=aez_classes, drop_first=True).rename(columns={'S_6':'L_3'})
-data_dummy = pd.concat([dum.iloc[:,:12], data_clean['Corn'][aez_classes],dum.iloc[:,12:]], axis='columns').rename(columns=aez_names, errors='raise')
-#dumdum = data_dummy.rename(columns=aez_names, errors='raise')
 
-data_dummy = {}
+data_dummy, data_correlations, spearman, Variance_inflaction = {}, {}, {}, {}
 #have to decide if I want to keep the TRC,M,S classification or if I want to rename them according to the aez_names(see above)
 for crop in crops:
     dummies = pd.get_dummies(data_clean[crop], prefix=['TRC', 'M', 'S'], columns=aez_classes, drop_first=True).rename(columns={'S_6':'L_3'})
     data_dummy[crop] = pd.concat([dummies.iloc[:,:12], data_clean[crop][aez_classes],dummies.iloc[:,12:]], axis='columns')#.rename(columns=aez_names, errors='raise')
-    #data_dummy[crop].to_csv(params.geopandasDataDir + crop + '_dummies.gzip', compression='gzip')
+    #data_dummy[crop].to_csv(params.modelDataDir + crop + '_dummies.gzip', compression='gzip')
+    data_correlations[crop] = data_dummy[crop].drop(['lat', 'lon', 'area', 'Yield',
+                                        'n_fertilizer', 'n_manure',
+                                        'irrigation_rel', 'thz_class',
+                                        'mst_class', 'soil_class', 'continents'], axis='columns')
+    spearman[crop] = data_correlations[crop].corr(method='spearman')
+    data_correlations[crop] = add_constant(data_correlations[crop])
+    Variance_inflaction[crop] = pd.Series([variance_inflation_factor(data_correlations[crop].values, i)
+           for i in range(data_correlations[crop].shape[1])],
+          index=data_correlations[crop].columns)
+
+variance = pd.DataFrame.from_dict(Variance_inflaction)
+
+VIF = pd.Series([variance_inflation_factor(data_correlations[crop].values, i)
+           for i in range(data_correlations[crop].shape[1])],
+          index=data_correlations[crop].columns)
+    
+'''
+Descriptive Statistics for each step and each crop
+'''
+
+#specify columns and apply function for all crops
+metrics = ['Total_Area(ha)', 'Number_Rows']
+steps = {'raw':0, 'step1':1, 'step2':2, 'clean':3, 'outliers':4}
+steps = ['raw', 'step1', 'step2', 'clean', 'outliers']
+cat = {'mechanized':1, 'thz_class':2, 'mst_class':3, 'soil_class':4, 'continents':5}
+columns_stat = {'Yield':0, 'n_fertilizer':1, 'p_fertilizer':2, 'n_manure':3, 'n_total':4, 'pesticides':5,
+                'irrigation_tot':6, 'irrigation_rel':7, 'mechanized':8, 'thz_class':9, 'mst_class':10,
+                'soil_class':11, 'continents':12}
+data={'raw': [data_raw, columns_stat],
+      'step1': [data_step1, columns_stat],
+      'step2': [data_step2, columns_stat],
+      'clean':[data_clean, columns_stat],
+      'outliers': [outliers, factors]}
+
+overview_stats, df_list = {},[]
+for crop in crops:
+    overview_stats[crop] = [],[]
+    for step in steps:
+        overview_stats[crop][0].append(data[step][0][crop]['area'].sum())
+        overview_stats[crop][1].append(len(data[step][0][crop]))
+    df = pd.DataFrame(overview_stats[crop], index=metrics, columns=steps).astype('int')
+    df.columns = pd.MultiIndex.from_product([[crop], df.columns])
+    df_list.append(df)
+result = pd.concat(df_list, axis=1).transpose()
+
+descriptive_stats, desc_stats = {}, {}
+for crop in crops:
+    descriptive_stats[crop] = {}
+    df_list=[]
+    for step in steps:
+        descriptive_stats[crop][step] = pd.DataFrame(data[step][0][crop].loc[:, data[step][1]].max(), columns=['2_Maximum'])
+        descriptive_stats[crop][step]['1_Minimum'] = data[step][0][crop].loc[:, data[step][1]].min()
+        descriptive_stats[crop][step]['0_Weighted_Mean_Mode'] = data[step][0][crop].loc[:, data[step][1]].apply(lambda x: stat_ut.weighted_average(\
+                                                                            x, weights=data[step][0][crop]['area'], dropna=True))
+        if step == 'outliers':
+            descriptive_stats[crop][step]['3_Outlier_threshold'] = out_threshold[crop].values()
+            descriptive_stats[crop][step].loc[data[step][1], '4_Number_Outliers'] = data[step][0][crop].loc[:, data[step][1]].notna().sum()
+        else:
+            descriptive_stats[crop][step]['5_NaN_count'] = data[step][0][crop].loc[:, data[step][1]].isna().sum()
+            descriptive_stats[crop][step]['6_0_count'] = (data[step][0][crop].loc[:, data[step][1]] == 0).sum()
+            descriptive_stats[crop][step].loc[cat, '0_Weighted_Mean_Mode'] = data[step][0][crop].loc[:,cat].apply(lambda x: \
+                                                          stat_ut.weighted_mode(x, weights=data[step][0][crop]['area'], dropna=True))
+        descriptive_stats[crop][step].columns = pd.MultiIndex.from_product([descriptive_stats[crop][step].columns, [step]])
+        df_list.append(descriptive_stats[crop][step])
+    desc_stats[crop] = pd.concat(df_list, axis=1).sort_index(level=0, axis=1, sort_remaining=False)
+print(desc_stats['Corn'])
+descriptive_stats['Corn']['outliers'] = pd.DataFrame.from_dict(out_threshold['Corn'], orient='index', columns=['Outlier_threshold'])
+# Create a Pandas Excel writer using XlsxWriter as the engine.
+with pd.ExcelWriter(params.statisticsDir + 'Descriptive_Statistics.xlsx') as writer:
+
+# Write each dataframe to a different worksheet.
+   result.to_excel(writer, sheet_name='Overview')
+   desc_stats['Corn'].to_excel(writer, sheet_name='Corn')
+   desc_stats['Rice'].to_excel(writer, sheet_name='Rice')
+   desc_stats['Soybean'].to_excel(writer, sheet_name='Soybean')
+   desc_stats['Wheat'].to_excel(writer, sheet_name='Wheat')
+   variance.to_excel(writer, sheet_name='Variance Inflation Factor')
+    
+
+'''
+#Check for multicollinearity by calculating the two-way correlations and the VIF
+'''
+
+#extract lat, lon, area, yield, individual n columns, original climate class columns and irrigation for the LoI scenario
+#from the fit dataset to test the correlations among the
+#independent variables
+dwheat_cor_elim = data_dummy[crop].drop(['lat', 'lon', 'area', 'Yield',
+                                        'n_fertilizer', 'n_manure', 'n_man_prod',
+                                        'irrigation_rel', 'thz_class',
+                                        'mst_class', 'soil_class', 'continents'], axis='columns')
+
+#### Correlations ###
+
+# calculates spearman (rank transfowmed) correlation coeficcients between the
+# independent variables and saves the values in a dataframe
+sp_w = dwheat_cor_elim.corr(method='spearman')
+
+### Variance inflation factor ###
+
+Xw = add_constant(dwheat_cor_elim)
+pd.Series([variance_inflation_factor(Xw.values, i)
+           for i in range(Xw.shape[1])],
+          index=Xw.columns)
 
 
 '''
@@ -388,30 +402,6 @@ plt.ylim(0,20000)
 ax = sb.boxplot(x="soil_class", y='Yield', data=crop_clean['Corn'])
 plt.ylim(0,20000)
 
-
-''
-#Check for multicollinearity by calculating the two-way correlations and the VIF
-''
-
-#extract lat, lon, area, yield, individual n columns, original climate class columns and irrigation for the LoI scenario
-#from the fit dataset to test the correlations among the
-#independent variables
-dwheat_cor_elim = data_dummy[crop].drop(['lat', 'lon', 'area', 'Y',
-                                        'n_fertilizer', 'n_manure', 'n_man_prod',
-                                        'irrigation_rel', 'thz_class',
-                                        'mst_class', 'soil_class'], axis='columns')
-
-#### Correlations ###
-
-# calculates spearman (rank transfowmed) correlation coeficcients between the
-# independent variables and saves the values in a dataframe
-sp_w = dwheat_cor_elim.corr(method='spearman')
-
-### Variance inflation factor ###
-
-Xw = add_constant(dwheat_cor_elim)
-pd.Series([variance_inflation_factor(Xw.values, i)
-           for i in range(Xw.shape[1])],
-          index=Xw.columns)
 '''
+
 

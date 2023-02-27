@@ -39,30 +39,30 @@ for crop in crops:
     #add the index_col=[0] in all read statements or save the data without the index? I would prefer to save it
     #in a different format but still have to discuss it with Morgan
     #for now: add the index_col=[0] and remember to take it out when changing the format
-    Yield[crop_yield_name] = pd.read_csv(params.geopandasDataDir + crop +'CropYieldHighRes.csv', index_col=[0])
+    Yield[crop_yield_name] = pd.read_pickle(params.inputDataDir + crop +'CropYieldHighRes.pkl', compression='zip')#, index_col=[0])
     pesticide_name = '{}_pesticides'.format(crops[crop])
-    pesticides[pesticide_name] = pd.read_csv(params.geopandasDataDir + crops[crop] + 'PesticidesHighRes.csv', index_col=[0])
+    pesticides[pesticide_name] = pd.read_pickle(params.inputDataDir + crops[crop] + 'PesticidesHighRes.pkl', compression='zip')#, index_col=[0])
     print('Done reading ' + crop_yield_name + ' and ' + pesticide_name + ' Data')
 
 #save only lats and lons from one yield dataframe as a compressed pickle file to use in creating the ascii files past analysis
 coordinates = Yield['MAIZ_yield'][['lats','lons']].astype('float32')
-coordinates.to_pickle(params.geopandasDataDir + 'Coordinates.pkl', compression='zip')
+coordinates.to_pickle(params.LoIDataDir + 'Coordinates.pkl', compression='zip')
 print('Done writing coordinates to .pkl file')
 
 '''
 Import remaining factor datasets, harmonize units and correct irrigation fraction
 '''
-fertilizer = pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv', index_col=[0])  # kg/m²
-manure = pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv', index_col=[0])  # kg/km²
+fertilizer = pd.read_pickle(params.inputDataDir + 'FertilizerHighRes.pkl', compression='zip')#, index_col=[0])  # kg/m²
+manure = pd.read_pickle(params.inputDataDir + 'FertilizerManureHighRes.pkl', compression='zip')#, index_col=[0])  # kg/km²
 print('Done reading fertilizer data')
 irr_total = pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv', index_col=[0])
-crop_area = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv', index_col=[0])
+crop_area = pd.read_pickle(params.inputDataDir + 'FracCropAreaHighRes.pkl', compression='zip')#, index_col=[0])
 irr_rel = pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv', index_col=[0])
 print('Done reading irrigation data')
-tillage = pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv', index_col=[0])
-aez = pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv', index_col=[0])
+tillage = pd.read_pickle(params.inputDataDir + 'TillageAllCropsHighRes.pkl', compression='zip')#, index_col=[0])
+aez = pd.read_pickle(params.inputDataDir + 'AEZHighRes.pkl', compression='zip')#, index_col=[0])
 print('Done reading AEZ and tillage data')
-continents = pd.read_pickle(params.geopandasDataDir + 'Continents.pkl', compression='zip')
+continents = pd.read_pickle(params.inputDataDir + 'Continents.pkl', compression='zip')
 print('Done reading continent data')
 
 #fraction of irrigation total is of total cell area so it has to be divided by the
@@ -136,7 +136,7 @@ for crop in crops:
     #save raw dataframes to file to start the preprocessing with the much more lightweight
     #and much smaller cleaner .pkl files
     #only downside: even more intermediary files
-    crop_raw[data_name].to_pickle(params.geopandasDataDir + data_name + '.pkl', compression='zip')
+    crop_raw[data_name].to_pickle(params.cropDataDir + data_name + '.pkl', compression='zip')
     print('Done writing ' + data_name + ' Data to .pkl file')
 
 end_time = time.time()

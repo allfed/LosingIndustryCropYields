@@ -44,7 +44,7 @@ Import yield data, extract zeros and plot the data
 
 #import yield data for soyb
 
-soyb_yield=pd.read_csv(params.geopandasDataDir + 'SOYBCropYieldHighRes.csv')
+soyb_yield=pd.read_pickle(params.inputDataDir + 'SOYBCropYieldHighRes.pkl', compression='zip')
 
 #select all rows from soyb_yield for which the column growArea has a value greater than zero
 soyb_nozero=soyb_yield.loc[soyb_yield['growArea'] > 0]
@@ -89,14 +89,19 @@ Fitting of distributions to the data and comparing the fit
 Import factor datasets and extract zeros,
 Harmonize units and correct irrigation fraction
 '''
-s_pesticides=pd.read_csv(params.geopandasDataDir + 'SoybeanPesticidesHighRes.csv')
-fertilizer=pd.read_csv(params.geopandasDataDir + 'FertilizerHighRes.csv') #kg/m²
-fertilizer_man=pd.read_csv(params.geopandasDataDir + 'FertilizerManureHighRes.csv') #kg/km²
-irr_t=pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv')
-crop = pd.read_csv(params.geopandasDataDir + 'FracCropAreaHighRes.csv')
-irr_rel=pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv')
-tillage=pd.read_csv(params.geopandasDataDir + 'TillageAllCropsHighRes.csv')
-aez=pd.read_csv(params.geopandasDataDir + 'AEZHighRes.csv')
+fertilizer = pd.read_pickle(params.inputDataDir + 'FertilizerHighRes.pkl', compression='zip')#, index_col=[0])  # kg/m²
+fertilizer_man = pd.read_pickle(params.inputDataDir + 'FertilizerManureHighRes.pkl', compression='zip')#, index_col=[0])  # kg/km²
+print('Done reading fertilizer data')
+irr_t = pd.read_csv(params.geopandasDataDir + 'FracIrrigationAreaHighRes.csv', index_col=[0])
+crop = pd.read_pickle(params.inputDataDir + 'FracCropAreaHighRes.pkl', compression='zip')#, index_col=[0])
+irr_rel = pd.read_csv(params.geopandasDataDir + 'FracReliantHighRes.csv', index_col=[0])
+print('Done reading irrigation data')
+tillage = pd.read_pickle(params.inputDataDir + 'TillageAllCropsHighRes.pkl', compression='zip')#, index_col=[0])
+aez = pd.read_pickle(params.inputDataDir + 'AEZHighRes.pkl', compression='zip')#, index_col=[0])
+print('Done reading AEZ and tillage data')
+continents = pd.read_pickle(params.inputDataDir + 'Continents.pkl', compression='zip')
+print('Done reading continent data')
+s_pesticides=pd.read_pickle(params.inputDataDir + 'SoybeanPesticidesHighRes.pkl', compression='zip')
 
 #fraction of irrigation total is of total cell area so it has to be divided by the
 #fraction of crop area in a cell and set all values >1 to 1
