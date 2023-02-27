@@ -97,7 +97,7 @@ for crop in params.allCrops:
         assert(df['lats'].iloc[-1]>df['lats'].iloc[0])
         assert(df['lons'].iloc[-1]>df['lons'].iloc[0])
 
-        df.to_csv(params.geopandasDataDir + crop + "CropYieldHighRes.csv")
+        df.to_pickle(params.inputDataDir + crop + "CropYieldHighRes.pkl", compression='zip')
 
     print("data['totalYield'].sum()/data['growArea'].sum()")
     print(data['totalYield'].sum()/data['growArea'].sum())

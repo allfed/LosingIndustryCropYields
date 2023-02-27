@@ -33,7 +33,7 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src.utilities import params  # get file location and varname parameters for data import
+from utilities import params  # get file location and varname parameters for data import
 from utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
@@ -477,8 +477,8 @@ Plotter.plotCountryMaps(world,'reliant_source',title,label,fn,True)
 gdf['geometry']=gdf['geometry_plot']
 # now overlay percentage ground and surface water dependent on electricity existing irrigation area.
 grid= utilities.makeGrid(gdf)
-print(params.geopandasDataDir + "Irrigation.csv")
-grid.to_csv(params.geopandasDataDir + "Irrigation.csv")
+print(params.inputDataDir + "Irrigation.pkl")
+grid.to_pickle(params.inputDataDir + "Irrigation.pkl", compression='zip')
 
 plotGrowArea=True
 

@@ -75,4 +75,4 @@ data = {"lats": pd.Series(lats2d.ravel()),
 df = pd.DataFrame(data=data)
 
 #fraction of cell that's irrigated
-df.to_csv(params.geopandasDataDir + "FracIrrigationAreaHighRes.csv")
+df.to_pickle(params.inputDataDir + "FracIrrigationAreaHighRes.pkl", compression='zip')

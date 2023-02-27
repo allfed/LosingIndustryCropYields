@@ -195,7 +195,7 @@ for c in crops:
             allcrops['is_mech'] = allcrops['is_mech'] | df[c+'_is_mech'].where(df[c+'_is_mech']==1,0).astype('bool')
         df[c+'_is_mech'] = np.where(np.isnan(df[c+'_is_mech']),-9,df[c+'_is_mech'])
         print('about to save tillage for crop '+c)
-        df.to_csv(params.geopandasDataDir + "TillageHighRes"+c+".csv")
+        #df.to_csv(params.geopandasDataDir + "TillageHighRes"+c+".csv")
         del df[c+'_is_mech']
         del df[c+'_no_crops']
 
@@ -209,8 +209,8 @@ df['is_mech'] = np.where(allcrops['mask'],-9,allcrops['is_mech'])
 del allcrops
 del cBinnedReoriented
 print('save for all crops ')
-df.to_csv(params.geopandasDataDir + "TillageAllCropsHighRes.csv")
+df.to_pickle(params.inputDataDir + "TillageAllCropsHighRes.pkl", compression='zip')
 
 # Plotter.plotMap(grid,'whea_is_not_mech',title,label,'TillageMechWheat',plotGrowArea)
 if(MAKE_GRID):
-    grid.to_csv(params.geopandasDataDir + "Tillage.csv")
+    grid.to_pickle(params.inputDataDir + "Tillage.pkl")

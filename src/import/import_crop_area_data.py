@@ -18,14 +18,14 @@ module_path = os.path.abspath(os.path.join('../..'))
 if module_path not in sys.path:
     sys.path.append(module_path)
 
-from src.utilities import params  # get file location and varname parameters for data import
-from src.utilities.plotter import Plotter
+from utilities import params  # get file location and varname parameters for data import
+from utilities.plotter import Plotter
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import geopandas as gpd
 import rasterio
-import src.utilities.utilities as utilities
+import utilities.utilities as utilities
 
 #load the params from the params.ods file into the params object
 params.importIfNotAlready()
@@ -80,7 +80,7 @@ df = pd.DataFrame(data=data)
 # print(len(df['']))
 
 #fraction of cell that's cropland
-df.to_csv(params.geopandasDataDir + "FracCropAreaHighRes.csv")
+df.to_pickle(params.inputDataDir + "FracCropAreaHighRes.pkl", compression='zip')
 
 # geometry = gpd.points_from_xy(df.lons, df.lats)
 # gdf = gpd.GeoDataFrame(df, crs={'init':'epsg:4326'}, geometry=geometry)

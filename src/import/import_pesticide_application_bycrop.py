@@ -299,5 +299,5 @@ for c in crops:
         # Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
     else:
         print(df.columns)
-        df.to_csv(params.geopandasDataDir + c + "PesticidesHighRes.csv")
+        df.to_pickle(params.inputDataDir + c + "PesticidesHighRes.pkl", compression='zip')
         

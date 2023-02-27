@@ -94,7 +94,7 @@ else:
 	assert(cdf['lats'].iloc[-1]>cdf['lats'].iloc[0])
 	assert(cdf['lons'].iloc[-1]>cdf['lons'].iloc[0])
 
-	cdf.to_pickle(params.geopandasDataDir + "Continents.pkl", compression='zip')
+	cdf.to_pickle(params.inputDataDir + "Continents.pkl", compression='zip')
 
 #create ASCII to ensure that the process worked the way it is intended
 #utilities.create5minASCIIneg(cdf, 'continent', params.asciiDir+'Continents')

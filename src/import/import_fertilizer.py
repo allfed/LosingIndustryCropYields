@@ -160,7 +160,7 @@ else:
     # df.sort_values(by=['lats', 'lons'],inplace=True)
     # print('2')
     # df = df.reset_index(drop=True)
-    df.to_csv(params.geopandasDataDir + "FertilizerHighRes.csv")
+    df.to_pickle(params.inputDataDir + "FertilizerHighRes.pkl", compression='zip')
     # time10 = datetime.datetime.now()
 
 

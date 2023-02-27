@@ -139,7 +139,7 @@ for z in AEZs:
     print(zname)
 
 if(MAKE_GRID):
-    grid.to_csv(params.geopandasDataDir + "AEZ.csv")
+    grid.to_csv(params.inputDataDir + "AEZ.csv")
     # time12 = datetime.datetime.now()
 
     title="Thermal Zone"
@@ -157,7 +157,7 @@ else:
     assert(df['lats'].iloc[-1]>df['lats'].iloc[0])
     assert(df['lons'].iloc[-1]>df['lons'].iloc[0])
 
-    df.to_csv(params.geopandasDataDir + "AEZHighRes.csv")
+    df.to_pickle(params.inputDataDir + "AEZHighRes.pkl", compression='zip')
 # print('time2: '+str((time2-time1).total_seconds() * 1000))
 # print('time3: '+str((time3-time2).total_seconds() * 1000))
 # print('time4: '+str((time4-time3).total_seconds() * 1000))

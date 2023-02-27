@@ -124,7 +124,7 @@ assert(df['lons'].iloc[-1]>df['lons'].iloc[0])
 # print('2')
 # df = df.reset_index(drop=True)
 print('saving')
-df.to_csv(params.geopandasDataDir + "FracReliantHighRes.csv")
+df.to_pickle(params.inputDataDir + "FracReliantHighRes.pkl", compression='zip')
 # time10 = datetime.datetime.now()
 
 

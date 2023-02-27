@@ -1,6 +1,7 @@
 import os
 from sys import platform
 dir_path = os.path.dirname(os.path.realpath(__file__))+'/..'
+#dir_path = '/..'
 module_path = os.path.abspath(os.path.join('../..'))
 import sys
 if module_path not in sys.path:
@@ -34,10 +35,17 @@ def deleteGlobals():
     del geopandasDataDir
     del figuresDir
     del growAreaDataLoc
-    del tempCSVloc
-    del windCSVloc
-    del temphumsunrainCSVloc
-    del asciiDir
+    #del tempCSVloc
+    #del windCSVloc
+    #del temphumsunrainCSVloc
+    del outputAsciiDir
+    del inputDataDir
+    del cropDataDir
+    del modelDataDir
+    del LoIDataDir
+    del figuresDir
+    del statisticsDir
+    del inputAsciiDir
     del latdiff
     del londiff
     del growAreaBins
@@ -97,14 +105,21 @@ def importDirectories():
     global livestockDataLoc
     global aquastatIrrigationDataLoc
     global cropYieldDataLoc
-    global geopandasDataDir
-    global figuresDir
-    global growAreaDataLoc
-    global tempCSVloc
-    global windCSVloc
-    global temphumsunrainCSVloc
-    global asciiDir
     global continentDataLoc
+    global growAreaDataLoc
+    global inputDataDir
+    global cropDataDir
+    global modelDataDir
+    global LoIDataDir
+    global figuresDir
+    global statisticsDir
+    global inputAsciiDir
+    global geopandasDataDir
+    #global tempCSVloc
+    #global windCSVloc
+    #global temphumsunrainCSVloc
+    global outputAsciiDir
+
     data = get_data(paramsfilename)
     paramdata = data['Directory']
 
@@ -132,22 +147,35 @@ def importDirectories():
             livestockDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
         if(coltitle == 'aquastatIrrigationDataLoc'):
             aquastatIrrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'geopandasDataDir'):
-            geopandasDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'figuresDir'):
-            figuresDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'growAreaDataLoc'):
-            growAreaDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'tempCSVloc'):
-            tempCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'temphumsunrainCSVloc'):
-            temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'windCSVloc'):
-            windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'asciiDir'):
-            asciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
         if(coltitle == 'continentDataLoc'):
             continentDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'growAreaDataLoc'):
+            growAreaDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'geopandasDataDir'):
+            geopandasDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'inputDataDir'):
+            inputDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'cropDataDir'):
+            cropDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'modelDataDir'):
+            modelDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'LoIDataDir'):
+            LoIDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'figuresDir'):
+            figuresDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'statisticsDir'):
+            statisticsDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        #if(coltitle == 'tempCSVloc'):
+            #tempCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+        #if(coltitle == 'temphumsunrainCSVloc'):
+            #temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+        #if(coltitle == 'windCSVloc'):
+            #windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'inputAsciiDir'):
+            inputAsciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
+        if(coltitle == 'outputAsciiDir'):
+            outputAsciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
+
 
 
 def importModelParams():

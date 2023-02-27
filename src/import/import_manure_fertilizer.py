@@ -116,4 +116,4 @@ if(MAKE_GRID):
     # label="Application Rate (kg/ha/year)"
     # Plotter.plotMap(grid,'2,4-d_total_H',title,label,'CropYield',plotGrowArea)
 else:
-    df.to_csv(params.geopandasDataDir + "FertilizerManureHighRes.csv")
+    df.to_pickle(params.inputDataDir + "FertilizerManureHighRes.pkl", compression='zip')
