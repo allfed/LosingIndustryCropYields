@@ -289,14 +289,6 @@ for crop in crops:
 
 variance = pd.DataFrame.from_dict(Variance_inflaction)
 
-VIF = pd.Series(
-    [
-        variance_inflation_factor(data_correlations[crop].values, i)
-        for i in range(data_correlations[crop].shape[1])
-    ],
-    index=data_correlations[crop].columns,
-)
-
 """
 Descriptive Statistics for each step and each crop
 """
@@ -409,47 +401,7 @@ with pd.ExcelWriter(params.statisticsDir + "Descriptive_Statistics.xlsx") as wri
     desc_stats["Soybean"].to_excel(writer, sheet_name="Soybean")
     desc_stats["Wheat"].to_excel(writer, sheet_name="Wheat")
     variance.to_excel(writer, sheet_name="Variance Inflation Factor")
-
-
-"""
-#Check for multicollinearity by calculating the two-way correlations and the VIF
-"""
-
-# extract lat, lon, area, yield, individual n columns, original climate class columns and irrigation for the LoI scenario
-# from the fit dataset to test the correlations among the
-# independent variables
-dwheat_cor_elim = data_dummy[crop].drop(
-    [
-        "lat",
-        "lon",
-        "area",
-        "Yield",
-        "n_fertilizer",
-        "n_manure",
-        "irrigation_rel",
-        "thz_class",
-        "mst_class",
-        "soil_class",
-        "continents",
-    ],
-    axis="columns",
-)
-
-#### Correlations ###
-
-# calculates spearman (rank transfowmed) correlation coeficcients between the
-# independent variables and saves the values in a dataframe
-sp_w = dwheat_cor_elim.corr(method="spearman")
-
-### Variance inflation factor ###
-
-Xw = add_constant(dwheat_cor_elim)
-pd.Series(
-    [variance_inflation_factor(Xw.values, i) for i in range(Xw.shape[1])],
-    index=Xw.columns,
-)
-
-
+    
 """
 ''
 #Generate Plots <- needs more detail

@@ -100,13 +100,13 @@ manure = pd.read_pickle(
     params.inputDataDir + "FertilizerManureHighRes.pkl", compression="zip"
 )  # , index_col=[0])  # kg/km²
 print("Done reading fertilizer data")
-irr_t = pd.read_csv(
-    params.geopandasDataDir + "FracIrrigationAreaHighRes.csv", index_col=[0]
+irr_t = pd.read_pickle(
+    params.inputDataDir + "FracIrrigationAreaHighRes.pkl", compression="zip"
 )
 crop = pd.read_pickle(
     params.inputDataDir + "FracCropAreaHighRes.pkl", compression="zip"
 )  # , index_col=[0])
-irr_rel = pd.read_csv(params.geopandasDataDir + "FracReliantHighRes.csv", index_col=[0])
+irr_rel = pd.read_pickle(params.inputDataDir + "FracReliantHighRes.pkl",compression="zip")
 print("Done reading irrigation data")
 tillage = pd.read_pickle(
     params.inputDataDir + "TillageAllCropsHighRes.pkl", compression="zip"
@@ -137,13 +137,13 @@ fert_new = pd.concat([n_new, p_new], axis="columns")
 fert_new.rename(columns={"n": "n_kgha", "p": "p_kgha"}, inplace=True)
 fertilizer = pd.concat([fertilizer, fert_new], axis="columns")  # kg/ha
 
-applied_new = fertilizer_man["applied"] / 100
-produced_new = fertilizer_man["produced"] / 100
+applied_new = manure["applied"] / 100
+produced_new = manure["produced"] / 100
 man_new = pd.concat([applied_new, produced_new], axis="columns")
 man_new.rename(
     columns={"applied": "applied_kgha", "produced": "produced_kgha"}, inplace=True
 )
-fertilizer_man = pd.concat([fertilizer_man, man_new], axis="columns")  # kg/ha
+fertilizer_man = pd.concat([manure, man_new], axis="columns")  # kg/ha
 
 # compile a combined factor for N including both N from fertilizer and manure
 N_total = fertilizer["n_kgha"] + fertilizer_man["applied_kgha"]  # kg/ha

@@ -95,13 +95,15 @@ fertilizer_man = pd.read_pickle(
     params.inputDataDir + "FertilizerManureHighRes.pkl", compression="zip"
 )  # , index_col=[0])  # kg/km²
 print("Done reading fertilizer data")
-irr_t = pd.read_csv(
-    params.geopandasDataDir + "FracIrrigationAreaHighRes.csv", index_col=[0]
+irr_t = pd.read_pickle(
+    params.inputDataDir + 'FracIrrigationAreaHighRes.pkl', compression='zip'
 )
 crop = pd.read_pickle(
     params.inputDataDir + "FracCropAreaHighRes.pkl", compression="zip"
 )  # , index_col=[0])
-irr_rel = pd.read_csv(params.geopandasDataDir + "FracReliantHighRes.csv", index_col=[0])
+irr_rel = pd.read_pickle(
+    params.inputDataDir + 'FracReliantHighRes.pkl', compression='zip'
+    )
 print("Done reading irrigation data")
 tillage = pd.read_pickle(
     params.inputDataDir + "TillageAllCropsHighRes.pkl", compression="zip"
@@ -224,6 +226,7 @@ ds0_raw["soil_class"] = ds0_raw["soil_class"].replace([0, 7, 8], np.nan)
 # repalce 2 with 1 and 7 with 6 in the moisture class to compile them into one class each
 ds0_raw["thz_class"] = ds0_raw["thz_class"].replace([8, 9, 10], 7)
 ds0_raw["mst_class"] = ds0_raw["mst_class"].replace(2, 1)
+#ds0_raw[['mst_class', 'soil_class']] = ds0_raw[['mst_class', 'soil_class']].replace(1,2)
 ds0_raw["mst_class"] = ds0_raw["mst_class"].replace(7, 6)
 
 # fill in the NaN vlaues in the dataset with a forward filling method
@@ -277,7 +280,7 @@ ds0_elim = ds0_elim.loc[ds0_elim["Y"] < ds0_qt.iloc[6, 3]]
 ds0_elim = ds0_elim.loc[ds0_elim["n_fertilizer"] < ds0_qt.iloc[6, 4]]
 ds0_elim = ds0_elim.loc[ds0_elim["p_fertilizer"] < ds0_qt.iloc[6, 5]]
 ds0_elim = ds0_elim.loc[ds0_elim["n_manure"] < ds0_qt.iloc[5, 6]]
-ds0_elim = ds0_elim.loc[ds0_elim["n_man_prod"] < ds0_qt.iloc[6, 7]]
+#ds0_elim = ds0_elim.loc[ds0_elim["n_man_prod"] < ds0_qt.iloc[6, 7]]
 ds0_elim = ds0_elim.loc[ds0_elim["n_total"] < ds0_qt.iloc[6, 8]]
 ds0_elim = ds0_elim.loc[ds0_elim["pesticides_H"] < ds0_qt.iloc[6, 9]]
 
@@ -316,6 +319,7 @@ dus_thz_elim = dus_thz_elim.rename(
 )
 dus_soil_elim = dus_soil_elim.rename(
     columns={
+        #2:"S1_very_steep_hydro"
         1: "S1_very_steep",
         2: "S2_hydro_soil",
         3: "S3_no-slight_lim",
@@ -331,7 +335,8 @@ dsoyb_d_elim = pd.concat(
 )
 # drop one column of each dummy (this value will be encoded by 0 in all columns)
 dsoyb_dus_elim = dsoyb_d_elim.drop(
-    ["270+days", "Temp_cool+Bor+Arctic", "L1_irr"], axis="columns"
+    [#'LGP<120days','Trop_low', 'S1_very_steep_hydro'
+     "270+days", "Temp_cool+Bor+Arctic", "L1_irr"], axis="columns"
 )
 
 """
