@@ -4,11 +4,7 @@ Useful functions involving statistical operations, called from various locations
 import os
 import sys
 
-module_path = os.path.abspath(os.path.join("../.."))
-if module_path not in sys.path:
-    sys.path.append(module_path)
-
-from src.utilities import params  # get file location and varname parameters
+import src.utilities.params as params  # get file location and varname parameters for
 
 import numpy as np
 import pandas as pd

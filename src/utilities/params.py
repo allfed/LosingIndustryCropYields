@@ -1,14 +1,12 @@
 import os
-from sys import platform
-dir_path = os.path.dirname(os.path.realpath(__file__))+'/..'
-#dir_path = '/..'
-module_path = os.path.abspath(os.path.join('../..'))
-import sys
-if module_path not in sys.path:
-    sys.path.append(module_path)
-print('dir_path')
-print(dir_path)
-paramsfilename = f'{dir_path}/misc/Params.ods'
+
+import git
+from pathlib import Path
+
+repo_root = git.Repo(".", search_parent_directories=True).working_dir
+
+paramsfilename = str(Path(repo_root) / "src" / "misc" / "Params.ods")
+
 
 def importIfNotAlready():
     global paramsinitialized
@@ -18,7 +16,8 @@ def importIfNotAlready():
         paramsinitialized = True
         importAll()
     else:
-        return()
+        return ()
+
 
 def deleteGlobals():
     del spamCropYieldDataLoc
@@ -35,9 +34,9 @@ def deleteGlobals():
     del geopandasDataDir
     del figuresDir
     del growAreaDataLoc
-    #del tempCSVloc
-    #del windCSVloc
-    #del temphumsunrainCSVloc
+    # del tempCSVloc
+    # del windCSVloc
+    # del temphumsunrainCSVloc
     del outputAsciiDir
     del inputDataDir
     del cropDataDir
@@ -62,7 +61,7 @@ def deleteGlobals():
     del estimateYield
     del allCrops
     del rain_mps_to_mm
-    '''
+    """
     del Tbase
     del Tfp
     del Topt1
@@ -79,15 +78,16 @@ def deleteGlobals():
     del fracProtein
     del fracFat
     del fracCarbs
-'''
+"""
+
 
 def importAll():
     importDirectories()
     importModelParams()
-    #importYieldTemp()
-    #importYieldRain()
-    #importGrowingSeason()
-    #importNutrition()
+    # importYieldTemp()
+    # importYieldRain()
+    # importGrowingSeason()
+    # importNutrition()
 
 
 def importDirectories():
@@ -115,72 +115,76 @@ def importDirectories():
     global statisticsDir
     global inputAsciiDir
     global geopandasDataDir
-    #global tempCSVloc
-    #global windCSVloc
-    #global temphumsunrainCSVloc
+    # global tempCSVloc
+    # global windCSVloc
+    # global temphumsunrainCSVloc
     global outputAsciiDir
 
     data = get_data(paramsfilename)
-    paramdata = data['Directory']
+    paramdata = data["Directory"]
 
-    for coltitleindex in range(0,len(paramdata[1])):
-        coltitle=paramdata[1][coltitleindex]
-        if(coltitle == 'cropYieldDataLoc'):
-            cropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'spamCropYieldDataLoc'):
-            spamCropYieldDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'cropAreaDataLoc'):
-            cropAreaDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'pesticidesDataLoc'):
-            pesticidesDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'tillageDataLoc'):
-            tillageDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'aezDataLoc'):
-            aezDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'fertilizerDataLoc'):
-            fertilizerDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'manureFertilizerDataLoc'):
-            manureFertilizerDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'irrigationDataLoc'):
-            irrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'livestockDataLoc'):
-            livestockDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'aquastatIrrigationDataLoc'):
-            aquastatIrrigationDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'continentDataLoc'):
-            continentDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'growAreaDataLoc'):
-            growAreaDataLoc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'geopandasDataDir'):
-            geopandasDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'inputDataDir'):
-            inputDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'cropDataDir'):
-            cropDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'modelDataDir'):
-            modelDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'LoIDataDir'):
-            LoIDataDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'figuresDir'):
-            figuresDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'statisticsDir'):
-            statisticsDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        #if(coltitle == 'tempCSVloc'):
-            #tempCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        #if(coltitle == 'temphumsunrainCSVloc'):
-            #temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        #if(coltitle == 'windCSVloc'):
-            #windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'inputAsciiDir'):
-            inputAsciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
-        if(coltitle == 'outputAsciiDir'):
-            outputAsciiDir=dir_path+'/../'+paramdata[2][coltitleindex]
-
+    for coltitleindex in range(0, len(paramdata[1])):
+        coltitle = paramdata[1][coltitleindex]
+        if coltitle == "cropYieldDataLoc":
+            cropYieldDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "spamCropYieldDataLoc":
+            spamCropYieldDataLoc = (
+                str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+            )
+        if coltitle == "cropAreaDataLoc":
+            cropAreaDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex])
+        if coltitle == "pesticidesDataLoc":
+            pesticidesDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "tillageDataLoc":
+            tillageDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex])
+        if coltitle == "aezDataLoc":
+            aezDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "fertilizerDataLoc":
+            fertilizerDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "manureFertilizerDataLoc":
+            manureFertilizerDataLoc = (
+                str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+            )
+        if coltitle == "irrigationDataLoc":
+            irrigationDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "livestockDataLoc":
+            livestockDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "aquastatIrrigationDataLoc":
+            aquastatIrrigationDataLoc = str(
+                Path(repo_root) / paramdata[2][coltitleindex]
+            )
+        if coltitle == "continentDataLoc":
+            continentDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "growAreaDataLoc":
+            growAreaDataLoc = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "geopandasDataDir":
+            geopandasDataDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "inputDataDir":
+            inputDataDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "cropDataDir":
+            cropDataDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "modelDataDir":
+            modelDataDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "LoIDataDir":
+            LoIDataDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "figuresDir":
+            figuresDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        if coltitle == "statisticsDir":
+            statisticsDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
+        # if(coltitle == 'tempCSVloc'):
+        # tempCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+        # if(coltitle == 'temphumsunrainCSVloc'):
+        # temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+        # if(coltitle == 'windCSVloc'):
+        # windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
+        if coltitle == "inputAsciiDir":
+            inputAsciiDir = str(Path(repo_root) / paramdata[2][coltitleindex])
+        if coltitle == "outputAsciiDir":
+            outputAsciiDir = str(Path(repo_root) / paramdata[2][coltitleindex])
 
 
 def importModelParams():
     from pyexcel_ods3 import get_data
-
 
     global latdiff
     global londiff
@@ -200,62 +204,84 @@ def importModelParams():
     global rain_mps_to_mm
 
     data = get_data(paramsfilename)
-    paramdata = data['ModelParams']
+    paramdata = data["ModelParams"]
 
-    for coltitleindex in range(0,len(paramdata[1])):
-        coltitle=paramdata[1][coltitleindex]
-        if(coltitle == 'latdiff'):
-            latdiff=paramdata[2][coltitleindex]
-        if(coltitle == 'londiff'):
-            londiff=paramdata[2][coltitleindex]
-        if(coltitle == 'growAreaBins'):
+    for coltitleindex in range(0, len(paramdata[1])):
+        coltitle = paramdata[1][coltitleindex]
+        if coltitle == "latdiff":
+            latdiff = paramdata[2][coltitleindex]
+        if coltitle == "londiff":
+            londiff = paramdata[2][coltitleindex]
+        if coltitle == "growAreaBins":
             growAreaBins = paramdata[2][coltitleindex]
-        if(coltitle == 'rain_mps_to_mm'):
+        if coltitle == "rain_mps_to_mm":
             rain_mps_to_mm = paramdata[2][coltitleindex]
-        if(coltitle=='allMonths'):
-            am=[]
-            for i in range(0,len(paramdata)):
-                if(i<2):
+        if coltitle == "allMonths":
+            am = []
+            for i in range(0, len(paramdata)):
+                if i < 2:
                     continue
-                m=paramdata[i]
-                if(not m):
+                m = paramdata[i]
+                if not m:
                     break
                 am.append(m[coltitleindex])
-            allMonths=am
-        if(coltitle=='allCrops'):
-            ac=[]
-            for i in range(0,len(paramdata)):
-                if(i<2):
+            allMonths = am
+        if coltitle == "allCrops":
+            ac = []
+            for i in range(0, len(paramdata)):
+                if i < 2:
                     continue
-                c=paramdata[i]
-                if(not c):
+                c = paramdata[i]
+                if not c:
                     break
-                if(len(c)-1<coltitleindex):
+                if len(c) - 1 < coltitleindex:
                     break
                 ac.append(c[coltitleindex])
-            allCrops=ac
-        if(coltitle == 'plotTemps'):
-            plotTemps = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'plotRain'):
-            plotRain = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'plotSun'):
-            plotSun = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'plotYield'):
-            plotYield = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'plotGrowArea'):
-            plotGrowArea = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        #if(coltitle == 'plotTempCoeff'):
-            #plotTempCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        #if(coltitle == 'plotRainCoeff'):
-            #plotRainCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        #if(coltitle == 'saveTempCSV'):
-            #saveTempCSV = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'estimateYield'):
-            estimateYield = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        if(coltitle == 'estimateNutrition'):
-            estimateNutrition = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+            allCrops = ac
+        if coltitle == "plotTemps":
+            plotTemps = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
+        if coltitle == "plotRain":
+            plotRain = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
+        if coltitle == "plotSun":
+            plotSun = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
+        if coltitle == "plotYield":
+            plotYield = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
+        if coltitle == "plotGrowArea":
+            plotGrowArea = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
+        # if(coltitle == 'plotTempCoeff'):
+        # plotTempCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+        # if(coltitle == 'plotRainCoeff'):
+        # plotRainCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+        # if(coltitle == 'saveTempCSV'):
+        # saveTempCSV = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
+        if coltitle == "estimateYield":
+            estimateYield = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
+        if coltitle == "estimateNutrition":
+            estimateNutrition = (
+                paramdata[2][coltitleindex] == "TRUE"
+                or paramdata[2][coltitleindex] == True
+            )
 
-'''
+
+"""
 def importYieldTemp():
 
     from pyexcel_ods3 import get_data
@@ -395,4 +421,4 @@ def importNutrition():
                 fracFat[crop]=paramdata[cropindex][coltitleindex]
             if(coltitle == 'fracCarbs'):
                 fracCarbs[crop]=paramdata[cropindex][coltitleindex]
-'''
+"""

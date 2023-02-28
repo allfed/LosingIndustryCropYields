@@ -13,12 +13,9 @@ jessica.m.moersdorf@umwelt.uni-giessen.de
 import os
 import sys
 
-module_path = os.path.abspath(os.path.join(".."))
-if module_path not in sys.path:
-    sys.path.append(module_path)
+import src.utilities.params as params  # get file location and varname parameters for
+import src.utilities.stat_ut as stat_ut  # get file location and varname parameters for
 
-from utilities import params
-from utilities import stat_ut
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
@@ -429,7 +426,6 @@ dwheat_cor_elim = data_dummy[crop].drop(
         "Yield",
         "n_fertilizer",
         "n_manure",
-        "n_man_prod",
         "irrigation_rel",
         "thz_class",
         "mst_class",

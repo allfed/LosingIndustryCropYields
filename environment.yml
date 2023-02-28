@@ -1,6 +1,7 @@
 name: loi
 channels:
   - defaults
+  - conda-forge
 dependencies:
   - geopandas
   - rasterio
@@ -10,3 +11,4 @@ dependencies:
   - nb_conda_kernels
   - netcdf4
   - seaborn
+  - git

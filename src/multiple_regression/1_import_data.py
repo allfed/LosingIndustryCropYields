@@ -15,11 +15,7 @@ start_time = time.time()
 import os
 import sys
 
-module_path = os.path.abspath(os.path.join(".."))
-if module_path not in sys.path:
-    sys.path.append(module_path)
-
-from utilities import params
+import src.utilities.params as params  # get file location and varname parameters
 import pandas as pd
 import numpy as np
 

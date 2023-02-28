@@ -24,6 +24,21 @@ See "what each file does" section below for an introduction to each notebook.
 
 Create a clone of the repository on your device.
 
+*VERY IMPORTANT!!:*
+
+Only *after* installing the environmnent, you need to install this repository as a pip package.
+
+This requires installing pip. See https://pip.pypa.io/en/stable/installation/ for installation instructions.
+
+
+One must run the following command in order for import commands to work between the python files (for any of the files in src/ or from scripts/ to run properly!):
+
+```
+pip install -e .
+```
+
+If that doesn't work, *try re-running the command again.*
+
 ### Dependency management with Poetry
 
 See https://python-poetry.org/docs/ for installation instructions.
