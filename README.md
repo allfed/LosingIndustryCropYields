@@ -30,14 +30,13 @@ Only *after* installing the environmnent, you need to install this repository as
 
 This requires installing pip. See https://pip.pypa.io/en/stable/installation/ for installation instructions.
 
-
 One must run the following command in order for import commands to work between the python files (for any of the files in src/ or from scripts/ to run properly!):
 
 ```
 pip install -e .
 ```
 
-If that doesn't work, *try re-running the command again.*
+If any errors occur, *try re-running the command again*, this will probably fix them.
 
 ### Dependency management with Poetry
 
@@ -86,6 +85,8 @@ For people new to coding the GUI is more intuitive.
 conda env create --name loi --file=environment.yml
 ```
 The dependencies will be installed automatically and the environment will be name LoIYield.
+
+This might take a few minutes.
 
 For both versions: Code from this project will only run smoothly when opened in the new
 environment and when the working directory is set to the path location of the repository on
