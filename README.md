@@ -83,7 +83,7 @@ For people new to coding the GUI is more intuitive.
 1. Open Anaconda Prompt.
 2. Type in the following line:
 ```bash
-conda env create -f loi.yml
+conda env create --name loi --file=environment.yml
 ```
 The dependencies will be installed automatically and the environment will be name LoIYield.
 

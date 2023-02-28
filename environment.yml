@@ -11,4 +11,4 @@ dependencies:
   - nb_conda_kernels
   - netcdf4
   - seaborn
-  - git
+  - gitpython
