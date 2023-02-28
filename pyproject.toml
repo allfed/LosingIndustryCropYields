@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "co"
+name = "src"
 version = "0.1.0"
 description = ""
 authors = ["Morgan <morgan@allfed.info>"]

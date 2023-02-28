@@ -4,7 +4,7 @@ channels:
 dependencies:
   - geopandas
   - rasterio
-  - pyexcel-ods3
+  - openpyxl
   - statsmodels
   - notebook
   - nb_conda_kernels
