@@ -18,6 +18,7 @@ params.importIfNotAlready()
 # I could also update this with the df.apply lambda method (see weighted_average function and application in preprocessing)
 def weighted_mean_zonal(df, levels, weights):
     groups = np.sort(levels.unique()).astype(np.int64)
+    indices = pd.Series(groups.index, index=groups)
     df_l = pd.concat([levels, df], axis="columns")
     col = list(range(1, len(df_l.columns)))
     lists = [[] for g in range(0, len(groups))]
@@ -27,7 +28,7 @@ def weighted_mean_zonal(df, levels, weights):
         for c in col:
             w_a = round(np.average(df_g.iloc[:, c], weights=w_g), 2)
             # here I need to append the list with the result
-            lists[g - 1].append(w_a)
+            lists[indices[g]].append(w_a)
     results = pd.DataFrame(lists, index=[groups], columns=[df.columns])
     return results
 
@@ -39,6 +40,13 @@ def weighted_average(data, weights, *, dropna: bool = False):
         df = df.dropna()
     weight_mean = round(np.average(df.iloc[:, 0], weights=df.iloc[:, 1]), 2)
     return weight_mean
+
+def weighted_sem(data, weights):
+    sample_mean = weighted_average(data, weights)
+    N = len(data)
+    sd = np.sqrt(sum((data - sample_mean)**2)/(N-1))
+    sem = sd/np.sqrt(N)
+    return sem
 
 
 def weighted_mode(data, weights, *, dropna: bool = False):

@@ -23,314 +23,314 @@ from statsmodels.graphics.gofplots import ProbPlot
 from sklearn.metrics import d2_tweedie_score
 from sklearn.metrics import mean_tweedie_deviance
 
+params.importAll()
 #######################################################################
 ########### Regression Calibration, Validation and Residuals###########
 #######################################################################
 
-"""
-Split the data into a validation and a calibration dataset
-"""
-
-# select a random sample of 20% from the dataset to set aside for later validation
-# random_state argument ensures that the same sample is returned each time the code is run
-dwheat_val_elim = dwheat_duw_elim.sample(frac=0.2, random_state=2705)  # RAW
-# drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
-dwheat_fit_elim = dwheat_duw_elim.drop(dwheat_val_elim.index)
-
+crops = {"Corn", "Rice", "Soybean", "Wheat"}
 
 """
-Calibrate the Regression model and calculate fit statistics
+Load the clean dataset for each crop and split the data into a validation and a calibration dataset
 """
 
-# link = sm.families.links.log
-
-# determine model with a gamma distribution
-w_mod_elimg = smf.glm(
-    formula="Y ~ n_total + p_fertilizer + irrigation_tot + mechanized + pesticides_H +  C(thz_class) + \
-              C(mst_class) + C(soil_class)",
-    data=dwheat_fit_elim,
-    family=sm.families.Gamma(link=sm.families.links.log),
-)
-# Nullmodel
-w_mod_elim0 = smf.glm(
-    formula="Y ~ 1",
-    data=dwheat_fit_elim,
-    family=sm.families.Gamma(link=sm.families.links.log),
-)
-
-# Fit models
-w_fit_elimg = w_mod_elimg.fit()
-w_fit_elim0 = w_mod_elim0.fit()
-
-# print results
-print(w_fit_elimg.summary())
-print(w_fit_elim0.summary())
-
-# calculate the odds ratios on the response scale
-coef_rs = np.exp(w_fit_elimg.params)
-
-### Fit statistics ###
-
-# calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD)
-d2_tweedie_score(dwheat_fit_elim["Y"], w_fit_elimg.fittedvalues, power=2)
-np.sqrt(mean_tweedie_deviance(dwheat_fit_elim["Y"], w_fit_elimg.fittedvalues, power=2))
-
-# calculate AIC and BIC for Gamma
-w_aic = w_fit_elimg.aic
-w_bic = w_fit_elimg.bic_llf
-
-
-"""
-Validate the model against the validation dataset
-"""
-
-# select the independent variables from the validation dataset
-w_val_elim = dwheat_val_elim.iloc[:, [5, 8, 9, 10, 11, 13, 14, 15]]
-
-# let the model predict yield values for the validation data
-w_pred_elimg = w_fit_elimg.predict(w_val_elim)
-w_pred_elimg.mean()
-
-# calculate McFadden's roh² and the RMGD scores
-d2_tweedie_score(dwheat_val_elim["Y"], w_pred_elimg, power=2)
-np.sqrt(mean_tweedie_deviance(dwheat_val_elim["Y"], w_pred_elimg, power=2))
-
-
-"""
-Plot the Residuals for the model
-"""
-### Extract necessary measures ###
-
-# select the independent variables from the fit dataset
-w_fit_elim = dwheat_fit_elim.iloc[:, [5, 8, 9, 10, 11, 13, 14, 15]]
-
-# get the influence of the GLM model
-w_stat_elimg = w_fit_elimg.get_influence()
-
-# store cook's distance in a variable
-w_elimg_cook = pd.Series(w_stat_elimg.cooks_distance[0]).transpose()
-w_elimg_cook = w_elimg_cook.rename("Cooks_d", errors="raise")
-
-# store the actual yield, the fitted values on response and link scale,
-# the diagnole of the hat matrix (leverage), the pearson and studentized residuals,
-# the absolute value of the resp and the sqrt of the stud residuals in a dataframe
-# reset the index but keep the old one as a column in order to combine the dataframe
-# with Cook's distance
-w_data_infl = {
-    "Yield": dwheat_fit_elim["Y"],
-    "GLM_fitted": w_fit_elimg.fittedvalues,
-    "Fitted_link": w_fit_elimg.predict(w_fit_elim, linear=True),
-    "resid_pear": w_fit_elimg.resid_pearson,
-    "resid_stud": w_stat_elimg.resid_studentized,
-    "resid_resp_abs": np.abs(w_fit_elimg.resid_response),
-    "resid_stud_sqrt": np.sqrt(np.abs(w_stat_elimg.resid_studentized)),
-    "hat_matrix": w_stat_elimg.hat_matrix_diag,
-}
-w_elimg_infl = pd.DataFrame(data=w_data_infl).reset_index()
-w_elimg_infl = pd.concat([w_elimg_infl, w_elimg_cook], axis="columns")
-
-# take a sample of the influence dataframe to plot the lowess line
-w_elimg_infl_sample = w_elimg_infl.sample(frac=0.1, random_state=2705)
-
-### Studentized residuals vs. fitted values on link scale ###
-
-# set plot characteristics
-plot_ws = plt.figure(4)
-plot_ws.set_figheight(8)
-plot_ws.set_figwidth(12)
-
-# Draw a scatterplot of studentized residuals vs. fitted values on the link scale
-# lowess=True draws a fitted line which shows if the relationship is linear
-plot_ws.axes[0] = sb.regplot(
-    "Fitted_link",
-    "resid_stud",
-    data=w_elimg_infl_sample,
-    lowess=True,
-    scatter_kws={"alpha": 0.5},
-    line_kws={"color": "red", "lw": 1, "alpha": 0.8},
-)
-# plt.scatter('Fitted_link', 'resid_stud', data=w_elimg_infl)
-
-# plot labels
-plot_ws.axes[0].set_title("Studentized Residuals vs Fitted on link scale")
-plot_ws.axes[0].set_xlabel("Fitted values on link scale")
-plot_ws.axes[0].set_ylabel("Studentized Residuals")
-
-### Response residuals vs. fitted values on the response scale ###
-
-# set plot characteristics
-plot_wr = plt.figure(4)
-plot_wr.set_figheight(8)
-plot_wr.set_figwidth(12)
-
-# Draw a scatterplot of response residuals vs. fitted values on the response scale
-plot_wr.axes[0] = sb.residplot(
-    "GLM_fitted",
-    "Yield",
-    data=w_elimg_infl_sample,
-    lowess=True,
-    scatter_kws={"alpha": 0.5},
-    line_kws={"color": "red", "lw": 1, "alpha": 0.8},
-)
-
-# plot labels
-plot_wr.axes[0].set_title("Residuals vs Fitted")
-plot_wr.axes[0].set_xlabel("Fitted values")
-plot_wr.axes[0].set_ylabel("Residuals")
-
-# annotations of the three largest residuals
-abs_resid = w_elimg_infl_sample["resid_resp_abs"].sort_values(ascending=False)
-abs_resid_top_3 = abs_resid[:3]
-
-for i in abs_resid_top_3.index:
-    plot_wr.axes[0].annotate(
-        i,
-        xy=(
-            w_elimg_infl_sample["GLM_fitted"][i],
-            w_elimg_infl_sample["resid_resp_abs"][i],
-        ),
+# take the cleaned dataset as a basis to calculate the conditions for the LoI scenario in phase 1 and 2
+model_data, val_data, val_factors, fit_data = {}, {}, {}, {}
+for crop in crops:
+    model_data[crop] = pd.read_csv(
+        params.modelDataDir + crop + "_data.gzip", index_col=0, compression="gzip"
     )
-
-### QQ-Plot for the studentized residuals ###
-
-# Specifications of the QQ Plot
-QQ = ProbPlot(w_elimg_infl["resid_stud"], dist=stats.gamma, fit=True)
-plot_wq = QQ.qqplot(line="45", alpha=0.5, color="#4C72B0", lw=1)
-
-# set plot characteristics
-plot_wq.set_figheight(8)
-plot_wq.set_figwidth(12)
-
-# plot labels
-plot_wq.axes[0].set_title("Normal Q-Q")
-plot_wq.axes[0].set_xlabel("Theoretical Quantiles")
-plot_wq.axes[0].set_ylabel("Standardized Residuals")
-
-# annotations of the three largest residuals
-abs_norm_resid = np.flip(np.argsort(np.abs(w_elimg_infl["resid_stud"])), 0)
-abs_norm_resid_top_3 = abs_norm_resid[:3]
-
-for r, i in enumerate(abs_norm_resid_top_3):
-    plot_wq.axes[0].annotate(
-        i, xy=(np.flip(QQ.theoretical_quantiles, 0)[r], w_elimg_infl["resid_stud"][i])
-    )
-
-### Cook's distance plots ###
-
-##Cook's distance vs. no of observation##
-
-# sort cook's distance value to get the value for the largest distance####
-w_cook_sort = w_elimg_cook.sort_values(ascending=False)
-# select all Cook's distance values which are greater than 4/n (n=number of datapoints)
-w_cook_infl = w_elimg_cook.loc[w_elimg_cook > (4 / (168227 - 21))].sort_values(
-    ascending=False
-)
-
-# barplot for values with the strongest influence (=largest Cook's distance)
-# because running the function on all values takes a little longer
-plt.bar(w_cook_infl.index, w_cook_infl)
-plt.ylim(0, 0.01)
-
-# plots for the ones greater than 4/n and all distance values
-plt.scatter(w_cook_infl.index, w_cook_infl)
-plt.scatter(w_elimg_cook.index, w_elimg_cook)
-plt.ylim(0, 0.01)
-
-##Studentized Residuals vs. Leverage w. Cook's distance line##
-
-# set plot characteristics
-plot_wc = plt.figure(4)
-plot_wc.set_figheight(8)
-plot_wc.set_figwidth(12)
-
-# Draw the scatterplott of the Studentized residuals vs. leverage
-plt.scatter(
-    w_elimg_infl_sample["hat_matrix"], w_elimg_infl_sample["resid_stud"], alpha=0.5
-)
-sb.regplot(
-    w_elimg_infl_sample["hat_matrix"],
-    w_elimg_infl_sample["resid_stud"],
-    scatter=False,
-    ci=False,
-    lowess=True,
-    line_kws={"color": "red", "lw": 1, "alpha": 0.8},
-)
-
-# plot boundaries and labels
-plot_wc.axes[0].set_xlim(0, 0.004)
-plot_wc.axes[0].set_ylim(-3, 21)
-plot_wc.axes[0].set_title("Residuals vs Leverage")
-plot_wc.axes[0].set_xlabel("Leverage")
-plot_wc.axes[0].set_ylabel("Standardized Residuals")
-
-# annotate the three points with the largest Cooks distance value
-leverage_top_3 = np.flip(np.argsort(w_elimg_infl_sample["Cooks_d"]), 0)[:3]
-
-for i in leverage_top_3.index:
-    plot_wc.axes[0].annotate(
-        i,
-        xy=(w_elimg_infl_sample["hat_matrix"][i], w_elimg_infl_sample["resid_stud"][i]),
-    )
+    # select a random sample of 20% from the dataset to set aside for later validation
+    # random_state argument ensures that the same sample is returned each time the code is run
+    val_data[crop] = model_data[crop].sample(frac=0.2, random_state=2705)
+    #select the independent variables from the validation dataset
+    val_factors[crop] = val_data[crop].iloc[:, [5, 7, 8, 9, 11, 12, 13, 14]]
+    # drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
+    fit_data[crop] = model_data[crop].drop(val_data[crop].index)
+    
+coordinates = pd.read_pickle(params.LoIDataDir  + "Coordinates.pkl", compression="zip")
 
 """
-Prediction of LoI yields and yield change rates in phase 1 and 2
+Calibrate the Regression model, calculate fit statistics and validate the model
+against the validation dataset
 """
+
+model, fit, val = {}, {}, {}
+for crop in crops:
+    # determine model with a gamma distribution
+    model[crop] = smf.glm(
+        formula="Yield ~ n_total + p_fertilizer + irrigation_tot + mechanized + pesticides +  C(thz_class) + \
+                  C(mst_class) + C(soil_class)",
+              data=fit_data[crop],
+              family=sm.families.Gamma(link=sm.families.links.log),
+              )
+    # Fit models
+    fit[crop] = model[crop].fit()
+    # let the model predict yield values for the validation data
+    val[crop] = fit[crop].predict(val_factors[crop])
+
+results, statis, df_list = {}, {}, []
+for crop in crops:
+    #collect coefficients, 95% Confidence Intervals, odds ratios and p-values in a dataframe
+    results[crop] = pd.DataFrame(fit[crop].params, columns=["Coefficients"])
+    results[crop]['+-95%Confidence_Interval'] = fit[crop].bse * 2
+    results[crop]['Odds_ratios'] = np.exp(fit[crop].params)
+    results[crop]['p-value'] = fit[crop].pvalues
+    #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
+    #fitted values and predicted values based on the validation dataset
+    #calculate the AIC and BIC for each model
+    statis[crop] = [], []
+    statis[crop][0].append(d2_tweedie_score(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2))
+    statis[crop][0].append(np.sqrt(mean_tweedie_deviance(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2)))
+    statis[crop][0].append(fit[crop].aic)
+    statis[crop][0].append(fit[crop].bic_llf)
+    statis[crop][1].append(d2_tweedie_score(val_data[crop]["Yield"], val[crop], power=2))
+    statis[crop][1].append(np.sqrt(mean_tweedie_deviance(val_data[crop]["Yield"], val[crop], power=2)))
+    statis[crop][1].extend([np.nan]*2)
+    #combine the lists into a dataframe with a multiindex and create a list of dataframes containing one df for each crop
+    df = pd.DataFrame(statis[crop], index=['Calibration', 'Validation'], columns=['McFaddens_roh', 'RootMeanGammaDeviance', 'AIC', 'BIC'])
+    df.index = pd.MultiIndex.from_product([[crop], df.index])
+    df_list.append(df)
+#combine the seperate datafremes into one dataframe
+statistics_model = pd.concat(df_list, axis=0)
+results_model = pd.concat(results, axis=1)
+
+# Create an Excel with the results and the statistics of the models
+with pd.ExcelWriter(params.statisticsDir + "Model_results.xlsx") as writer:
+    # Write each dataframe to a different worksheet.
+    results_model.to_excel(writer, sheet_name="Model_results")
+    statistics_model.to_excel(writer, sheet_name="Model_statistics")
+
+'''
+Apply the model to the Loss of Industry Scenario
+'''
+
+# Load the LoI scenario data, select the subset of columns for each phase and rename them
+#to fit the names used in the model formular
+LoI_data, LoI_phase1, LoI_phase2 = {}, {}, {}
+for crop in crops:
+    LoI_data[crop] = pd.read_csv(
+        params.LoIDataDir + crop + "_LoI_data.gzip", index_col=0, compression="gzip"
+    )
+    # select the rows from LoI_data which contain the independent variables for phase 1
+    LoI_phase1[crop] = LoI_data[crop].iloc[:, [3, 4, 5, 6, 9, 12, 13, 14]]
+    # rename the columns according to the names used in the model formular
+    LoI_phase1[crop] = LoI_phase1[crop].rename(
+        columns={
+            "p_fertilizer_y1": "p_fertilizer",
+            "n_total_y1": "n_total",
+            "pesticides_y1": "pesticides",
+            "irrigation_LoI": "irrigation_tot",
+            },
+        errors="raise",
+        )
+    # select the rows from LoI_data which contain the independent variables for phase 2
+    LoI_phase2[crop] = LoI_data[crop].iloc[:, [4, 5, 6, 8, 9, 10, 15, 16]]
+    # rename the columns according to the names used in the model formular
+    LoI_phase2[crop] = LoI_phase2[crop].rename(
+        columns={
+            "p_fertilizer_y2": "p_fertilizer",
+            "manure_LoI": "n_total",
+            "pesticides_y2": "pesticides",
+            "mechanized_y2": "mechanized",
+            "irrigation_LoI": "irrigation_tot",
+            },
+        errors="raise",
+        )      
+
 ### Phase 1 ###
 
-# select the rows from LoI_relim which contain the independent variables for phase 1
-LoI_w_phase1 = LoI_welim.iloc[:, [10, 13, 14, 15, 23, 27, 30, 32]]
-# reorder the columns according to the order in dw0_elim
-LoI_w_phase1 = LoI_w_phase1[
-    [
-        "p_fert_y1",
-        "N_toty1",
-        "pest_y1",
-        "mechanized",
-        "irr_LoI",
-        "thz_class",
-        "mst_class",
-        "soil_class",
-    ]
-]
-# rename the columns according to the names used in the model formular
-LoI_w_phase1 = LoI_w_phase1.rename(
-    columns={
-        "p_fert_y1": "p_fertilizer",
-        "N_toty1": "n_total",
-        "pest_y1": "pesticides_H",
-        "irr_LoI": "irrigation_tot",
-    },
-    errors="raise",
+def prediction_to_df (fit, data, alpha):
+    df = fit.get_prediction(data).summary_frame(alpha=alpha)
+    df.index = data.index
+    #the next two lines could be taken out , if I decide not to calculate the +- for each point because
+    #I don't know the exact multiplication value anyways
+    df.iloc[:,1] = (abs(df.iloc[:,3] - df.iloc[:,2]))/2
+    df = df.rename(columns={'mean_se': "mean_1/2_ci"}, errors="raise")
+    return df
+
+def reset_postive_change(predictions, data):
+    change = (predictions['mean']-data)/data
+    predict_negative = predictions.loc[change <=0]
+    substitutes = data.loc[change>0]
+    sub_dict = {'mean': substitutes,
+           'mean_1/2_ci':[-9999] * len(substitutes),
+           'mean_ci_lower':[-9999] * len(substitutes),
+           'mean_ci_upper':[-9999] * len(substitutes)}
+    sub_df = pd.DataFrame(sub_dict)
+    result = pd.concat([predict_negative, sub_df], verify_integrity=True).sort_index()
+    return result
+
+phases = ['phase_1', 'phase_2']
+columns = ['mean', 'mean_1/2_ci','mean_ci_lower', 'mean_ci_upper']
+phase_data = {'phase_1':LoI_phase1,
+          'phase_2':LoI_phase2}
+
+LoI_predictions_raw, LoI_predictions, relative_change = {}, {}, {}
+for crop in crops:
+    LoI_predictions_raw[crop], LoI_predictions[crop], relative_change[crop] = {}, {}, {}
+    for phase in phases:
+        LoI_predictions_raw[crop][phase] = prediction_to_df(fit[crop], phase_data[phase][crop], 0.05)
+        LoI_predictions[crop][phase] = reset_postive_change(LoI_predictions_raw[crop][phase], model_data[crop]['Yield'])
+        relative_change[crop][phase] = pd.DataFrame(columns=columns, index=LoI_predictions[crop][phase].index)
+        for column in columns:
+            relative_change[crop][phase][column] = np.where(
+                LoI_predictions[crop][phase][column] == -9999, -9999,
+                (LoI_predictions[crop][phase][column] - model_data[crop]['Yield']) / model_data[crop]['Yield'])  
+        relative_change[crop][phase]['mean_1/2_ci'] = np.where(
+            LoI_predictions[crop][phase]['mean_1/2_ci'] == -9999, -9999,
+            (abs(relative_change[crop][phase]['mean_ci_upper'] - relative_change[crop][phase]['mean_ci_lower']))/2
+            )
+
+def createASCII(df, column, coordinates, file):
+    df_asc = pd.concat([coordinates, df[column]], axis='columns')
+    os.makedirs(params.outputAsciiDir, exist_ok=True)
+    utilities.create5minASCIIneg(
+    df_asc, column, params.outputAsciiDir + '/' + file
 )
 
-# predict the yield for phase 1 using the gamma GLM
-w_yield_y1 = w_fit_elimg.predict(LoI_w_phase1)
+column_names = ['mean', 'mean_ci_lower', 'mean_ci_upper']
+column_codes = {'mean': 'mean',
+                'mean_ci_lower': 'ci_lower',
+                'mean_ci_upper': 'ci_upper'}
+types = ['LoI_predictions', 'relative_change']
+pred_data = {'LoI_predictions': [LoI_predictions, 'yield'],
+         'relative_change': [relative_change, 'rc']}
+
+for crop in crops:
+    for phase in phases:
+        for column in column_names:
+            for typ in types: 
+                file_name = crop + '_' + phase + '_' + pred_data[typ][1] + '_' + column_codes[column]
+                createASCII(pred_data[typ][0][crop][phase], column, coordinates, file_name)
+            
+"""
+Descriptive Statistics for each crop for SPAM2010, fitted values, Phase 1 and Phase 2
+"""
+
+# specify columns and apply function for all crops
+metrics = ["Total_Area(ha)", "Number_Rows"]
+#steps = {"raw": 0, "step1": 1, "step2": 2, "clean": 3, "outliers": 4}
+steps = ["SPAM2010", "fitted_values", "phase_1", "phase_2"]
+cat = {
+    "mechanized": 1,
+    "thz_class": 2,
+    "mst_class": 3,
+    "soil_class": 4,
+    "continents": 5,
+}
+columns_stat = {
+    "Yield": 0,
+    "n_fertilizer": 1,
+    "p_fertilizer": 2,
+    "n_manure": 3,
+    "n_total": 4,
+    "pesticides": 5,
+    "irrigation_tot": 6,
+    "irrigation_rel": 7,
+    "mechanized": 8,
+    "thz_class": 9,
+    "mst_class": 10,
+    "soil_class": 11,
+    "continents": 12,
+}
+data = {
+    "SPAM2010": [data_raw, columns_stat],
+    "fitted_values": [data_step1, columns_stat],
+    "phase_1": [data_step2, columns_stat],
+    "phase_2": [data_clean, columns_stat],
+}
+
+continent_stats, continent_stats_yield, weights_change, fitted, instances_yield, instances_change = {}, {}, {}, {}, {}, {}
+for crop in crops:
+    weights_change[crop] = model_data[crop]["Yield"] * model_data[crop]["area"]
+    fitted[crop] = pd.concat([fit[crop].fittedvalues, val[crop]]).sort_index()
+    instances_yield[crop] = pd.concat(
+    [
+        model_data[crop]["Yield"],
+        fitted[crop],
+        LoI_predictions[crop]['phase_1']["mean"],
+        LoI_predictions[crop]['phase_2']["mean"],
+    ],
+    axis=1,
+)
+    instances_yield[crop].columns = steps
+    instances_change[crop] = pd.concat(
+    [
+        relative_change[crop]['phase_1'],
+        relative_change[crop]['phase_2'],
+    ],
+    axis=1,
+)
+    instances_change[crop].columns = phases
+    continent_stats_yield[crop] = stat_ut.weighted_mean_zonal(instances_yield[crop], LoI_data[crop]["continents"], model_data[crop]["area"])
+    
+fit[crop].summary()
+6.4006 + 0.022*1.96
+6.4006 + 0.022*2
+stats.sem(model_data[crop]['Yield'])
+stat_ut.weighted_sem(model_data[crop]['Yield'], model_data[crop]['area'])
+def weighted_sem(data, weights):
+    sample_mean = stat_ut.weighted_average(model_data[crop]['Yield'], model_data[crop]['area'])
+    N = len(model_data[crop]['Yield'])
+    sd = np.sqrt(sum((model_data[crop]['Yield'] - sample_mean)**2)/(N-1))
+    sem = sd/np.sqrt(N)
+    return sem
 
 
-# Code to calculate LoI predictions 95% confidence interval
+LoI_data[crop]["continents"].unique()
+result = pd.concat(df_list, axis=1).transpose()
 
-# Calculate the confidence intervals for the predicted mean on the response scale
-w_r_y1 = w_fit_elimg.get_prediction(LoI_w_phase1)
-w_r_y1_conf = w_r_y1.summary_frame(alpha=0.05)
-# verify that the results are the same as with the other predict method
-np.mean(np.isclose(w_r_y1_conf.iloc[:, 0], w_yield_y1))
-# calculate the confidence and prediction intervals for the predicted mean on the link scale
-w_l_y1 = w_r_y1.linpred
-w_l_y1_cp = w_l_y1.summary_frame()
-
-
-# calculate the change rate from actual yield to the predicted yield
-w_y1_change = ((w_yield_y1 - wheat_kgha) / wheat_kgha).dropna()
-# calculate the number of cells with a postivie change rate
-s1 = w_y1_change.loc[w_y1_change > 0]
-
-# create a new variable with the yields where increased yields are set to orginial yields
-w01 = w_y1_change.loc[w_y1_change > 0]
-w_y1_0 = LoI_welim["Y"]
-w_y1_0 = w_y1_0[w01.index]
-w011 = w_y1_change.loc[w_y1_change <= 0]
-w_y1_1 = w_yield_y1[w011.index]
-w_y1_y0 = w_y1_0.append(w_y1_1)
+descriptive_stats, desc_stats = {}, {}
+for crop in crops:
+    descriptive_stats[crop] = {}
+    df_list = []
+    for step in steps:
+        descriptive_stats[crop][step] = pd.DataFrame(
+            data[step][0][crop].loc[:, data[step][1]].max(), columns=["2_Maximum"]
+        )
+        descriptive_stats[crop][step]["1_Minimum"] = (
+            data[step][0][crop].loc[:, data[step][1]].min()
+        )
+        descriptive_stats[crop][step]["0_Weighted_Mean_Mode"] = (
+            data[step][0][crop]
+            .loc[:, data[step][1]]
+            .apply(
+                lambda x: stat_ut.weighted_average(
+                    x, weights=data[step][0][crop]["area"], dropna=True
+                )
+            )
+        )
+        if step == "outliers":
+            descriptive_stats[crop][step]["3_Outlier_threshold"] = out_threshold[
+                crop
+            ].values()
+            descriptive_stats[crop][step].loc[data[step][1], "4_Number_Outliers"] = (
+                data[step][0][crop].loc[:, data[step][1]].notna().sum()
+            )
+        else:
+            descriptive_stats[crop][step]["5_NaN_count"] = (
+                data[step][0][crop].loc[:, data[step][1]].isna().sum()
+            )
+            descriptive_stats[crop][step]["6_0_count"] = (
+                data[step][0][crop].loc[:, data[step][1]] == 0
+            ).sum()
+            descriptive_stats[crop][step].loc[cat, "0_Weighted_Mean_Mode"] = (
+                data[step][0][crop]
+                .loc[:, cat]
+                .apply(
+                    lambda x: stat_ut.weighted_mode(
+                        x, weights=data[step][0][crop]["area"], dropna=True
+                    )
+                )
+            )
+        descriptive_stats[crop][step].columns = pd.MultiIndex.from_product(
+            [descriptive_stats[crop][step].columns, [step]]
+        )
+        df_list.append(descriptive_stats[crop][step])
+    desc_stats[crop] = pd.concat(df_list, axis=1).sort_index(
+        level=0, axis=1, sort_remaining=False
+    )
 
 # calculate statistics for yield and change rate
 
@@ -352,56 +352,7 @@ wmean_y1c_weigh = round(np.average(w_y1_change, weights=ww), 2)
 wmax_y1c = w_y1_change.max()
 wmin_y1c = w_y1_change.min()
 
-### Phase 2 ###
-
-# select the rows from LoI_welim which contain the independent variables for phase 2
-LoI_w_phase2 = LoI_welim.iloc[:, [13, 14, 15, 16, 24, 26, 31, 32]]
-# reorder the columns according to the order in dw0_elim
-LoI_w_phase2 = LoI_w_phase2[
-    [
-        "p_fert_y2",
-        "man_fert",
-        "pest_y2",
-        "mechanized_y2",
-        "irr_LoI",
-        "thz_class",
-        "mst_class",
-        "soil_class",
-    ]
-]
-# rename the columns according to the names used in the model formular
-LoI_w_phase2 = LoI_w_phase2.rename(
-    columns={
-        "p_fert_y2": "p_fertilizer",
-        "man_fert": "n_total",
-        "pest_y2": "pesticides_H",
-        "mechanized_y2": "mechanized",
-        "irr_LoI": "irrigation_tot",
-    },
-    errors="raise",
-)
-
-# predict the yield for phase 2 using the gamma GLM
-w_yield_y2 = w_fit_elimg.predict(LoI_w_phase2)
-# calculate the change from actual yield to the predicted yield
-w_y2_change = ((w_yield_y2 - wheat_kgha) / wheat_kgha).dropna()
-# calculate the number of cells with a postivie change rate
-s2 = w_y2_change.loc[w_y2_change > 0]
-
-# create a new variable with all positive change rates set to 0 for both phases
-w_c0 = pd.concat([w_y1_change, w_y2_change], axis=1)
-w_c0 = w_c0.rename(columns={0: "w_y1_c0", 1: "w_y2_c0"}, errors="raise")
-w_c0.loc[w_c0["w_y1_c0"] > 0, "w_y1_c0"] = 0
-w_c0.loc[w_c0["w_y2_c0"] > 0, "w_y2_c0"] = 0
-
-# create a new variable with the yields where increased yields are set to orginial yields
-w02 = w_y2_change.loc[w_y2_change > 0]
-w_y2_0 = LoI_welim["Y"]
-w_y2_0 = w_y2_0[w02.index]
-w022 = w_y2_change.loc[w_y2_change <= 0]
-w_y2_1 = w_yield_y2[w022.index]
-w_y2_y0 = w_y2_0.append(w_y2_1)
-
+#Phase 2
 # calculate statistics for yield and change rate
 
 # calculate weighted mean, min and max of predicted yield (1) including postive change rates
@@ -516,12 +467,13 @@ print(
 """
 Weighted Zonal Statistics for the continents
 """
-
+'''
 continents = pd.read_csv(params.geopandasDataDir + "Continents.csv")
 cont = continents.iloc[w_yield_y1.index]
 t = pd.concat(
     [cont, LoI_welim], axis=1, join="inner"
 )  # sanity check to see if coordinates match
+'''
 zon_stat = pd.concat(
     [
         cont["lats"],
@@ -552,8 +504,6 @@ zon_stat = zon_stat.rename(
     },
     errors="raise",
 )
-# zon_stat['continent'] = zon_stat['continent'].replace(0, np.nan)
-# zon_stat = zon_stat.fillna(method = 'ffill')
 
 cont_lev = np.sort(zon_stat["continent"].unique())
 
@@ -577,20 +527,6 @@ zon_c = pd.concat(
 )
 
 wm_t = stat_ut.weighted_mean_zonal(zon_c, new_cont, ww)
-
-
-zon_p = pd.concat(
-    [
-        zon_stat["w_yield_y1"],
-        zon_stat["w_yield_y2"],
-        zon_stat["w_y1_change"],
-        zon_stat["w_y2_change"],
-    ],
-    axis=1,
-)
-wp = zon_stat["area"]
-
-wm_p = stat_ut.weighted_mean_zonal(zon_p, new_cont, wp)
 
 
 """

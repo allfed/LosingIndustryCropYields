@@ -49,7 +49,7 @@ for crop in crops:
     )
     data_step1[crop] = data_raw[crop].loc[data_raw[crop]["area"] > 100]
 
-print("Done reading crop data and eliminate all rows below 100 ha")
+print("Done reading crop data and eliminating all rows below 100 ha")
 
 """
 Calculate area of raw datasets for specified columns to use them in LoI_scenario_data.py
@@ -79,12 +79,12 @@ in soil, n+p fertilizer, n_total, pesticides, mechanized and irrigation_rel
 """
 
 
-# function to fill classes with unreasonable values (for cropland) ins soil class
+# function to fill classes with unreasonable values (for cropland) in soil class
 # and combine some of the levels of the thz & mst class to ensure that levels with
 # few datapoints don't introduce imbalance into the data
 def clean_aez(data):
     data_aez = data.copy()
-    # replace 0s, 7s & 8as in the soil class with NaN values so they can be handled with the .fillna method
+    # replace 0s, 7s & 8s in the soil class with NaN values so they can be handled with the .fillna method
     data_aez["soil_class"] = data_aez["soil_class"].replace([0, 7, 8], np.nan)
     # fill in the NaN vlaues in the dataset with a forward filling method
     # (replacing NaN with the value in the cell before)
@@ -225,6 +225,9 @@ print(
     "Done replacing no data values in the continent column and saving the clean dataset to file"
 )
 
+############################################################################
+###I think the dummy-code can most likely go if I calculate VIF in R########
+############################################################################
 """
 Dummy-code the categorical variables to be able to assess multicollinearity
 """
@@ -295,7 +298,7 @@ Descriptive Statistics for each step and each crop
 
 # specify columns and apply function for all crops
 metrics = ["Total_Area(ha)", "Number_Rows"]
-steps = {"raw": 0, "step1": 1, "step2": 2, "clean": 3, "outliers": 4}
+#steps = {"raw": 0, "step1": 1, "step2": 2, "clean": 3, "outliers": 4}
 steps = ["raw", "step1", "step2", "clean", "outliers"]
 cat = {
     "mechanized": 1,
@@ -388,10 +391,12 @@ for crop in crops:
     desc_stats[crop] = pd.concat(df_list, axis=1).sort_index(
         level=0, axis=1, sort_remaining=False
     )
+'''
 print(desc_stats["Corn"])
 descriptive_stats["Corn"]["outliers"] = pd.DataFrame.from_dict(
     out_threshold["Corn"], orient="index", columns=["Outlier_threshold"]
 )
+'''
 # Create a Pandas Excel writer using XlsxWriter as the engine.
 with pd.ExcelWriter(params.statisticsDir + "Descriptive_Statistics.xlsx") as writer:
     # Write each dataframe to a different worksheet.
@@ -400,7 +405,7 @@ with pd.ExcelWriter(params.statisticsDir + "Descriptive_Statistics.xlsx") as wri
     desc_stats["Rice"].to_excel(writer, sheet_name="Rice")
     desc_stats["Soybean"].to_excel(writer, sheet_name="Soybean")
     desc_stats["Wheat"].to_excel(writer, sheet_name="Wheat")
-    variance.to_excel(writer, sheet_name="Variance Inflation Factor")
+    #variance.to_excel(writer, sheet_name="Variance Inflation Factor")
     
 """
 ''
