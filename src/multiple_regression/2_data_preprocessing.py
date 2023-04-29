@@ -296,10 +296,11 @@ variance = pd.DataFrame.from_dict(Variance_inflaction)
 Descriptive Statistics for each step and each crop
 """
 
-# specify columns and apply function for all crops
+# specify the overview metrics
 metrics = ["Total_Area(ha)", "Number_Rows"]
-#steps = {"raw": 0, "step1": 1, "step2": 2, "clean": 3, "outliers": 4}
+#specify the steps for which the statistics will be calculated
 steps = ["raw", "step1", "step2", "clean", "outliers"]
+#specify the categorical factors, as the mean will be calculated differently
 cat = {
     "mechanized": 1,
     "thz_class": 2,
@@ -307,6 +308,7 @@ cat = {
     "soil_class": 4,
     "continents": 5,
 }
+#specify the columns for which the statistics will be calculated
 columns_stat = {
     "Yield": 0,
     "n_fertilizer": 1,
@@ -322,6 +324,8 @@ columns_stat = {
     "soil_class": 11,
     "continents": 12,
 }
+
+#compile the data set for each step and the columns specified above in a dictionary
 data = {
     "raw": [data_raw, columns_stat],
     "step1": [data_step1, columns_stat],
@@ -330,6 +334,8 @@ data = {
     "outliers": [outliers, factors],
 }
 
+#calculate two overview statistics (metrics) for each crop and each step
+#the overview metrics do not depend on the column
 overview_stats, df_list = {}, []
 for crop in crops:
     overview_stats[crop] = [], []
@@ -341,6 +347,9 @@ for crop in crops:
     df_list.append(df)
 result = pd.concat(df_list, axis=1).transpose()
 
+#calculate descriptive statistics (Weighted mean/mode, minimum, maximum, crop area,
+#outlier threshold, number of outliers, the number of no data values and the number of zeros)
+#for each crop, step and column
 descriptive_stats, desc_stats = {}, {}
 for crop in crops:
     descriptive_stats[crop] = {}
@@ -391,12 +400,7 @@ for crop in crops:
     desc_stats[crop] = pd.concat(df_list, axis=1).sort_index(
         level=0, axis=1, sort_remaining=False
     )
-'''
-print(desc_stats["Corn"])
-descriptive_stats["Corn"]["outliers"] = pd.DataFrame.from_dict(
-    out_threshold["Corn"], orient="index", columns=["Outlier_threshold"]
-)
-'''
+
 # Create a Pandas Excel writer using XlsxWriter as the engine.
 with pd.ExcelWriter(params.statisticsDir + "Descriptive_Statistics.xlsx") as writer:
     # Write each dataframe to a different worksheet.

@@ -1,8 +1,6 @@
 """
 Useful functions involving statistical operations, called from various locations in the code.
 """
-import os
-import sys
 
 import src.utilities.params as params  # get file location and varname parameters for
 
@@ -15,9 +13,8 @@ from operator import itemgetter
 params.importIfNotAlready()
 
 
-# I could also update this with the df.apply lambda method (see weighted_average function and application in preprocessing)
 def weighted_mean_zonal(df, levels, weights):
-    groups = np.sort(levels.unique()).astype(np.int64)
+    groups = pd.Series(np.sort(levels.unique()))
     indices = pd.Series(groups.index, index=groups)
     df_l = pd.concat([levels, df], axis="columns")
     col = list(range(1, len(df_l.columns)))
