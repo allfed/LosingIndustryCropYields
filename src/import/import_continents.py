@@ -95,4 +95,5 @@ else:
     cdf.to_pickle(params.inputDataDir + "Continents.pkl", compression="zip")
 
 # create ASCII to ensure that the process worked the way it is intended
-# utilities.create5minASCIIneg(cdf, 'continent', params.asciiDir+'Continents')
+#os.makedirs(params.inputAsciiDir, exist_ok=True)
+#utilities.create5minASCIIneg(cdf, 'continent', params.inputAsciiDir+'Continents')

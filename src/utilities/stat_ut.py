@@ -1,5 +1,8 @@
 """
 Useful functions involving statistical operations, called from various locations in the code.
+
+@author: Jessica Mörsdorf
+jessica@allfed.info
 """
 
 import src.utilities.params as params  # get file location and varname parameters for
@@ -7,8 +10,6 @@ import src.utilities.params as params  # get file location and varname parameter
 import numpy as np
 import pandas as pd
 from operator import itemgetter
-
-# import statsmodels.api as sm
 
 params.importIfNotAlready()
 
@@ -24,7 +25,6 @@ def weighted_mean_zonal(df, levels, weights):
         w_g = weights[df_g.index]
         for c in col:
             w_a = round(np.average(df_g.iloc[:, c], weights=w_g), 2)
-            # here I need to append the list with the result
             lists[indices[g]].append(w_a)
     results = pd.DataFrame(lists, index=[groups], columns=[df.columns])
     return results
