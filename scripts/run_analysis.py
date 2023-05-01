@@ -20,7 +20,7 @@ for script in [
     "1_import_data.py",
     "2_data_preprocessing.py",
     "3_LoI_scenario_data.py",
-    "4_GLM_analysis_highres.py",
+    "4.1_GLM_analysis.py",
 ]:
     # if this causes issues, try changing it to "python". If that doesn't work,
     # perhaps you don't have python3 installed.
