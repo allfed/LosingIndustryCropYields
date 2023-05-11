@@ -10,17 +10,7 @@ Setup instructions for both are below.
 
 # Setup
 
-## Setup using Colab
-
-In GitHub, navigate to the `notebooks` folder and click on the notebook you
-want to run. Then, click the "Open in Colab" button at the top of the notebook.
-This will open the notebook using Colab - just follow the instructions in 
-the notebook. For anyone new to Colab, you can go through an intro demo here:
-https://colab.research.google.com/notebooks/basic_features_overview.ipynb
-
-See "what each file does" section below for an introduction to each notebook.
-
-## Dependencies: Setup in local dev environment (for advanced users)
+## Dependencies: Setup in local dev environment 
 
 Create a clone of the repository on your device.
 
