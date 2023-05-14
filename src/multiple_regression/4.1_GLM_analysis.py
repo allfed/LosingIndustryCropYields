@@ -118,7 +118,8 @@ for crop in crops:
 
 print("Done calibrating and validating the regression model, saving validation index to file")
 
-
+(abs(fit[crop].conf_int()[1] - fit[crop].conf_int()[0]))/2
+(abs(df.iloc[:,3] - df.iloc[:,2]))/2
 print("Calculating model results and statistics and saving them to file")
 
 #calculate model parameters and statistics for each crop and combine them in a dataframe
@@ -127,7 +128,7 @@ for crop in crops:
     #extract model parameters, their 95% Confidence Intervals and their p-values from the model,
     #calculate the odds ratios and combine all four values in a dataframe
     model_results[crop] = pd.DataFrame(fit[crop].params, columns=["Coefficients"])
-    model_results[crop]['+-95%Confidence_Interval'] = fit[crop].bse * 2
+    model_results[crop]['+-95%Confidence_Interval'] = (abs(fit[crop].conf_int()[1] - fit[crop].conf_int()[0]))/2
     model_results[crop]['Odds_ratios'] = np.exp(fit[crop].params)
     model_results[crop]['p-value'] = fit[crop].pvalues
     #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
@@ -148,9 +149,10 @@ for crop in crops:
     df.index = pd.MultiIndex.from_product([[crop], df.index])
     df_list.append(df)
 #combine the seperate dataframes in the list into one dataframe
-statistics_model = pd.concat(df_list, axis=0)
+statistics_model = pd.concat(df_list, axis=0).sort_index(level=0, sort_remaining=False)
 #combine all dataframes from the dictionary into one dataframe
 results_model = pd.concat(model_results, axis=1)
+results_model.columns=results_model.sort_index(axis=1,level=0, sort_remaining=False).columns
 
 # Create an Excel with the results and the statistics of the models
 with pd.ExcelWriter(params.statisticsDir + "Model_results.xlsx") as writer:

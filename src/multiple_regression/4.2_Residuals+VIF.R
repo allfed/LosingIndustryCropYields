@@ -142,7 +142,7 @@ hs2 <- createStyle(
 wb <- loadWorkbook("reports/Model_results.xlsx")
 
 # remove the worksheet if a sheet with that name already exists
-removeWorksheet(wb, sheet = "Model_VIF")
+#removeWorksheet(wb, sheet = "Model_VIF")
 # Add a new sheet with your data frame
 addWorksheet(wb, "Model_VIF")
 writeDataTable(wb, sheet = "Model_VIF", x = VIF_crops, rowNames=TRUE,
