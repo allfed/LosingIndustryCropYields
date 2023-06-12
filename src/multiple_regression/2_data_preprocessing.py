@@ -86,7 +86,7 @@ def calculate_area(data, columns):
 
 
 # specify columns and apply function for all crops
-columns = ["n_fertilizer", "p_fertilizer", "pesticides"]
+columns = ["n_fertilizer", "pesticides"]
 area_stat = {crop: calculate_area(data_raw[crop], columns) for crop in crops}
 # convert dict to dataframe and save to csv
 area_col = pd.DataFrame.from_dict(area_stat)
@@ -127,7 +127,7 @@ def clean_fertilizer(data):
     no_data_value = data_fertilizer["n_fertilizer"].min()
     # replace remaining no data values in fertilizer datasets with NaN, then fill them
     data_fertilizer = data_fertilizer.replace(
-        {"n_fertilizer": no_data_value, "p_fertilizer": no_data_value}, np.nan
+        {"n_fertilizer": no_data_value}, np.nan
     )
     data_fertilizer = data_fertilizer.fillna(method="ffill")
     # replace NaN values in n_total with sum of the newly filled n_fertilizer and n_manure values
@@ -188,12 +188,11 @@ def extract_outliers(data, factors, thresholds):
 
 # select the columns of the dataframe where outliers will be calculated
 factors = {
-    "Yield": 5,
+    "Yield": 4,
     "n_fertilizer": 0,
-    "p_fertilizer": 3,
     "n_manure": 1,
     "n_total": 2,
-    "pesticides": 4,
+    "pesticides": 3,
 }
 
 # for each crop: calculate the outlier thresholds and apply the above functions
@@ -223,7 +222,7 @@ Replace No Data Values in continent column with corresponding continent value
 fill_values_Corn = (
     [4] * 11 + [6, 6, 4, 4, 4, 6, 1, 5, 1, 1, 1, 5, 1, 1, 1, 1, 1] + [2] * 39
 )
-fill_values_Rice = [6] * 12 + [1] * 10 + [2] * 132
+fill_values_Rice = [6] * 12 + [1] * 10 + [2] * 133
 fill_values_Soybean = [4] * 3 + [2] * 8
 fill_values_Wheat = [4, 6, 5, 5, 5, 5, 5, 1, 5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2]
 
@@ -281,17 +280,16 @@ cat = {
 columns_stat = {
     "Yield": 0,
     "n_fertilizer": 1,
-    "p_fertilizer": 2,
-    "n_manure": 3,
-    "n_total": 4,
-    "pesticides": 5,
-    "irrigation_tot": 6,
-    "irrigation_rel": 7,
-    "mechanized": 8,
-    "thz_class": 9,
-    "mst_class": 10,
-    "soil_class": 11,
-    "continents": 12,
+    "n_manure": 2,
+    "n_total": 3,
+    "pesticides": 4,
+    "irrigation_tot": 5,
+    "irrigation_rel": 6,
+    "mechanized": 7,
+    "thz_class": 8,
+    "mst_class": 9,
+    "soil_class": 10,
+    "continents": 11,
 }
 
 #compile the data set for each step and the columns specified above in a dictionary

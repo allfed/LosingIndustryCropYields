@@ -120,12 +120,11 @@ frac_pest = ((14477 / 118763) + (4142 / 45858)) / 2
 totals = pd.DataFrame(
     {
         "n_fertilizer": [118763000, 14477000],
-        "p_fertilizer": [45858000, 4142000],
         "pesticides": [4190985, frac_pest * 4190985],
     }
 )
 # specify the columns for which the the new year 1 application rate will be calculated
-year1_columns = ["n_fertilizer", "p_fertilizer", "pesticides"]
+year1_columns = ["n_fertilizer", "pesticides"]
 os.makedirs(params.LoIDataDir, exist_ok=True)
 
 print("Done preparing functions and variables for the LoI calculations")
@@ -147,13 +146,12 @@ for crop in crops:
     )
     # in phase 2 there is no more artificial fertilizer, so n_fertilizer is 0 and therefore n_total equal to manure_LoI
     # in phase 2 no industrially produced fertilizers or pesticides will be available: set to 0
-    LoI_data[crop][["p_fertilizer_y2", "pesticides_y2"]] = 0
+    LoI_data[crop][["pesticides_y2"]] = 0
     # drop all columns with data not corresponding to the LoI forcast
     LoI_data[crop] = LoI_data[crop].drop(
         [
             "Yield",
             "n_fertilizer",
-            "p_fertilizer",
             "n_manure",
             "n_total",
             "pesticides",
