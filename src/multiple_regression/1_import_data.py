@@ -141,7 +141,6 @@ for crop in crops:
         "area": Yield[crop + "_yield"].loc[:, "growArea"],
         "Yield": Yield[crop + "_yield"].loc[:, "yield_kgPerHa"],
         "n_fertilizer": nutrients_kgha.loc[:, "fertN_kgha"],
-        "p_fertilizer": nutrients_kgha.loc[:, "fertP_kgha"],
         "n_manure": nutrients_kgha.loc[:, "manN_applied_kgha"],
         "n_total": nutrients_kgha.loc[:, "totN"],
         "pesticides": pesticides[crops[crop] + "_pesticides"].loc[:, "total_H"],

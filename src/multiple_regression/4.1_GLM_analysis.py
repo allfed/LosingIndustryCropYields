@@ -79,7 +79,7 @@ for crop in crops:
     # random_state argument ensures that the same sample is returned each time the code is run
     val_data[crop] = model_data[crop].sample(frac=0.2, random_state=2705)
     #select the independent variables from the validation dataset
-    val_factors[crop] = val_data[crop].iloc[:, [5, 7, 8, 9, 11, 12, 13, 14]]
+    val_factors[crop] = val_data[crop].iloc[:, [6, 7, 8, 10, 11, 12, 13]]
     # drop the validation sample rows from the dataframe, leaving 80% of the data for fitting the model
     fit_data[crop] = model_data[crop].drop(val_data[crop].index)
 
@@ -103,7 +103,7 @@ for crop in crops:
     #articificial phosphorus fertilizer application, total irrigation, pesticide application, temperature + 
     #moisture + soil class and a dummy indicating if the area is worked with agricultural machinery
     model[crop] = smf.glm(
-        formula="Yield ~ n_total + p_fertilizer + irrigation_tot + mechanized + pesticides +  C(thz_class) + \
+        formula="Yield ~ n_total + irrigation_tot + mechanized + pesticides +  C(thz_class) + \
                   C(mst_class) + C(soil_class)",
               data=fit_data[crop],
               family=sm.families.Gamma(link=sm.families.links.log),
@@ -116,8 +116,14 @@ for crop in crops:
     val_index[crop].to_csv(
         params.modelDataDir + crop + "_index.csv")
 
-print("Done calibrating and validating the regression model, saving validation index to file")
+params_raw, params_mult = {}, {}
+for crop in crops:
+    params_raw[crop] = fit[crop].params
+    params_mult[crop] = np.exp(params_raw[crop])
 
+
+
+print("Done calibrating and validating the regression model, saving validation index to file")
 
 print("Calculating model results and statistics and saving them to file")
 
@@ -127,8 +133,10 @@ for crop in crops:
     #extract model parameters, their 95% Confidence Intervals and their p-values from the model,
     #calculate the odds ratios and combine all four values in a dataframe
     model_results[crop] = pd.DataFrame(fit[crop].params, columns=["Coefficients"])
-    model_results[crop]['+-95%Confidence_Interval'] = fit[crop].bse * 2
-    model_results[crop]['Odds_ratios'] = np.exp(fit[crop].params)
+    #model_results[crop]['+-95%Confidence_Interval'] = (abs(fit[crop].conf_int()[1] - fit[crop].conf_int()[0]))/2
+    model_results[crop]['Multiplicative_Coefficients'] = np.exp(fit[crop].params)
+    model_results[crop]['lower_95%_Confidence_Interval'] = np.exp(fit[crop].conf_int()[0])
+    model_results[crop]['upper_95%_Confidence_Interval'] = np.exp(fit[crop].conf_int()[1])
     model_results[crop]['p-value'] = fit[crop].pvalues
     #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
     #the fitted values of the models and the values the models predict 
@@ -148,9 +156,10 @@ for crop in crops:
     df.index = pd.MultiIndex.from_product([[crop], df.index])
     df_list.append(df)
 #combine the seperate dataframes in the list into one dataframe
-statistics_model = pd.concat(df_list, axis=0)
+statistics_model = pd.concat(df_list, axis=0).sort_index(level=0, sort_remaining=False)
 #combine all dataframes from the dictionary into one dataframe
 results_model = pd.concat(model_results, axis=1)
+results_model = results_model.sort_index(axis=1, level=0, sort_remaining=False)
 
 # Create an Excel with the results and the statistics of the models
 with pd.ExcelWriter(params.statisticsDir + "Model_results.xlsx") as writer:
@@ -175,11 +184,10 @@ for crop in crops:
         params.LoIDataDir + crop + "_LoI_data.gzip", index_col=0, compression="gzip"
     )
     # select the rows from LoI_data which contain the independent variables for phase 1
-    LoI_phase1[crop] = LoI_data[crop].iloc[:, [3, 4, 5, 6, 9, 12, 13, 14]]
+    LoI_phase1[crop] = LoI_data[crop].iloc[:, [3, 4, 5, 6, 9, 12, 13]]
     # rename the columns according to the names used in the model formular
     LoI_phase1[crop] = LoI_phase1[crop].rename(
         columns={
-            "p_fertilizer_y1": "p_fertilizer",
             "n_total_y1": "n_total",
             "pesticides_y1": "pesticides",
             "irrigation_LoI": "irrigation_tot",
@@ -187,11 +195,10 @@ for crop in crops:
         errors="raise",
         )
     # select the rows from LoI_data which contain the independent variables for phase 2
-    LoI_phase2[crop] = LoI_data[crop].iloc[:, [4, 5, 6, 8, 9, 10, 15, 16]]
+    LoI_phase2[crop] = LoI_data[crop].iloc[:, [4, 5, 6, 8, 9, 10, 14]]
     # rename the columns according to the names used in the model formular
     LoI_phase2[crop] = LoI_phase2[crop].rename(
         columns={
-            "p_fertilizer_y2": "p_fertilizer",
             "manure_LoI": "n_total",
             "pesticides_y2": "pesticides",
             "mechanized_y2": "mechanized",
@@ -419,7 +426,6 @@ for crop in crops:
         stat_data[crop].iloc[:,4:6], LoI_data[crop]["continents"], weights_change[crop]
         )
 
-#unsure if I should add the ci (could multiindex index like so: 1 -> mean, 1/2 ci, 2 -> mean, 1/2 ci, etc.)
 continent_statistics = pd.concat(continent_stats).sort_index(level=0, sort_remaining=False)
 
 print("Done calculating descriptive statistics for each crop, for SPAM2010, fitted values, Phase 1 and Phase 2\
