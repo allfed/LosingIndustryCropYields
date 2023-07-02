@@ -79,57 +79,6 @@ for (crop in crops) {
   fit_data[[crop]] <- model_data[[crop]][!rownames(model_data[[crop]]) %in% val_index[[crop]][["X0"]],]
 }
 
-######################################################
-stand_data <- list()
-sd_stand <- list()
-mean_stand <- list()
-stand_pred <- list()
-fit_data_sd <- list()
-norm1 <- list()
-norm2 <- list()
-norm_pred <- list()
-fit_data_norm <- list()
-
-for (crop in crops) {
-  stand_data[[crop]] <- fit_data[[crop]][, c(6, 8, 9, 10)]
-  sd_stand[[crop]] <- apply(stand_data[[crop]], 2, sd)
-  mean_stand[[crop]] <- apply(stand_data[[crop]], 2, mean)
-  stand_pred[[crop]] <- (stand_data[[crop]] - mean_stand[[crop]])/ sd_stand[[crop]]
-  fit_data_sd[[crop]] <- cbind(stand_pred[[crop]], fit_data[[crop]][, c(4, 12, 13, 14, 15)])
-  norm1[[crop]] <- stand_data[[crop]] - apply(stand_data[[crop]], 2, min)
-  norm2[[crop]] <- apply(stand_data[[crop]], 2, function(x) max(x) - min(x))
-  norm_pred[[crop]] <- sweep(norm1[[crop]], 2, norm2[[crop]], `/`)
-  fit_data_norm[[crop]] <- cbind(norm_pred[[crop]], fit_data[[crop]][, c(4, 12, 13, 14, 15)])
-  }
-
-model_stand <- list()
-model_norm <- list()
-
-for (crop in crops) {
-  model_stand[[crop]] <- glm(
-    formula = Yield ~ n_total + irrigation_tot + mechanized + pesticides + 
-      thz_class + mst_class + soil_class,
-    data = fit_data_sd[[crop]],
-    family = Gamma(link = "log")
-  )
-  model_norm[[crop]] <- glm(
-    formula = Yield ~ n_total + irrigation_tot + mechanized + pesticides + 
-      thz_class + mst_class + soil_class,
-    data = fit_data_norm[[crop]],
-    family = Gamma(link = "log")
-  )
-}
-summary(model_stand[['Corn']])
-exp(coef(model_stand[['Corn']]))
-summary(model_norm[['Corn']])
-exp(coef(model_norm[['Corn']]))
-summary(model[['Corn']])
-exp(coef(model[['Corn']]))
-
-df = emmeans (model[['Corn']], ~ n_total, type = "response")
-data.frame(df)[,3]
-###########################################################################
-
 print("Done reading crop and index data and defining calibration data")
 
 
