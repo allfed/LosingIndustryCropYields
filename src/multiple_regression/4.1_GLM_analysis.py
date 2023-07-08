@@ -121,51 +121,127 @@ for crop in crops:
     params_raw[crop] = fit[crop].params
     params_mult[crop] = np.exp(params_raw[crop])
 
+#calculate normalized predictors for n_total and pesticides
+norm_data, norm1, norm_pred, fit_data_norm = {}, {}, {}, {}
 
+for crop in crops:
+  norm_data[crop] = fit_data[crop].iloc[:, [6, 7]]
+  norm1[crop] = norm_data[crop] - norm_data[crop].min()
+  norm_pred[crop] = norm1[crop]/norm1[crop].max()
+  fit_data_norm[crop] = pd.concat([norm_pred[crop], fit_data[crop].iloc[:, [3, 8, 10, 11, 12, 13]]], axis=1)
+
+#fit the model using the normalized input data
+model_norm, fit_norm = {}, {}
+
+for crop in crops:
+    model_norm[crop] = smf.glm(
+        formula="Yield ~ n_total + irrigation_tot + mechanized + pesticides +  C(thz_class) + \
+                  C(mst_class) + C(soil_class)",
+              data=fit_data_norm[crop],
+              family=sm.families.Gamma(link=sm.families.links.log),
+              )
+    fit_norm[crop] = model_norm[crop].fit()
 
 print("Done calibrating and validating the regression model, saving validation index to file")
 
 print("Calculating model results and statistics and saving them to file")
 
-#calculate model parameters and statistics for each crop and combine them in a dataframe
+steps = ('raw', 'norm')
+
+data = {
+    "raw": [fit],
+    "norm": [fit_norm],
+}
+
+#calculate raw and normalized model parameters and statistics for each crop
+#and combine them in a dataframe
 model_results, model_stats, df_list = {}, {}, []
-for crop in crops:
-    #extract model parameters, their 95% Confidence Intervals and their p-values from the model,
-    #calculate the odds ratios and combine all four values in a dataframe
-    model_results[crop] = pd.DataFrame(fit[crop].params, columns=["Coefficients"])
-    #model_results[crop]['+-95%Confidence_Interval'] = (abs(fit[crop].conf_int()[1] - fit[crop].conf_int()[0]))/2
-    model_results[crop]['Multiplicative_Coefficients'] = np.exp(fit[crop].params)
-    model_results[crop]['lower_95%_Confidence_Interval'] = np.exp(fit[crop].conf_int()[0])
-    model_results[crop]['upper_95%_Confidence_Interval'] = np.exp(fit[crop].conf_int()[1])
-    model_results[crop]['p-value'] = fit[crop].pvalues
-    #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
-    #the fitted values of the models and the values the models predict 
-    #for the validation dataset
-    #calculate the AIC and BIC for each model
-    model_stats[crop] = [], []
-    model_stats[crop][0].append(d2_tweedie_score(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2))
-    model_stats[crop][0].append(np.sqrt(mean_tweedie_deviance(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2)))
-    model_stats[crop][0].append(fit[crop].aic)
-    model_stats[crop][0].append(fit[crop].bic_llf)
-    model_stats[crop][1].append(d2_tweedie_score(val_data[crop]["Yield"], val[crop], power=2))
-    model_stats[crop][1].append(np.sqrt(mean_tweedie_deviance(val_data[crop]["Yield"], val[crop], power=2)))
-    model_stats[crop][1].extend([np.nan]*2)
-    #combine the lists into a dataframe with a multiindex and create a list of dataframes
-    #containing one dataframe for each crop
-    df = pd.DataFrame(model_stats[crop], index=['Calibration', 'Validation'], columns=['McFaddens_roh', 'RootMeanGammaDeviance', 'AIC', 'BIC'])
-    df.index = pd.MultiIndex.from_product([[crop], df.index])
-    df_list.append(df)
+for step in steps:
+    model_results[step] = {}
+    for crop in crops:
+        #extract raw and normalized model parameters, their 95% Confidence Intervals and
+        #their p-values from the model, calculate the multiplicative coefficients
+        #and combine all four values in a dataframe
+        model_results[step][crop] = pd.DataFrame(data[step][0][crop].params, columns=["Coefficients"])
+        model_results[step][crop]['Multiplicative_Coefficients'] = np.exp(data[step][0][crop].params)
+        model_results[step][crop]['lower_95%_Confidence_Interval'] = np.exp(data[step][0][crop].conf_int()[0])
+        model_results[step][crop]['upper_95%_Confidence_Interval'] = np.exp(data[step][0][crop].conf_int()[1])
+        model_results[step][crop]['p-value'] = data[step][0][crop].pvalues
+        #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
+        #the fitted values of the models and the values the models predict 
+        #for the validation dataset
+        #calculate the AIC and BIC for each model
+        model_stats[crop] = [], []
+        model_stats[crop][0].append(d2_tweedie_score(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2))
+        model_stats[crop][0].append(np.sqrt(mean_tweedie_deviance(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2)))
+        model_stats[crop][0].append(fit[crop].aic)
+        model_stats[crop][0].append(fit[crop].bic_llf)
+        model_stats[crop][1].append(d2_tweedie_score(val_data[crop]["Yield"], val[crop], power=2))
+        model_stats[crop][1].append(np.sqrt(mean_tweedie_deviance(val_data[crop]["Yield"], val[crop], power=2)))
+        model_stats[crop][1].extend([np.nan]*2)
+        #combine the lists into a dataframe with a multiindex and create a list of dataframes
+        #containing one dataframe for each crop
+        df = pd.DataFrame(model_stats[crop], index=['Calibration', 'Validation'], columns=['McFaddens_roh', 'RootMeanGammaDeviance', 'AIC', 'BIC'])
+        df.index = pd.MultiIndex.from_product([[crop], df.index])
+        df_list.append(df)
+
 #combine the seperate dataframes in the list into one dataframe
 statistics_model = pd.concat(df_list, axis=0).sort_index(level=0, sort_remaining=False)
-#combine all dataframes from the dictionary into one dataframe
-results_model = pd.concat(model_results, axis=1)
+#combine all dataframes from each dictionary into one dataframe
+results_model = pd.concat(model_results['raw'], axis=1)
 results_model = results_model.sort_index(axis=1, level=0, sort_remaining=False)
+norm_results = pd.concat(model_results['norm'], axis=1)
+norm_results = norm_results.sort_index(axis=1, level=0, sort_remaining=False)
+
+#Create a testing dataset to calculate the effect on yield when one of the factors
+#(n_total, pesticides, irrigation_tot, mechanized) is set to 0
+max_n, max_p, test_data, test_df, test_pred = {}, {}, {}, {}, {}
+for crop in crops:
+    #store the maximum values of n_total and pesticides in seperate variables
+    max_n[crop] = fit_data[crop]['n_total'].max()
+    max_p[crop] = fit_data[crop]['pesticides'].max()
+    #create a testing datasets with the climatic predictros set to a default value
+    #and the rest of the predictors set to their maximum value except for one
+    #row where they are set to 0
+    test_data[crop] = {
+        "n_total": [0, max_n[crop], max_n[crop], max_n[crop], max_n[crop]],
+        "pesticides": [max_p[crop], 0, max_p[crop], max_p[crop], max_p[crop]],
+        "irrigation_tot": [1,1,0,1,1],
+        "mechanized": [1,1,1,0,1],
+        "thz_class": [7]*5,
+        "mst_class": [5]*5,
+        "soil_class": [6]*5,
+    }
+    #compile the testing data into a dataframe
+    test_df[crop] = pd.DataFrame(data=test_data[crop])
+    #use the model to predict the yield for the values of the testing dataset
+    test_pred[crop] = fit[crop].predict(test_df[crop])
+
+#use the testing data to calculate the percental reduction in yield caused by
+#eliminating a specific input
+testing = {}
+for crop in crops:
+    #collect the percentages in a list for each crop
+    testing[crop] = []
+    #append the values for n_total, pesticides, irrigation_tot and mechanized to the list
+    #divide predicted yield for selected factor set to 0 by the yield when it is set to max
+    #substract 1 to get the reduction potential of said factor
+    testing[crop].append(test_pred[crop][0]/test_pred[crop][4]-1)
+    testing[crop].append(test_pred[crop][1]/test_pred[crop][4]-1)
+    testing[crop].append(test_pred[crop][2]/test_pred[crop][4]-1)
+    testing[crop].append(test_pred[crop][3]/test_pred[crop][4]-1)
+
+#combine the four lists into a dataframe
+factor_reduction = pd.DataFrame(testing, index=['n_total', 'pesticides', 'irrigation', 'mechanized'], columns=crops)
+factor_reduction = factor_reduction.sort_index(axis=1, sort_remaining=False)
 
 # Create an Excel with the results and the statistics of the models
 with pd.ExcelWriter(params.statisticsDir + "Model_results.xlsx") as writer:
     # Write each dataframe to a different worksheet.
     results_model.to_excel(writer, sheet_name="Model_results")
+    norm_results.to_excel(writer, sheet_name="Normalized_results")
     statistics_model.to_excel(writer, sheet_name="Model_statistics")
+    factor_reduction.to_excel(writer, sheet_name="YieldReductionperFactor")
     
 print("Done calculating model results and statistics and saving them to file")
 
@@ -427,6 +503,9 @@ for crop in crops:
         )
 
 continent_statistics = pd.concat(continent_stats).sort_index(level=0, sort_remaining=False)
+
+#LoI_data['Corn']['continents'].unique()
+#df2 = LoI_data['Corn'].pivot_table(index = ['continents'], aggfunc ='size')
 
 print("Done calculating descriptive statistics for each crop, for SPAM2010, fitted values, Phase 1 and Phase 2\
       and for each continent")
