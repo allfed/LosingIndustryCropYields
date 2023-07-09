@@ -116,11 +116,6 @@ for crop in crops:
     val_index[crop].to_csv(
         params.modelDataDir + crop + "_index.csv")
 
-params_raw, params_mult = {}, {}
-for crop in crops:
-    params_raw[crop] = fit[crop].params
-    params_mult[crop] = np.exp(params_raw[crop])
-
 #calculate normalized predictors for n_total and pesticides
 norm_data, norm1, norm_pred, fit_data_norm = {}, {}, {}, {}
 
@@ -167,31 +162,36 @@ for step in steps:
         model_results[step][crop]['lower_95%_Confidence_Interval'] = np.exp(data[step][0][crop].conf_int()[0])
         model_results[step][crop]['upper_95%_Confidence_Interval'] = np.exp(data[step][0][crop].conf_int()[1])
         model_results[step][crop]['p-value'] = data[step][0][crop].pvalues
-        #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
-        #the fitted values of the models and the values the models predict 
-        #for the validation dataset
-        #calculate the AIC and BIC for each model
-        model_stats[crop] = [], []
-        model_stats[crop][0].append(d2_tweedie_score(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2))
-        model_stats[crop][0].append(np.sqrt(mean_tweedie_deviance(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2)))
-        model_stats[crop][0].append(fit[crop].aic)
-        model_stats[crop][0].append(fit[crop].bic_llf)
-        model_stats[crop][1].append(d2_tweedie_score(val_data[crop]["Yield"], val[crop], power=2))
-        model_stats[crop][1].append(np.sqrt(mean_tweedie_deviance(val_data[crop]["Yield"], val[crop], power=2)))
-        model_stats[crop][1].extend([np.nan]*2)
-        #combine the lists into a dataframe with a multiindex and create a list of dataframes
-        #containing one dataframe for each crop
-        df = pd.DataFrame(model_stats[crop], index=['Calibration', 'Validation'], columns=['McFaddens_roh', 'RootMeanGammaDeviance', 'AIC', 'BIC'])
-        df.index = pd.MultiIndex.from_product([[crop], df.index])
-        df_list.append(df)
+
+for crop in crops:
+    #calculate McFadden's roh² and the Root Mean Gamma Deviance (RMGD) for 
+    #the fitted values of the models and the values the models predict 
+    #for the validation dataset
+    #calculate the AIC and BIC for each model
+    model_stats[crop] = [], []
+    model_stats[crop][0].append(d2_tweedie_score(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2))
+    model_stats[crop][0].append(np.sqrt(mean_tweedie_deviance(fit_data[crop]["Yield"], fit[crop].fittedvalues, power=2)))
+    model_stats[crop][0].append(fit[crop].aic)
+    model_stats[crop][0].append(fit[crop].bic_llf)
+    model_stats[crop][1].append(d2_tweedie_score(val_data[crop]["Yield"], val[crop], power=2))
+    model_stats[crop][1].append(np.sqrt(mean_tweedie_deviance(val_data[crop]["Yield"], val[crop], power=2)))
+    model_stats[crop][1].extend([np.nan]*2)
+    #combine the lists into a dataframe with a multiindex and create a list of dataframes
+    #containing one dataframe for each crop
+    df = pd.DataFrame(model_stats[crop], index=['Calibration', 'Validation'], columns=['McFaddens_roh', 'RootMeanGammaDeviance', 'AIC', 'BIC'])
+    df.index = pd.MultiIndex.from_product([[crop], df.index])
+    df_list.append(df)
 
 #combine the seperate dataframes in the list into one dataframe
 statistics_model = pd.concat(df_list, axis=0).sort_index(level=0, sort_remaining=False)
+statistics_model = round(statistics_model, 4)
 #combine all dataframes from each dictionary into one dataframe
 results_model = pd.concat(model_results['raw'], axis=1)
 results_model = results_model.sort_index(axis=1, level=0, sort_remaining=False)
+results_model = round(results_model, 3)
 norm_results = pd.concat(model_results['norm'], axis=1)
 norm_results = norm_results.sort_index(axis=1, level=0, sort_remaining=False)
+norm_results = round(norm_results, 3)
 
 #Create a testing dataset to calculate the effect on yield when one of the factors
 #(n_total, pesticides, irrigation_tot, mechanized) is set to 0
@@ -234,6 +234,7 @@ for crop in crops:
 #combine the four lists into a dataframe
 factor_reduction = pd.DataFrame(testing, index=['n_total', 'pesticides', 'irrigation', 'mechanized'], columns=crops)
 factor_reduction = factor_reduction.sort_index(axis=1, sort_remaining=False)
+factor_reduction = round(factor_reduction, 4)
 
 # Create an Excel with the results and the statistics of the models
 with pd.ExcelWriter(params.statisticsDir + "Model_results.xlsx") as writer:
@@ -476,6 +477,7 @@ for crop in crops:
     prediction_stats[crop]['Production'] = stat_data[crop].sum()
     prediction_stats[crop]['Production'].iloc[4:6] = np.nan
 prediction_statistics = pd.concat(prediction_stats).sort_index(level=0, sort_remaining=False)
+prediction_statistics = round(prediction_statistics, 2)
  
 '''
 Calculate continent level statistics for each crop and each step
@@ -503,6 +505,7 @@ for crop in crops:
         )
 
 continent_statistics = pd.concat(continent_stats).sort_index(level=0, sort_remaining=False)
+continent_statistics.iloc[:,0:4] = round(continent_statistics.iloc[:,0:4], 0)
 
 #LoI_data['Corn']['continents'].unique()
 #df2 = LoI_data['Corn'].pivot_table(index = ['continents'], aggfunc ='size')

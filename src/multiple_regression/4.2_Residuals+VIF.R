@@ -126,6 +126,7 @@ for (crop in crops) {
 
 #order the columns alphabetically
 VIF_crops <- VIF_crops[, order(names(VIF_crops))]
+VIF_crops <- round(VIF_crops, digits=2)
 
 print("Done fitting the GLM and calculating the VIF")
 
