@@ -43,6 +43,7 @@ Created on Wed Dec 14 17:25:39 2022
 
 @author: Jessica Mörsdorf
 jessica@allfed.info
+jessi.moersdorf@gmail.com
 
 """
 import os

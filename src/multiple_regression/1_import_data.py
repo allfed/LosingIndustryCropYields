@@ -19,7 +19,7 @@ Creates the following files:
 
 @author: Jessica Mörsdorf
 jessica@allfed.info
-jessica.m.moersdorf@umwelt.uni-giessen.de
+jessi.moersdorf@gmail.com
 
 """
 import time

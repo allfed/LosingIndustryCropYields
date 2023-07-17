@@ -10,9 +10,9 @@
 #     with crop = ["Corn", "Rice", "Soybean", "Wheat"]
 #as input.
 #
-#1.) The first part of the code loads the crop data, fits the GLM with gamma
-#     distribution and log link and calculates the variance inflation factor
-#     for each crop. It saves the VIF to file.
+#1.) The first part of the code loads the crop data, fits the generalized linear
+#     model with gamma distribution and log link and calculates the generalized
+#     variance inflation factor for each crop. It saves the GVIF to file.
 #
 #     Creates the following file:
 #       1.) new sheet "Model_VIF" in "reports/Model_results.xlsx"
@@ -21,7 +21,7 @@
 #         the fitted values on the link scale.
 #     b) Four plots based on the standardized deviance residuals and the fitted
 #         values on the response scale: Residuals vs. Fitted, Q-QPlot,
-#         Location-Scale Plot, Residual-Leverage Plot and assign it to a variable
+#         Location-Scale Plot, Residual-Leverage Plot.
 #
 #     Creates the following files:
 #       1.) "reports/figures/" + crop + "_residuals_link.png"
@@ -30,6 +30,7 @@
 #
 #@author: Jessica Mörsdorf
 #jessica@allfed.info
+#jessi.moersdorf@gmail.com
 #################################################################################
 
 # Install and load necessary packages
