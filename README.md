@@ -139,6 +139,7 @@ Contact: reach us at morgan@allfed.info or jessi.moersdorf@gmail.com
 
 ## Project structure
 
+```
 ├── data
 ├── processed
 │   ├── input
@@ -181,6 +182,7 @@ Contact: reach us at morgan@allfed.info or jessi.moersdorf@gmail.com
        	    ├── plotter.py
 	    ├── stat_ut.py
      	    └── utilities.py
+```
 
 ## Python function calls
 
