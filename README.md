@@ -158,33 +158,33 @@ Contact: reach us at morgan@allfed.info or jessi.moersdorf@gmail.com
 │   ├── oceans
 │   └── regions
 └── src
-	├── import
+├── import
 	│   ├── import_aez.py
-	│   ├── import_cell_area_data.py
-	│   ├── import_continents.py
-	│   ├── import_crop_area_data.py
-	│   ├── import_fertilizer.py
-	│   ├── import_irrigation_reliant_and_upsample.py
-	│   ├── import_irrigation_total.py
-	│   ├── import_manure_fertilizer.py
+ 	│   ├── import_cell_area_data.py
+  	│   ├── import_continents.py
+   	│   ├── import_crop_area_data.py
+    	│   ├── import_fertilizer.py
+     	│   ├── import_irrigation_reliant_and_upsample.py
+      	│   ├── import_irrigation_total.py
+       	│   ├── import_manure_fertilizer.py
 	│   ├── import_pesticide_application_bycrop.py
-	│   ├── import_spam_yield_data.py
-	│   └── import_tillage.py
-	├── misc
-	├── multiple_regression
-	│   ├── 1_import_data.py
-	│   ├── 2_data_preprocessing.py
-	│   ├── 3_LoI_scenario_data.py
+ 	│   ├── import_spam_yield_data.py
+  	│   └── import_tillage.py
+   	├── misc
+    	├── multiple_regression
+     	│   ├── 1_import_data.py
+      	│   ├── 2_data_preprocessing.py
+       	│   ├── 3_LoI_scenario_data.py
 	│   └── 4.1_GLM_analysis.py
-	└── utilities
-    	    ├── params.py
-    	    ├── plotter.py
-    	    ├── stat_ut.py
-    	    └── utilities.py
+ 	└── utilities
+  	    ├── params.py
+       	    ├── plotter.py
+	    ├── stat_ut.py
+     	    └── utilities.py
 
 ## Python function calls
 
-All python file calls within the repository are shown above. The dotted lines indicate definitions of
+All python file calls within the repository are shown below. The dotted lines indicate definitions of
 objects, while the solid lines indicate the calling of instantiated objects. Files without function calls or 
 object instantiation are not shown. The diagram above was created with pyan3 (https://github.com/Technologicat/pyan).
 
