@@ -1,5 +1,3 @@
-import os
-
 import git
 from pathlib import Path
 
@@ -34,9 +32,6 @@ def deleteGlobals():
     del geopandasDataDir
     del figuresDir
     del growAreaDataLoc
-    # del tempCSVloc
-    # del windCSVloc
-    # del temphumsunrainCSVloc
     del outputAsciiDir
     del inputDataDir
     del cropDataDir
@@ -61,37 +56,14 @@ def deleteGlobals():
     del estimateYield
     del allCrops
     del rain_mps_to_mm
-    """
-    del Tbase
-    del Tfp
-    del Topt1
-    del Topt2
-    del RpeakCoeff  
-    del RlowCoeff   
-    del RhighCoeff  
-    del Rlow    
-    del Rpeak   
-    del Rhigh
-    del growDuration
-    del idealGrowth
-    del kCalperkg
-    del fracProtein
-    del fracFat
-    del fracCarbs
-"""
 
 
 def importAll():
     importDirectories()
     importModelParams()
-    # importYieldTemp()
-    # importYieldRain()
-    # importGrowingSeason()
-    # importNutrition()
 
 
 def importDirectories():
-    from sys import platform
     from pyexcel_ods3 import get_data
 
     global spamCropYieldDataLoc
@@ -115,9 +87,6 @@ def importDirectories():
     global statisticsDir
     global inputAsciiDir
     global geopandasDataDir
-    # global tempCSVloc
-    # global windCSVloc
-    # global temphumsunrainCSVloc
     global outputAsciiDir
 
     data = get_data(paramsfilename)
@@ -171,12 +140,6 @@ def importDirectories():
             figuresDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
         if coltitle == "statisticsDir":
             statisticsDir = str(Path(repo_root) / paramdata[2][coltitleindex]) + "/"
-        # if(coltitle == 'tempCSVloc'):
-        # tempCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        # if(coltitle == 'temphumsunrainCSVloc'):
-        # temphumsunrainCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
-        # if(coltitle == 'windCSVloc'):
-        # windCSVloc=dir_path+'/../'+paramdata[2][coltitleindex]
         if coltitle == "inputAsciiDir":
             inputAsciiDir = str(Path(repo_root) / paramdata[2][coltitleindex])
         if coltitle == "outputAsciiDir":
@@ -263,12 +226,6 @@ def importModelParams():
                 paramdata[2][coltitleindex] == "TRUE"
                 or paramdata[2][coltitleindex] == True
             )
-        # if(coltitle == 'plotTempCoeff'):
-        # plotTempCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        # if(coltitle == 'plotRainCoeff'):
-        # plotRainCoeff = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
-        # if(coltitle == 'saveTempCSV'):
-        # saveTempCSV = (paramdata[2][coltitleindex]=='TRUE' or paramdata[2][coltitleindex]==True)
         if coltitle == "estimateYield":
             estimateYield = (
                 paramdata[2][coltitleindex] == "TRUE"
@@ -279,146 +236,3 @@ def importModelParams():
                 paramdata[2][coltitleindex] == "TRUE"
                 or paramdata[2][coltitleindex] == True
             )
-
-
-"""
-def importYieldTemp():
-
-    from pyexcel_ods3 import get_data
-
-    global Tbase
-    global Tfp
-    global Topt1
-    global Topt2
-
-    data = get_data(paramsfilename)
-    paramdata = data['YieldTempCoeff']
-
-    Tbase={}
-    Tfp={}
-    Topt1={}
-    Topt2={}
-
-    for cropindex in range(2,len(paramdata)):
-
-        croprow=paramdata[cropindex]
-        if(not croprow):
-            break
-
-        crop=croprow[0]
-        for coltitleindex in range(1,len(paramdata[1])):
-            coltitle=paramdata[1][coltitleindex]
-            if(coltitle == 'Tbase'):
-                Tbase[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'Tfp'):
-                Tfp[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'Topt1'):
-                Topt1[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'Topt2'):
-                Topt2[crop]=paramdata[cropindex][coltitleindex]
-
-
-def importYieldRain():
-    from pyexcel_ods3 import get_data
-    global RpeakCoeff   
-    global RlowCoeff    
-    global RhighCoeff   
-    global Rlow 
-    global Rpeak    
-    global Rhigh
-
-    data = get_data(paramsfilename)
-    paramdata = data['YieldRainCoeff']
-
-    RpeakCoeff={}
-    RlowCoeff={}
-    RhighCoeff={}
-    Rlow={}
-    Rpeak={}
-    Rhigh={}
-
-
-    for cropindex in range(2,len(paramdata)):
-
-        croprow=paramdata[cropindex]
-        if(not croprow):
-            break
-
-        crop=croprow[0]
-        for coltitleindex in range(1,len(paramdata[1])):
-            coltitle=paramdata[1][coltitleindex]
-            if(coltitle == 'RpeakCoeff'):
-                RpeakCoeff[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'RlowCoeff'):
-                RlowCoeff[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'RhighCoeff'):
-                RhighCoeff[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'Rlow'):
-                Rlow[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'Rpeak'):
-                Rpeak[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'Rhigh'):
-                Rhigh[crop]=paramdata[cropindex][coltitleindex]
-
-
-def importGrowingSeason():
-    from pyexcel_ods3 import get_data
-
-    global growDuration
-    global idealGrowth
-
-    data = get_data(paramsfilename)
-    paramdata = data['GrowingSeason']
-
-    growDuration = {}
-    idealGrowth = {}
-
-    for cropindex in range(2,len(paramdata)):
-
-        croprow=paramdata[cropindex]
-        if(not croprow):
-            break
-
-        crop=croprow[0]
-        for coltitleindex in range(1,len(paramdata[1])):
-            coltitle=paramdata[1][coltitleindex]
-            if(coltitle == 'growDuration'):
-                growDuration[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'idealGrowth'):
-                idealGrowth[crop]=paramdata[cropindex][coltitleindex]
-
-
-def importNutrition():
-    from pyexcel_ods3 import get_data
-
-    global kCalperkg
-    global fracProtein
-    global fracFat
-    global fracCarbs
-
-    data = get_data(paramsfilename)
-    paramdata = data['Nutrition']
-
-    kCalperkg = {}
-    fracProtein = {}
-    fracFat = {}
-    fracCarbs = {}
-
-    for cropindex in range(2,len(paramdata)):
-
-        croprow=paramdata[cropindex]
-        if(not croprow):
-            break
-
-        crop=croprow[0]
-        for coltitleindex in range(1,len(paramdata[1])):
-            coltitle=paramdata[1][coltitleindex]
-            if(coltitle == 'kCalperkg'):
-                kCalperkg[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'fracProtein'):
-                fracProtein[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'fracFat'):
-                fracFat[crop]=paramdata[cropindex][coltitleindex]
-            if(coltitle == 'fracCarbs'):
-                fracCarbs[crop]=paramdata[cropindex][coltitleindex]
-"""
