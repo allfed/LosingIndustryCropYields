@@ -117,13 +117,15 @@ From here you can open and run 4.2_Residuals+VIF.R.
 
 ### Input data management
 
-You can download the raw input data from google drive:
-
-https://drive.google.com/drive/u/1/folders/1RT73xckNdAnfDQRFiJYTcY2Yrv7HWRKs
-
-Create a “data” folder in the root folder of the repository. Save the downloaded "raw” folder to
-“data”. The raw data is only necessary if you want to run the run_all_imports.py script. The
+The raw data is only necessary if you want to run the run_all_imports.py script. The
 run_analysis.py script only takes files from the “processed/input” folder as inputs.
+
+If you want to do this you can either refer to Table 1 in the corresponding paper and
+download the data from their original sources or you can contact us at morgan@allfed.info
+and we can share a compiled data folder with you.
+
+Once you have downloaded the data, create a “data” folder in the root folder of the repository
+and save the downloaded "raw” folder to “data”. 
 
 For more information on the input data refer to Description_input_data.pdf.
 
