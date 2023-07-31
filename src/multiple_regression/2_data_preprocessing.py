@@ -187,19 +187,14 @@ def extract_outliers(data, factors, thresholds):
 
 
 # select the columns of the dataframe where outliers will be calculated
-factors = {
-    "Yield": 4,
-    "n_fertilizer": 0,
-    "n_manure": 1,
-    "n_total": 2,
-    "pesticides": 3,
-}
+
+factors = ("Yield", "n_fertilizer", "n_manure", "n_total", "pesticides")
 
 # for each crop: calculate the outlier thresholds and apply the above functions
 out_threshold, data_step3, outliers = {}, {}, {}
 for crop in crops:
     # combine variables where to calculate the outliers and the 99.9th quantile of each variable into a dictionary
-    out_threshold[crop] = dict(zip(factors, data_step2[crop][factors].quantile(0.999)))
+    out_threshold[crop] = dict(zip(factors, data_step2[crop].iloc[:,3:8].quantile(0.999)))
     # replace the value for n_manure with the 99th quantile
     out_threshold[crop]["n_manure"] = data_step2[crop]["n_manure"].quantile(0.99)
     data_step3[crop] = eliminate_outliers(
@@ -269,28 +264,10 @@ metrics = ["Total_Area(ha)", "Number_Rows"]
 #specify the steps for which the statistics will be calculated
 steps = ["raw", "step1", "step2", "clean", "outliers"]
 #specify the categorical factors, as the mean will be calculated differently
-cat = {
-    "mechanized": 1,
-    "thz_class": 2,
-    "mst_class": 3,
-    "soil_class": 4,
-    "continents": 5,
-}
+cat = ("mechanized", "thz_class", "mst_class", "soil_class", "continents")
 #specify the columns for which the statistics will be calculated
-columns_stat = {
-    "Yield": 0,
-    "n_fertilizer": 1,
-    "n_manure": 2,
-    "n_total": 3,
-    "pesticides": 4,
-    "irrigation_tot": 5,
-    "irrigation_rel": 6,
-    "mechanized": 7,
-    "thz_class": 8,
-    "mst_class": 9,
-    "soil_class": 10,
-    "continents": 11,
-}
+columns_stat = ("Yield", "n_fertilizer", "n_manure", "n_total", "pesticides", "irrigation_tot", "irrigation_rel",
+                "mechanized", "thz_class", "mst_class", "soil_class", "continents")
 
 #compile the data set for each step and the columns specified above in a dictionary
 data = {
@@ -313,6 +290,7 @@ for crop in crops:
     df.columns = pd.MultiIndex.from_product([[crop], df.columns])
     df_list.append(df)
 result = pd.concat(df_list, axis=1).transpose()
+
 
 #calculate descriptive statistics (Weighted mean/mode, minimum, maximum, crop area,
 #outlier threshold, number of outliers, the number of no data values and the number of zeros)
@@ -367,6 +345,7 @@ for crop in crops:
     desc_stats[crop] = pd.concat(df_list, axis=1).sort_index(
         level=0, axis=1, sort_remaining=False
     )
+
 
 # Create a Pandas Excel writer using XlsxWriter as the engine.
 with pd.ExcelWriter(params.statisticsDir + "Descriptive_Statistics.xlsx") as writer:

@@ -3,8 +3,6 @@
 Useful functions that don't involve plotting, called from various locations in the code.
 
 """
-import os
-import sys
 import src.utilities.params as params  # get file location and varname parameters for
 
 import numpy as np
@@ -18,24 +16,9 @@ params.importIfNotAlready()
 # this function is used to make a bunch of rectangle grid shapes so the
 # plotting looks nice and so we can later add up the crop area inside the grid
 def makeGrid(df):
-    nbins = params.growAreaBins
     cell_size_lats = params.latdiff
-    cell_size_lons = params.londiff
-    # mn_lat=-56.00083
-    # mx_lat=83.99917
-    # mn_lon=-178.875
-    # mx_lon=179.875
-    # raw_lats = np.linspace(mn_lat, mx_lat,  1681)
-    # raw_lons = np.linspace(mn_lon, mx_lon,  4306)
-    # cell_size_lats=(raw_lats[1]-raw_lats[0])*(nbins)
-    # cell_size_lons=(raw_lons[1]-raw_lons[0])*(nbins)
-
-    # print(df)
     cells = []
     for index, row in df.iterrows():
-        # print(row)
-        # print(params.londiff)
-        # print(cell_size_lats)
         cell = shapely.geometry.Point(
             [
                 row["lons"],
@@ -43,8 +26,7 @@ def makeGrid(df):
                 row["lons"] + params.londiff,
                 row["lats"] + cell_size_lats,
             ]
-        )  # params.latdiff)
-
+        ) 
         cells.append(cell)
     crs = {"init": "epsg:4326"}
     geo_df = gpd.GeoDataFrame(df, crs=crs, geometry=cells)
@@ -72,14 +54,6 @@ def rebinIgnoreZeros(a, shape):
 
     # if all cells are zero, report nan for yield
     anonzeronan = np.where(anonzeros == 0, np.nan, anonzeros)
-
-    # multiply average by fraction zero cells, to cancel out their effect
-    # cell_avg=cell_sum/ncells => 25% zero cells would be
-    # cell_avg=cell_sum_nonzeros/(cells_zero+cells_nonzero)
-    # cell_avg_nonzero=cell_sum_nonzeros/(cells_nonzero)
-    # therefore
-    # cell_avg_nonzero=cell_avg*(cells_zero+cells_nonzero)/(cells_nonzero)
-    # cell_avg_nonzero=cell_avg/(fraction_cells_nonzero)
 
     return np.divide(asmall, anonzeronan)
 
@@ -113,11 +87,9 @@ def saveasgeopandas(name, allMonths, gridAllMonths, lats, lons):
     gdf = gpd.GeoDataFrame(df, crs={"init": "epsg:4326"}, geometry=geometry)
 
     grid = makeGrid(gdf)
-    fn = params.geopandasDataDir + name + ".csv"
 
     grid = grid.sort_values(by=["lats", "lons"])
     return grid
-    # grid.to_csv(fn)
 
 
 # save a .pkl file with the gridded data saved in columns labelled by month
@@ -150,8 +122,6 @@ def createASCII(df, column, fn):
     nrows = len(set(df["lats"]))
     array = np.array(df[column]).astype("float32")
     arrayWithNoData = np.where(np.isnan(array), -9, array)
-    # arrayWithNoData=np.where(np.bitwise_or(array<0, np.isnan(array)), -9, array)
-    # np.savetxt(params.asciiDir)
     pretext = """ncols         %s
 nrows         %s
 xllcorner     -180
@@ -177,7 +147,6 @@ def create5minASCII(df, column, fn):
     file1 = open(fn + ".asc", "w")  # write mode
     array = np.array(df[column].values).astype("float32")
     arrayWithNoData = np.where(np.bitwise_or(array < 0, np.isnan(array)), -9, array)
-    # np.savetxt(params.asciiDir)
     pretext = """ncols         4320
     nrows         2160
     xllcorner     -180
@@ -201,7 +170,6 @@ def create5minASCIIneg(df, column, fn):
     file1 = open(fn + ".asc", "w")  # write mode
     array = np.array(df[column].values).astype("float32")
     arrayWithNoData = np.where(np.isnan(array), -9, array)
-    # np.savetxt(params.asciiDir)
     pretext = """ncols         4320
 nrows         2160
 xllcorner     -180
