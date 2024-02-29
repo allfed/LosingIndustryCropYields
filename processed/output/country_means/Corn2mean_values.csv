@@ -1,125 +1,126 @@
-Morocco,-0.014873775
+country,mean_value
+Uruguay,-0.06397448
+Poland,-0.42925864
+Georgia,-0.001653489
+Italy,-0.45113698
+Gabon,-0.015357812
+Belarus,-0.3309698
+Argentina,-0.4228612
+Portugal,-0.27366188
+North Korea,-0.031561542
+Somalia,-0.054801896
+Ecuador,-0.107295066
+Kyrgyzstan,-0.1677078
+Venezuela,-0.25745553
+China,-0.2603131
+Botswana,0.0
+Greece,-0.5355459
+Sri Lanka,-0.08734856
+Indonesia,-0.32243893
+Mali,-0.22933997
+Bulgaria,-0.37689266
+Chad,-0.011620763
+Tajikistan,-0.63405085
+Turkey,-0.46297437
+Tanzania,-0.045169134
+Panama,-0.009573609
+Cuba,-0.01653936
+Eritrea,-0.027926832
+Cambodia,-0.38662767
+Canada,-0.4858136
+Myanmar,-0.42528477
+Lesotho,-0.0022468648
+Bhutan,-0.306748
+Pakistan,-0.22590473
+Israel,-0.8351173
+Australia,-0.39839414
 Paraguay,-0.3457571
 Côte d'Ivoire,-0.0535618
-Czech Republic,-0.44120315
-Egypt,-0.66834205
-Iran,-0.50619406
-Afghanistan,-0.0069841375
+Morocco,-0.014873774
 Trinidad and Tobago,-0.2804461
-Namibia,0.0
-Chile,-0.607358
-Cuba,-0.01653936
-Uruguay,-0.063974485
-Gabon,-0.015357812
-North Korea,-0.03156154
-Togo,-0.0134423515
-Albania,-0.2564511
-Colombia,-0.17090099
-Hungary,-0.39291513
-Romania,-0.1565478
-Saudi Arabia,-0.30243745
-Austria,-0.58547324
-South Africa,-0.4220563
-Guinea-Bissau,0.0
-Kenya,-0.04290999
-Slovakia,-0.33804297
-Myanmar,-0.4252847
-Honduras,-0.05603922
-Nicaragua,-0.010549765
-Laos,-0.5154352
-Croatia,-0.30469182
-Belarus,-0.3309698
-Netherlands,-0.6116485
-Kazakhstan,-0.26559198
-Bosnia and Herzegovina,-0.10748237
-Tanzania,-0.045169134
-Italy,-0.45113698
-Thailand,-0.16381656
-Ethiopia,-0.21410877
-Costa Rica,-0.27426535
-Canada,-0.4858136
+Russian Federation,-0.13221194
+Benin,-0.010344538
+Gambia,-0.013892677
 Germany,-0.5045182
-Indonesia,-0.32243893
-Philippines,-0.13481711
-Tajikistan,-0.63405085
-Switzerland,-0.52874625
-Peru,-0.24581076
-Somalia,-0.054801896
-Turkmenistan,0.0
-Panama,-0.009573609
+Haiti,-0.0005582778
+Senegal,-0.11645072
+Slovakia,-0.33804297
+Afghanistan,-0.0069841375
+Rwanda,-0.11500096
+Azerbaijan,-0.21118718
+Albania,-0.25645113
 Spain,-0.6003487
-Nepal,-0.051122136
-Botswana,0.0
-El Salvador,-0.38654897
-Mozambique,-0.008313558
-Ukraine,-0.3250133
-Eswatini,-0.010339275
-Guinea,-0.10014894
-Bolivia,-0.25670922
-Madagascar,-0.040954825
-Argentina,-0.4228612
-Poland,-0.4292587
-Cambodia,-0.38662767
-Nigeria,-0.094410375
-Uganda,-0.27429456
-Congo DRC,-0.0009845732
-Senegal,-0.116450734
-Serbia,-0.36607048
-Chad,-0.011620763
-Mali,-0.22933997
-Mauritania,0.0
-Mexico,-0.2211501
-Gambia,-0.013892675
-Australia,-0.39839414
-Turkey,-0.46297434
+France,-0.46474773
+Chile,-0.6073579
 Moldova,-0.090738736
+Ethiopia,-0.21410877
+Burundi,-3.4057837e-05
+Colombia,-0.17090099
+North Macedonia,-0.21137923
+Mozambique,-0.008313558
+Turkmenistan,0.0
+Hungary,-0.39291513
+Eswatini,-0.010339275
+Saudi Arabia,-0.30243745
+India,-0.20152143
+South Korea,-0.40531415
+Ukraine,-0.32501328
+Slovenia,-0.4934559
+Yemen,-0.16418077
+Czech Republic,-0.44120318
+Guinea-Bissau,0.0
+Burkina Faso,-0.0619612
+Ghana,-0.06431389
+Nigeria,-0.094410375
+Dominican Republic,-0.0061766636
+Serbia,-0.3660705
+Croatia,-0.30469185
+Egypt,-0.66834205
+Angola,-0.0021405155
+Bolivia,-0.25670922
+Syria,-0.13161534
+Zimbabwe,-0.010116576
+Belgium,-0.62265986
+Iraq,-0.08636007
+Honduras,-0.056039218
+Peru,-0.24581076
+Uganda,-0.2742945
+Iran,-0.50619406
+Costa Rica,-0.27426535
+Montenegro,-0.44515738
+Timor-Leste,-0.16616637
+Kenya,-0.042909995
 Malawi,-0.24991292
 Belize,-0.39125243
-Azerbaijan,-0.21118715
-United States,-0.51205474
-Malaysia,-0.7149449
-Iraq,-0.08636007
-Vietnam,-0.36985272
-Georgia,-0.0016534888
-Brazil,-0.3975569
-Timor-Leste,-0.16616635
-Greece,-0.5355459
-Haiti,-0.0005582778
-Angola,-0.0021405155
-Rwanda,-0.11500096
-Dominican Republic,-0.0061766636
-Benin,-0.010344538
-Eritrea,-0.027926832
-Sri Lanka,-0.08734855
-Kyrgyzstan,-0.1677078
-Bangladesh,-0.13481294
-Pakistan,-0.22590473
-Belgium,-0.62265974
-Cameroon,-0.1473582
-Russian Federation,-0.13221194
-Israel,-0.8351173
-Zambia,-0.33793905
-Burkina Faso,-0.0619612
-Ecuador,-0.107295066
-Syria,-0.13161533
-India,-0.20152143
-Sierra Leone,0.0
-Lesotho,-0.0022468648
-Ghana,-0.06431389
-Bulgaria,-0.37689266
-Venezuela,-0.25745553
-Guatemala,-0.08506142
-Montenegro,-0.44515738
-Portugal,-0.27366188
-New Zealand,-0.71935546
-South Korea,-0.40531412
-Uzbekistan,-0.28462058
-France,-0.46474773
-Slovenia,-0.4934558
-China,-0.2603131
-North Macedonia,-0.21137922
-Bhutan,-0.30674797
-Zimbabwe,-0.010116576
-Yemen,-0.16418077
-Burundi,-3.4057837e-05
+Laos,-0.5154352
+Switzerland,-0.52874625
 Central African Republic,0.0
+Romania,-0.1565478
+Nicaragua,-0.010549765
+Bosnia and Herzegovina,-0.10748237
+Thailand,-0.16381656
+Namibia,0.0
+El Salvador,-0.38654894
+Mauritania,0.0
+New Zealand,-0.71935546
+Guinea,-0.10014894
+Malaysia,-0.7149449
+Vietnam,-0.36985272
+United States,-0.51205474
+Brazil,-0.3975569
+Togo,-0.013442351
+Mexico,-0.2211501
+Austria,-0.5854733
+Zambia,-0.33793905
+Netherlands,-0.6116485
+South Africa,-0.4220563
+Nepal,-0.051122136
+Bangladesh,-0.13481294
+Congo DRC,-0.000984573
+Sierra Leone,0.0
+Madagascar,-0.040954825
+Cameroon,-0.1473582
+Guatemala,-0.08506142
+Kazakhstan,-0.265592
+Philippines,-0.1348171
+Uzbekistan,-0.2846206
